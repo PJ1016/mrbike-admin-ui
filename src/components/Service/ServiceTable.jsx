@@ -28,7 +28,7 @@ const ServiceTable = ({
     _id: "",
     base_service_id: {},
     companies: [],
-    dealer_id: [],
+    dealer_id: {},
     bikes: [],
   })
 
@@ -37,7 +37,7 @@ const ServiceTable = ({
       _id: service._id,
       base_service_id: service.base_service_id || {},
       companies: service.companies || [],
-      dealer_id: service.dealer_id || [],
+      dealer_id: service.dealer_id || {},
       bikes: service.bikes || [],
     })
     setShowEditModal(true)
@@ -143,27 +143,19 @@ const ServiceTable = ({
         )}
       </td>
       <td>
-        {data.dealers && data.dealers.length > 0 ? (
-          <div className="d-flex flex-wrap gap-1">
-            {data.dealers.map((dealer, idx) => (
-              <span key={idx} className="badge bg-success text-white">
-                {dealer.name}
-              </span>
-            ))}
-          </div>
+        {data.dealer_id ? (
+          <span className="badge bg-success text-white">
+            {typeof data.dealer_id === "object" ? data.dealer_id.shopName || "N/A" : "N/A"}
+          </span>
         ) : (
           "N/A"
         )}
       </td>
       <td>
-        {data.dealers && data.dealers.length > 0 ? (
-          <div className="d-flex flex-wrap gap-1">
-            {data.dealers.map((dealer, idx) => (
-              <span key={idx} className="badge bg-secondary text-white">
-                {dealer.shortId}
-              </span>
-            ))}
-          </div>
+        {data.dealer_id ? (
+          <span className="badge bg-secondary text-white">
+            {typeof data.dealer_id === "object" ? data.dealer_id.dealerId || "N/A" : "N/A"}
+          </span>
         ) : (
           "N/A"
         )}
@@ -363,21 +355,31 @@ const ServiceTable = ({
                     </div>
                   </div>
 
-                  <div className="col-12">
-                    <label className="form-label">Dealers (Read-Only)</label>
-                    <div className="form-control" style={{ height: "auto", background: "#f8f9fa" }}>
-                      {editFormData.dealer_id && editFormData.dealer_id.length > 0 ? (
-                        <div className="d-flex flex-wrap gap-1">
-                          {editFormData.dealer_id.map((dealer, idx) => (
-                            <span key={idx} className="badge bg-warning text-dark">
-                              {typeof dealer === "object" ? dealer.name || dealer.shopName : dealer}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-muted">No dealers</span>
-                      )}
-                    </div>
+                  <div className="col-md-6">
+                    <label className="form-label">Dealer Name (Read-Only)</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={
+                        editFormData.dealer_id && typeof editFormData.dealer_id === "object"
+                          ? editFormData.dealer_id.shopName || "N/A"
+                          : "N/A"
+                      }
+                      disabled
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label">Dealer ID (Read-Only)</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={
+                        editFormData.dealer_id && typeof editFormData.dealer_id === "object"
+                          ? editFormData.dealer_id.dealerId || "N/A"
+                          : "N/A"
+                      }
+                      disabled
+                    />
                   </div>
 
                   <div className="col-12">
