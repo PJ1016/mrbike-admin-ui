@@ -14,18 +14,19 @@ import {
   InputAdornment,
   Pagination,
   IconButton,
-  Menu,
-  MenuItem,
   Box,
   Typography,
-  CircularProgress,
   Avatar,
-  Chip,
+  Tooltip,
+  Skeleton,
+  TableSortLabel,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
+import ClearIcon from "@mui/icons-material/Clear";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import InventoryIcon from "@mui/icons-material/Inventory";
+import { visuallyHidden } from "@mui/utils";
 
 const BaseServiceTable = ({
   datas,
@@ -35,25 +36,18 @@ const BaseServiceTable = ({
 }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  const [order, setOrder] = useState("desc");
+  const [orderBy, setOrderBy] = useState("createdAt");
   const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 10;
+  const rowsPerPage = 5;
 
-  // State for Action Menu
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedService, setSelectedService] = useState(null);
-
-  const handleMenuOpen = (event, service) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedService(service);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedService(null);
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
   };
 
   const handleDelete = async (serviceId) => {
-    handleMenuClose();
     Swal.fire({
       title: "Are you sure?",
       text: "You won't be able to revert this!",
@@ -77,12 +71,39 @@ const BaseServiceTable = ({
   };
 
   const filteredData = useMemo(() => {
-    const dataList = Array.isArray(datas) ? datas : [];
-    if (!searchTerm.trim()) return dataList;
-    return dataList.filter((item) =>
-      item.name?.toLowerCase().includes(searchTerm.toLowerCase()),
-    );
-  }, [datas, searchTerm]);
+    let dataList = Array.isArray(datas) ? [...datas] : [];
+
+    // Filter logic
+    if (searchTerm.trim()) {
+      dataList = dataList.filter((item) =>
+        item.name?.toLowerCase().includes(searchTerm.toLowerCase()),
+      );
+    }
+
+    // Sort logic
+    dataList.sort((a, b) => {
+      let valA = a[orderBy];
+      let valB = b[orderBy];
+
+      if (orderBy === "createdAt") {
+        valA = new Date(valA);
+        valB = new Date(valB);
+      } else if (typeof valA === "string") {
+        valA = valA.toLowerCase();
+        valB = (valB || "").toLowerCase();
+      }
+
+      if (valB < valA) {
+        return order === "desc" ? -1 : 1;
+      }
+      if (valB > valA) {
+        return order === "desc" ? 1 : -1;
+      }
+      return 0;
+    });
+
+    return dataList;
+  }, [datas, searchTerm, order, orderBy]);
 
   const totalPages = Math.ceil(filteredData.length / rowsPerPage);
 
@@ -90,6 +111,9 @@ const BaseServiceTable = ({
     const start = (currentPage - 1) * rowsPerPage;
     return filteredData.slice(start, start + rowsPerPage);
   }, [filteredData, currentPage]);
+
+  const startIndex = (currentPage - 1) * rowsPerPage + 1;
+  const endIndex = Math.min(currentPage * rowsPerPage, filteredData.length);
 
   return (
     <Box>
@@ -110,78 +134,158 @@ const BaseServiceTable = ({
               input: {
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon sx={{ color: "text.secondary" }} />
+                    <SearchIcon
+                      sx={{ color: "text.secondary", fontSize: 20 }}
+                    />
+                  </InputAdornment>
+                ),
+                endAdornment: searchTerm && (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={() => setSearchTerm("")}>
+                      <ClearIcon fontSize="small" />
+                    </IconButton>
                   </InputAdornment>
                 ),
               },
             }}
-            sx={{ width: 300 }}
+            sx={{
+              width: { xs: "100%", sm: 300 },
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "8px",
+              },
+            }}
           />
         </Box>
 
         <TableContainer>
-          <Table sx={{ minWidth: 650 }}>
+          <Table sx={{ minWidth: 650 }} size="small">
             <TableHead sx={{ bgcolor: "#F8FAFC" }}>
               <TableRow>
-                {tableHeaders.map((header) => (
-                  <TableCell key={header} sx={{ fontWeight: 600 }}>
-                    {header}
-                  </TableCell>
-                ))}
+                {tableHeaders.map((header) => {
+                  const isSortable =
+                    header === "Service Name" || header === "Created At";
+                  const property =
+                    header === "Service Name" ? "name" : "createdAt";
+
+                  return (
+                    <TableCell
+                      key={header}
+                      align={header === "Actions" ? "center" : "left"}
+                      sortDirection={orderBy === property ? order : false}
+                      sx={{ fontWeight: 700, py: 1.5, color: "text.secondary" }}
+                    >
+                      {isSortable ? (
+                        <TableSortLabel
+                          active={orderBy === property}
+                          direction={orderBy === property ? order : "asc"}
+                          onClick={() => handleRequestSort(property)}
+                          sx={{
+                            "&.Mui-active": { color: "primary.main" },
+                            "& .MuiTableSortLabel-icon": {
+                              color: "primary.main !important",
+                            },
+                          }}
+                        >
+                          {header}
+                          {orderBy === property ? (
+                            <Box component="span" sx={visuallyHidden}>
+                              {order === "desc"
+                                ? "sorted descending"
+                                : "sorted ascending"}
+                            </Box>
+                          ) : null}
+                        </TableSortLabel>
+                      ) : (
+                        header
+                      )}
+                    </TableCell>
+                  );
+                })}
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={tableHeaders.length}
-                    align="center"
-                    sx={{ py: 8 }}
-                  >
-                    <CircularProgress size={40} sx={{ mb: 2 }} />
-                    <Typography color="text.secondary">
-                      Loading base services...
-                    </Typography>
-                  </TableCell>
-                </TableRow>
+                Array.from(new Array(5)).map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Skeleton width={20} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton variant="rounded" width={40} height={40} />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton width="60%" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton width="40%" />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "center",
+                          gap: 1,
+                        }}
+                      >
+                        <Skeleton variant="circular" width={28} height={28} />
+                        <Skeleton variant="circular" width={28} height={28} />
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))
               ) : currentData.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={tableHeaders.length}
                     align="center"
-                    sx={{ py: 8 }}
+                    sx={{ py: 10 }}
                   >
-                    <Typography color="text.secondary" fontStyle="italic">
-                      No services found matching your search.
+                    <Box sx={{ opacity: 0.3, mb: 2 }}>
+                      <InventoryIcon sx={{ fontSize: 64 }} />
+                    </Box>
+                    <Typography
+                      variant="h6"
+                      color="text.secondary"
+                      fontWeight={600}
+                    >
+                      No services found
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Try adjusting your search or add a new service.
                     </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
                 currentData.map((service, index) => (
                   <TableRow key={service._id} hover>
-                    <TableCell>
+                    <TableCell sx={{ py: 1 }}>
                       {(currentPage - 1) * rowsPerPage + index + 1}
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ py: 1 }}>
                       <Avatar
                         src={service.image}
                         variant="rounded"
                         sx={{
-                          width: 48,
-                          height: 48,
+                          width: 40,
+                          height: 40,
                           border: "1px solid #eee",
                           bgcolor: "#f5f5f5",
+                          fontSize: "1rem",
                         }}
                       >
                         {service.name?.charAt(0)}
                       </Avatar>
                     </TableCell>
-                    <TableCell>
-                      <Typography fontWeight={600} color="text.primary">
+                    <TableCell sx={{ py: 1 }}>
+                      <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        color="text.primary"
+                      >
                         {service.name}
                       </Typography>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ py: 1 }}>
                       <Typography variant="body2" color="text.secondary">
                         {new Date(service.createdAt).toLocaleDateString(
                           "en-US",
@@ -193,10 +297,36 @@ const BaseServiceTable = ({
                         )}
                       </Typography>
                     </TableCell>
-                    <TableCell align="right">
-                      <IconButton onClick={(e) => handleMenuOpen(e, service)}>
-                        <MoreVertIcon />
-                      </IconButton>
+                    <TableCell align="center" sx={{ py: 1 }}>
+                      <Box sx={{ display: "flex", justifyContent: "center" }}>
+                        <Tooltip title="Edit Service" arrow>
+                          <IconButton
+                            size="small"
+                            sx={{
+                              color: "primary.main",
+                              "&:hover": { bgcolor: "primary.lighter" },
+                            }}
+                            onClick={() =>
+                              navigate(`/edit-base-service/${service._id}`)
+                            }
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete Service" arrow>
+                          <IconButton
+                            size="small"
+                            sx={{
+                              color: "error.main",
+                              ml: 1,
+                              "&:hover": { bgcolor: "error.lighter" },
+                            }}
+                            onClick={() => handleDelete(service._id)}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 ))
@@ -209,12 +339,21 @@ const BaseServiceTable = ({
           sx={{
             mt: 3,
             display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
             justifyContent: "space-between",
             alignItems: "center",
+            gap: 2,
           }}
         >
           <Typography variant="body2" color="text.secondary">
-            Total Records: <b>{filteredData.length}</b>
+            {filteredData.length > 0 ? (
+              <>
+                Showing <b>{startIndex}</b> to <b>{endIndex}</b> of{" "}
+                <b>{filteredData.length}</b> results
+              </>
+            ) : (
+              "No results to display"
+            )}
           </Typography>
           <Pagination
             count={totalPages}
@@ -222,40 +361,10 @@ const BaseServiceTable = ({
             onChange={(_, page) => setCurrentPage(page)}
             color="primary"
             shape="rounded"
+            size="medium"
           />
         </Box>
       </Paper>
-
-      {/* Action Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        slotProps={{
-          paper: {
-            elevation: 2,
-            sx: { minWidth: 150, borderRadius: "8px" },
-          },
-        }}
-      >
-        <MenuItem
-          onClick={() => {
-            navigate(`/edit-base-service/${selectedService?._id}`);
-            handleMenuClose();
-          }}
-          sx={{ gap: 1.5 }}
-        >
-          <EditIcon fontSize="small" sx={{ color: "text.secondary" }} />
-          Edit
-        </MenuItem>
-        <MenuItem
-          onClick={() => handleDelete(selectedService?._id)}
-          sx={{ gap: 1.5, color: "error.main" }}
-        >
-          <DeleteIcon fontSize="small" />
-          Delete
-        </MenuItem>
-      </Menu>
     </Box>
   );
 };
