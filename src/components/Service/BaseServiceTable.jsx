@@ -1,28 +1,59 @@
-"use client"
-
-import { useState, useMemo, useRef } from "react"
-import Swal from "sweetalert2"
-import ImagePreview from "../Global/ImagePreview"
-import { deleteBaseService } from "../../api"
-import { useNavigate } from "react-router-dom"
+import { useState, useMemo } from "react";
+import Swal from "sweetalert2";
+import { useNavigate } from "react-router-dom";
+import { deleteBaseService } from "../../api";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TextField,
+  InputAdornment,
+  Pagination,
+  IconButton,
+  Menu,
+  MenuItem,
+  Box,
+  Typography,
+  CircularProgress,
+  Avatar,
+  Chip,
+} from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 const BaseServiceTable = ({
-  triggerDownloadExcel,
-  triggerDownloadPDF,
-  tableHeaders,
   datas,
-  text,
   onServiceDeleted,
   loading,
+  tableHeaders,
 }) => {
-  const navigate = useNavigate()
-  const tableRef = useRef(null)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
 
-  const rowsPerPage = 10
+  // State for Action Menu
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedService, setSelectedService] = useState(null);
+
+  const handleMenuOpen = (event, service) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedService(service);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedService(null);
+  };
 
   const handleDelete = async (serviceId) => {
+    handleMenuClose();
     Swal.fire({
       title: "Are you sure?",
       text: "You won't be able to revert this!",
@@ -34,164 +65,199 @@ const BaseServiceTable = ({
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const response = await deleteBaseService(serviceId)
+          const response = await deleteBaseService(serviceId);
           if (response && response.status === true) {
-            onServiceDeleted()
+            onServiceDeleted();
           }
         } catch (error) {
-          console.error("[v0] Delete failed in UI:", error)
+          console.error("Delete failed:", error);
         }
       }
-    })
-  }
+    });
+  };
 
   const filteredData = useMemo(() => {
-    const dataList = Array.isArray(datas) ? datas : []
+    const dataList = Array.isArray(datas) ? datas : [];
+    if (!searchTerm.trim()) return dataList;
+    return dataList.filter((item) =>
+      item.name?.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+  }, [datas, searchTerm]);
 
-    if (searchTerm.trim() === "") return dataList
-
-    return dataList.filter((item) => {
-      const search = searchTerm.toLowerCase()
-      const nameMatch = item.name?.toLowerCase().includes(search) ?? false
-      return nameMatch
-    })
-  }, [datas, searchTerm])
-
-  const totalPages = Math.ceil(filteredData.length / rowsPerPage)
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
 
   const currentData = useMemo(() => {
-    const start = (currentPage - 1) * rowsPerPage
-    return filteredData.slice(start, start + rowsPerPage)
-  }, [filteredData, currentPage])
-
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) setCurrentPage(page)
-  }
-
-  const memoizedServiceList = currentData.map((data, index) => (
-    <tr key={data._id}>
-      <td>{(currentPage - 1) * rowsPerPage + index + 1}</td>
-      <td>{data.image ? <ImagePreview image={data.image} /> : "N/A"}</td>
-      <td>{data.name || "N/A"}</td>
-      <td>{new Date(data.createdAt).toLocaleDateString()}</td>
-      <td className="d-flex align-items-center">
-        <div className="dropdown">
-          <a href="#" className="btn-action-icon" data-bs-toggle="dropdown">
-            <i className="fas fa-ellipsis-v" />
-          </a>
-          <ul className="dropdown-menu dropdown-menu-end">
-            <li>
-              <button className="dropdown-item" onClick={() => navigate(`/edit-base-service/${data._id}`)}>
-                <i className="far fa-edit me-2" /> Edit
-              </button>
-            </li>
-            <li>
-              <button className="dropdown-item" onClick={() => handleDelete(data._id)}>
-                <i className="far fa-trash-alt me-2" /> Delete
-              </button>
-            </li>
-          </ul>
-        </div>
-      </td>
-    </tr>
-  ))
+    const start = (currentPage - 1) * rowsPerPage;
+    return filteredData.slice(start, start + rowsPerPage);
+  }, [filteredData, currentPage]);
 
   return (
-    <>
-      <div className="row">
-        <div className="col-sm-12">
-          <div className="card-table card p-2">
-            <div className="card-body">
-              <div className="mb-3">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Search by service name"
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                />
-              </div>
-              <div className="table-responsive">
-                <table ref={tableRef} id="example" className="table table-striped">
-                  <thead className="thead-light" style={{ backgroundColor: "#2e83ff" }}>
-                    <tr>
-                      {tableHeaders.map((header, index) => (
-                        <th key={index}>{header}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="list">
-                    {loading ? (
-                      <tr>
-                        <td colSpan={tableHeaders.length} className="text-center py-5">
-                          <div className="d-flex justify-content-center align-items-center flex-column">
-                            <div className="spinner-border text-primary" role="status">
-                              <span className="visually-hidden">Loading...</span>
-                            </div>
-                            <div className="mt-2">Loading base services...</div>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : filteredData.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={tableHeaders.length}
-                          style={{
-                            textAlign: "center",
-                            padding: "20px",
-                            fontStyle: "italic",
-                            color: "#555",
-                          }}
-                        >
-                          No Base Services found.
-                        </td>
-                      </tr>
-                    ) : (
-                      memoizedServiceList
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              <div className="d-flex justify-content-between align-items-center mt-4 p-3 bg-light rounded shadow-sm">
-                <div className="text-muted" style={{ fontWeight: "500", fontSize: "0.9rem" }}>
-                  Total Records: <span className="text-primary fw-bold">{filteredData.length}</span>
-                </div>
+    <Box>
+      <Paper
+        elevation={0}
+        sx={{ p: 3, borderRadius: "12px", border: "1px solid #e0e0e0" }}
+      >
+        <Box sx={{ mb: 3, display: "flex", justifyContent: "flex-end" }}>
+          <TextField
+            placeholder="Search service name..."
+            size="small"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: "text.secondary" }} />
+                  </InputAdornment>
+                ),
+              },
+            }}
+            sx={{ width: 300 }}
+          />
+        </Box>
 
-                <nav aria-label="Page navigation">
-                  <ul className="pagination pagination-sm mb-0">
-                    <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
-                      <button
-                        className="page-link"
-                        onClick={() => setCurrentPage(currentPage - 1)}
-                        aria-label="Previous"
+        <TableContainer>
+          <Table sx={{ minWidth: 650 }}>
+            <TableHead sx={{ bgcolor: "#F8FAFC" }}>
+              <TableRow>
+                {tableHeaders.map((header) => (
+                  <TableCell key={header} sx={{ fontWeight: 600 }}>
+                    {header}
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={tableHeaders.length}
+                    align="center"
+                    sx={{ py: 8 }}
+                  >
+                    <CircularProgress size={40} sx={{ mb: 2 }} />
+                    <Typography color="text.secondary">
+                      Loading base services...
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : currentData.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={tableHeaders.length}
+                    align="center"
+                    sx={{ py: 8 }}
+                  >
+                    <Typography color="text.secondary" fontStyle="italic">
+                      No services found matching your search.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                currentData.map((service, index) => (
+                  <TableRow key={service._id} hover>
+                    <TableCell>
+                      {(currentPage - 1) * rowsPerPage + index + 1}
+                    </TableCell>
+                    <TableCell>
+                      <Avatar
+                        src={service.image}
+                        variant="rounded"
+                        sx={{
+                          width: 48,
+                          height: 48,
+                          border: "1px solid #eee",
+                          bgcolor: "#f5f5f5",
+                        }}
                       >
-                        &laquo;
-                      </button>
-                    </li>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <li key={page} className={`page-item ${page === currentPage ? "active" : ""}`}>
-                        <button className="page-link" onClick={() => handlePageChange(page)}>
-                          {page}
-                        </button>
-                      </li>
-                    ))}
-                    <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
-                      <button className="page-link" onClick={() => setCurrentPage(currentPage + 1)} aria-label="Next">
-                        &raquo;
-                      </button>
-                    </li>
-                  </ul>
-                </nav>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  )
-}
+                        {service.name?.charAt(0)}
+                      </Avatar>
+                    </TableCell>
+                    <TableCell>
+                      <Typography fontWeight={600} color="text.primary">
+                        {service.name}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {new Date(service.createdAt).toLocaleDateString(
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          },
+                        )}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <IconButton onClick={(e) => handleMenuOpen(e, service)}>
+                        <MoreVertIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
-export default BaseServiceTable
+        <Box
+          sx={{
+            mt: 3,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Typography variant="body2" color="text.secondary">
+            Total Records: <b>{filteredData.length}</b>
+          </Typography>
+          <Pagination
+            count={totalPages}
+            page={currentPage}
+            onChange={(_, page) => setCurrentPage(page)}
+            color="primary"
+            shape="rounded"
+          />
+        </Box>
+      </Paper>
+
+      {/* Action Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        slotProps={{
+          paper: {
+            elevation: 2,
+            sx: { minWidth: 150, borderRadius: "8px" },
+          },
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            navigate(`/edit-base-service/${selectedService?._id}`);
+            handleMenuClose();
+          }}
+          sx={{ gap: 1.5 }}
+        >
+          <EditIcon fontSize="small" sx={{ color: "text.secondary" }} />
+          Edit
+        </MenuItem>
+        <MenuItem
+          onClick={() => handleDelete(selectedService?._id)}
+          sx={{ gap: 1.5, color: "error.main" }}
+        >
+          <DeleteIcon fontSize="small" />
+          Delete
+        </MenuItem>
+      </Menu>
+    </Box>
+  );
+};
+
+export default BaseServiceTable;
