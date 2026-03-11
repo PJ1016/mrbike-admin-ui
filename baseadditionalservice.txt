@@ -1,0 +1,60 @@
+{
+    "status": true,
+    "message": "Base additional services fetched successfully",
+    "data": [
+        {
+            "_id": "69a6f73518ab1694d5c40502",
+            "name": "Chain Sprocket REPLACEMENT",
+            "image": "uploads/base-additional-services/image-1772549941562.webp",
+            "createdAt": "2026-03-03T14:59:01.599Z",
+            "updatedAt": "2026-03-03T14:59:01.599Z",
+            "id": 9,
+            "__v": 0
+        },
+        {
+            "_id": "698ed5f06286ca6c714dbe4a",
+            "name": "ROHAN SAHU",
+            "image": "uploads/base-additional-services/image-1770968560474.png",
+            "createdAt": "2026-02-13T07:42:40.489Z",
+            "updatedAt": "2026-02-13T07:42:40.489Z",
+            "id": 8,
+            "__v": 0
+        },
+        {
+            "_id": "698ed5d26286ca6c714dbe2f",
+            "name": "Full Bike Service",
+            "image": "uploads/base-additional-services/image-1770968530839.png",
+            "createdAt": "2026-02-13T07:42:10.852Z",
+            "updatedAt": "2026-02-13T07:42:10.852Z",
+            "id": 7,
+            "__v": 0
+        },
+        {
+            "_id": "698eca626286ca6c714db695",
+            "name": "HEAD REPAIR",
+            "image": "uploads/base-additional-services/image-1770965602015.png",
+            "createdAt": "2026-02-13T06:53:22.041Z",
+            "updatedAt": "2026-02-13T06:53:22.041Z",
+            "id": 6,
+            "__v": 0
+        },
+        {
+            "_id": "6989769c6286ca6c714d965b",
+            "name": "WASHING",
+            "image": "uploads/base-additional-services/image-1770616476373.jpg",
+            "createdAt": "2026-02-09T05:54:36.393Z",
+            "updatedAt": "2026-02-09T05:54:36.393Z",
+            "id": 5,
+            "__v": 0
+        },
+        {
+            "_id": "6980d77166f6982e7cd5d76d",
+            "name": "Chain",
+            "image": "uploads/base-additional-services/image-1770051441775.jpeg",
+            "createdAt": "2026-02-02T16:57:21.801Z",
+            "updatedAt": "2026-02-02T16:57:21.801Z",
+            "id": 4,
+            "__v": 0
+        }
+    ]
+}

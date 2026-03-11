@@ -1,0 +1,267 @@
+{
+    "status": 200,
+    "message": "Success",
+    "data": [
+        {
+            "permanentAddress": {
+                "address": "CJVR+QCF, Pocharam, Secunderabad, Telangana 500088, India",
+                "state": "Telangana",
+                "city": "Secunderabad"
+            },
+            "documents": {
+                "panCardFront": "uploads/vendors/1768118439006_avatar-03.jpg",
+                "aadharFront": "uploads/vendors/1768118438982_avatar-01.jpg",
+                "aadharBack": "uploads/vendors/1768118439003_avatar-02.jpg",
+                "shopCertificate": "uploads/vendors/1768118439009_avatar-08.jpg",
+                "faceVerificationImage": "uploads/vendors/1768118439010_avatar-10.jpg"
+            },
+            "bankDetails": {
+                "accountHolderName": "BOI CC",
+                "ifscCode": "BKID0009903",
+                "bankName": "BOI",
+                "accountNumber": "123456789098765"
+            },
+            "formProgress": {
+                "currentStep": 1,
+                "completedSteps": {
+                    "basicInfo": true,
+                    "locationInfo": true,
+                    "shopDetails": true,
+                    "documents": true,
+                    "bankDetails": false
+                },
+                "lastActiveStep": 1
+            },
+            "completionTimestamps": {
+                "locationInfo": "2026-01-08T04:05:52.677Z",
+                "shopDetails": "2026-01-08T04:06:34.636Z",
+                "documents": "2026-01-11T08:00:39.041Z"
+            },
+            "status": {
+                "adminApproved": true,
+                "isActive": true,
+                "isVerified": true
+            },
+            "documentVerification": {
+                "aadhar": true,
+                "pan": true,
+                "bank": false,
+                "shop": true
+            },
+            "businessHours": {
+                "days": []
+            },
+            "notifications": {
+                "email": true,
+                "sms": true,
+                "app": true
+            },
+            "_id": "695f2ccf431ecaa7542397b8",
+            "phone": "7207545464",
+            "shopImages": [],
+            "tax": 0,
+            "registrationStatus": "Approved",
+            "otp": "9999",
+            "otpExpiry": "2026-03-03T14:48:17.612Z",
+            "loginAttempts": 0,
+            "isVerify": false,
+            "isProfile": false,
+            "isDoc": true,
+            "isActive": true,
+            "services": [],
+            "gender": "Male",
+            "dob": null,
+            "online": true,
+            "creatorModel": "Vendor",
+            "creatorType": "self",
+            "createdAt": "2026-01-08T04:04:31.375Z",
+            "updatedAt": "2026-03-07T15:11:15.476Z",
+            "id": 5,
+            "__v": 0,
+            "personalEmail": "netha.hny@gmail.com",
+            "latitude": 17.44591176814745,
+            "longitude": 78.64285849034786,
+            "shopPincode": "500088",
+            "holiday": "No Holidays",
+            "shopContact": "7207545464",
+            "shopEmail": "netha.hny@gmail.com",
+            "shopName": "Bikes shop2",
+            "approvedAt": "2026-01-10T16:46:56.272Z",
+            "aadharCardNo": "123456789009",
+            "alternatePhone": "7207545464",
+            "city": "Secunderabad",
+            "email": "netha.hny@gmail.com",
+            "fullAddress": "CJVR+QCF, Pocharam, Secunderabad, Telangana 500088, India",
+            "panCardNo": "KWWBS9876B",
+            "personalPhone": "7207545464",
+            "state": "Telangana",
+            "ownerName": "surya bike",
+            "dealerId": "MRBD0005"
+        },
+        {
+            "permanentAddress": {
+                "address": "Poços de Caldas, State of Minas Gerais, Brazil",
+                "city": "Poços de Caldas",
+                "state": "State of Minas Gerais"
+            },
+            "formProgress": {
+                "currentStep": 1,
+                "completedSteps": {
+                    "basicInfo": true,
+                    "locationInfo": true,
+                    "shopDetails": true,
+                    "documents": false,
+                    "bankDetails": false
+                },
+                "lastActiveStep": 1
+            },
+            "completionTimestamps": {
+                "locationInfo": "2026-03-03T14:39:19.928Z",
+                "shopDetails": "2026-03-03T14:40:32.577Z"
+            },
+            "status": {
+                "adminApproved": true,
+                "isActive": true,
+                "isVerified": true
+            },
+            "documentVerification": {
+                "aadhar": false,
+                "pan": false,
+                "bank": false,
+                "shop": false
+            },
+            "businessHours": {
+                "days": []
+            },
+            "notifications": {
+                "email": true,
+                "sms": true,
+                "app": true
+            },
+            "_id": "69a6f20c18ab1694d5c40274",
+            "phone": "9494039564",
+            "shopImages": [],
+            "tax": 0,
+            "registrationStatus": "Approved",
+            "otp": "9999",
+            "otpExpiry": "2026-03-07T15:16:34.574Z",
+            "loginAttempts": 0,
+            "isVerify": false,
+            "isProfile": false,
+            "isDoc": false,
+            "isActive": true,
+            "services": [],
+            "gender": "Male",
+            "dob": null,
+            "online": false,
+            "creatorModel": "Vendor",
+            "creatorType": "self",
+            "createdAt": "2026-03-03T14:37:00.701Z",
+            "updatedAt": "2026-03-11T19:25:19.899Z",
+            "id": 8,
+            "__v": 0,
+            "personalEmail": "Ha@gmail.com",
+            "latitude": -21.7853787,
+            "longitude": -46.5619303,
+            "shopPincode": "50885555",
+            "holiday": "Sunday",
+            "shopContact": "7207545465",
+            "shopEmail": "Me@flgmail.com",
+            "shopName": "Bika stro24",
+            "approvedAt": "2026-03-11T19:25:19.898Z",
+            "dealerId": "MRBD0008"
+        },
+        {
+            "permanentAddress": {
+                "address": "Agrashen Chauraha, Old Agarwal Nagar, Indore, Madhya Pradesh 452001, India",
+                "city": "Indore",
+                "state": "Madhya Pradesh"
+            },
+            "documents": {
+                "aadharBack": "uploads/vendors/1773171061778_image_aadharBack.jpg",
+                "aadharFront": "uploads/vendors/1773171061774_image_aadharFront.jpg",
+                "faceVerificationImage": "uploads/vendors/1773171061789_image_faceVerificationImage.jpg",
+                "panCardFront": "uploads/vendors/1773171061785_image_panCard.jpg",
+                "shopCertificate": "uploads/vendors/1773171061787_image_shopCertificate.jpg"
+            },
+            "bankDetails": {
+                "accountHolderName": "ROHAN SAHU",
+                "accountNumber": "990310110009162",
+                "ifscCode": "BKID0009903",
+                "bankName": "BOI"
+            },
+            "formProgress": {
+                "currentStep": 1,
+                "completedSteps": {
+                    "basicInfo": true,
+                    "locationInfo": true,
+                    "shopDetails": true,
+                    "documents": true,
+                    "bankDetails": true
+                },
+                "lastActiveStep": 1
+            },
+            "completionTimestamps": {
+                "locationInfo": "2026-03-10T19:29:08.069Z",
+                "shopDetails": "2026-03-10T19:30:12.228Z",
+                "documents": "2026-03-10T19:31:01.793Z",
+                "bankDetails": "2026-03-10T19:38:37.474Z"
+            },
+            "status": {
+                "adminApproved": true,
+                "isActive": true,
+                "isVerified": true
+            },
+            "documentVerification": {
+                "aadhar": true,
+                "pan": true,
+                "bank": false,
+                "shop": true
+            },
+            "businessHours": {
+                "days": []
+            },
+            "notifications": {
+                "email": true,
+                "sms": true,
+                "app": true
+            },
+            "_id": "69b0708718ab1694d5c40ac4",
+            "phone": "7828690192",
+            "shopImages": [],
+            "tax": 0,
+            "registrationStatus": "Approved",
+            "otp": "9999",
+            "otpExpiry": "2026-03-11T04:34:55.936Z",
+            "loginAttempts": 0,
+            "isVerify": false,
+            "isProfile": false,
+            "isDoc": true,
+            "isActive": true,
+            "services": [],
+            "gender": "Male",
+            "dob": null,
+            "online": true,
+            "creatorModel": "Vendor",
+            "creatorType": "self",
+            "createdAt": "2026-03-10T19:27:03.033Z",
+            "updatedAt": "2026-03-11T17:47:43.355Z",
+            "id": 9,
+            "__v": 0,
+            "personalEmail": "sahusahi@gmail.com",
+            "latitude": 22.703576623815756,
+            "longitude": 75.87327484041452,
+            "shopPincode": "452001",
+            "holiday": "No Holidays",
+            "shopContact": "8085212121",
+            "shopEmail": "bikecar@gmail.com",
+            "shopName": "The Bike Car",
+            "aadharCardNo": "424242424242",
+            "panCardNo": "KWWWS2121S",
+            "shopOpeningDate": "2021-03-10T00:00:00.000Z",
+            "submittedAt": "2026-03-10T19:40:22.966Z",
+            "approvedAt": "2026-03-10T19:40:36.287Z",
+            "dealerId": "MRBD0009"
+        }
+    ]
+}

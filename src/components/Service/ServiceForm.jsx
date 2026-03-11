@@ -1,7 +1,4 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import Swal from "sweetalert2"
+import { useState, useEffect, useMemo } from "react"
 import {
   addService,
   getBikeCompanies,
@@ -12,6 +9,34 @@ import {
   updateAdminService,
 } from "../../api"
 import { useNavigate } from "react-router-dom"
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  TextField,
+  Autocomplete,
+  Button,
+  Alert,
+  Snackbar,
+  CircularProgress,
+  InputAdornment,
+  Avatar,
+  Chip,
+  IconButton,
+  Tooltip
+} from "@mui/material"
+import { DataGrid } from "@mui/x-data-grid"
+import DeleteIcon from "@mui/icons-material/Delete"
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline"
+
+// Helper to form image URLs correctly
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return "";
+  if (imagePath.startsWith("http")) return imagePath;
+  const baseUrl = process.env.REACT_APP_IMAGE_BASE_URL || "https://api.mrbikedoctor.cloud/";
+  return `${baseUrl}${imagePath}`;
+};
 
 const ServiceForm = ({ serviceId }) => {
   const navigate = useNavigate()
@@ -23,143 +48,117 @@ const ServiceForm = ({ serviceId }) => {
     description: "",
   })
 
+  // Data states
   const [baseServices, setBaseServices] = useState([])
-  const [bikes, setBikes] = useState([])
+  const [bikes, setBikes] = useState([]) // RAW bikes loaded from DB/API
   const [companies, setCompanies] = useState([])
-  const [selectedCompanies, setSelectedCompanies] = useState([])
   const [dealers, setDealers] = useState([])
-  const [filteredDealers, setFilteredDealers] = useState([])
-  const [dealerSearchTerm, setDealerSearchTerm] = useState("")
-  const [selectedDealer, setSelectedDealer] = useState("")
+
+  // Pricing Rules State
+  const [pricingRules, setPricingRules] = useState([])
+  const [newRule, setNewRule] = useState({ minCc: "", maxCc: "", price: "" })
+
+  // Selection states
+  const [selectedBaseService, setSelectedBaseService] = useState(null)
+  const [selectedDealer, setSelectedDealer] = useState(null)
+  const [selectedCompanies, setSelectedCompanies] = useState([])
+
+  // UI states
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [selectedBaseService, setSelectedBaseService] = useState(null)
-  const [showDealerDropdown, setShowDealerDropdown] = useState(false)
+  const [alertInfo, setAlertInfo] = useState({ show: false, message: "", severity: "success" })
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true)
 
-        const baseServicesResponse = await getBaseServiceList()
-        setBaseServices(baseServicesResponse?.data || [])
+        // Parallelize initial lookups
+        const [baseServicesRes, companiesRes, dealersRes] = await Promise.all([
+          getBaseServiceList(),
+          getBikeCompanies(),
+          getDealerList()
+        ])
 
-        const companiesResponse = await getBikeCompanies()
-        setCompanies(companiesResponse?.data || [])
+        const baseServicesData = baseServicesRes?.data || []
+        const companiesData = companiesRes?.data || []
+        const dealersData = dealersRes?.data || []
 
-        const dealersResponse = await getDealerList()
-        setDealers(dealersResponse?.data || [])
+        setBaseServices(baseServicesData)
+        setCompanies(companiesData)
+        setDealers(dealersData)
 
+        // If edit mode, load service
         if (isEditMode) {
           const serviceResponse = await getAdminServiceById(serviceId)
-          console.log("[v0] Service response:", serviceResponse)
-
           if (serviceResponse?.data || serviceResponse?.status === true) {
             const serviceData = serviceResponse.data
-            console.log("[v0] Service data loaded:", serviceData)
 
-           const baseServiceId =
-  typeof serviceData.base_service_id === "string"
-    ? serviceData.base_service_id
-    : serviceData.base_service_id?._id || ""
+            const loadedBaseServiceId = typeof serviceData.base_service_id === "string"
+              ? serviceData.base_service_id
+              : serviceData.base_service_id?._id || ""
 
-setFormData({
-  base_service_id: baseServiceId,
-  description: serviceData.description || "",
-})
+            setFormData({
+              base_service_id: loadedBaseServiceId,
+              description: serviceData.description || "",
+            })
 
+            const loadedBaseService = baseServicesData.find(s => s._id === loadedBaseServiceId) || null
+            setSelectedBaseService(loadedBaseService)
 
             const dealerId = (serviceData.dealer || serviceData.dealers)
               ? (typeof (serviceData.dealer || serviceData.dealers) === "string"
-                  ? (serviceData.dealer || serviceData.dealers)
-                  : (serviceData.dealer || serviceData.dealers)?._id || "")
+                ? (serviceData.dealer || serviceData.dealers)
+                : (serviceData.dealer || serviceData.dealers)?._id || "")
               : ""
 
-setSelectedDealer(dealerId)
+            const dealerObj = dealersData.find(d => d._id === dealerId) || null
+            setSelectedDealer(dealerObj)
 
-            const companyIds = (serviceData.companies || []).map(c =>
-  typeof c === "string" ? c : c._id
-)
-setSelectedCompanies(companyIds)
-
+            const companyIds = (serviceData.companies || []).map(c => typeof c === "string" ? c : c._id)
+            const preSelectedCompanies = companiesData.filter(c => companyIds.includes(c._id))
+            setSelectedCompanies(preSelectedCompanies)
 
             if (serviceData.companies && serviceData.companies.length > 0) {
-const companyIds = serviceData.companies.map((c) =>
-  typeof c === "string" ? c : c._id
-)
-
-const bikesResponse = await filterBikesByCompaniesMultiple(companyIds)
-
+              const bikesResponse = await filterBikesByCompaniesMultiple(companyIds)
               if (bikesResponse?.data && Array.isArray(bikesResponse.data)) {
-                const allBikes = bikesResponse.data.map((item) => ({
+                // Initialize raw bikes
+                const allBikes = bikesResponse.data.map(item => ({
+                  id: `${item.model_id}_${item.variant_id}`, // DataGrid requires an 'id'
                   company_name: item.company_name,
                   model_name: item.model_name,
                   variant_name: item.variant_name,
-                  cc: item.engine_cc,
-                  price: null,
+                  cc: Number(item.engine_cc) || 0,
+                  manualPrice: null,
                   model_id: item.model_id,
                   variant_id: item.variant_id,
                 }))
 
-const mergedBikes = allBikes.map((bike) => {
-  const existingBike = serviceData.bikes.find(
-    (sb) =>
-      (sb.model_id?._id || sb.model_id) === bike.model_id &&
-      (sb.variant_id?._id || sb.variant_id) === bike.variant_id
-  )
-
-  return {
-    ...bike,
-    _id: existingBike?._id,
-    price: existingBike?.price || null,
-  }
-})
-mergedBikes.sort((a, b) => {
-  if (a.price && !b.price) return -1
-  if (!a.price && b.price) return 1
-  return 0
-})
-
+                // Map existing prices into manualPrice
+                const mergedBikes = allBikes.map(bike => {
+                  const existingBike = serviceData.bikes.find(sb =>
+                    (sb.model_id?._id || sb.model_id) === bike.model_id &&
+                    (sb.variant_id?._id || sb.variant_id) === bike.variant_id
+                  )
+                  return {
+                    ...bike,
+                    dbId: existingBike?._id, // Keep the mongo ID if it exists
+                    manualPrice: existingBike?.price ? Number(existingBike.price) : null,
+                  }
+                })
 
                 setBikes(mergedBikes)
               }
-            } else {
-              const transformedBikes = serviceData.bikes.map((bike) => ({
-                _id: bike._id,
-                company_name: "Unknown Company",
-                model_name: bike.model_id?.model_name || "",
-                variant_name: bike.variant_id?.variant_name || "",
-                cc: bike.cc,
-                price: bike.price || null,
-                model_id: bike.model_id?._id || bike.model_id || "",
-                variant_id: bike.variant_id?._id || bike.variant_id || "",
-              }))
-              setBikes(transformedBikes)
             }
-
-            const baseServicesList = baseServicesResponse?.data || []
-const selectedService = baseServicesResponse.data.find(
-  (s) => s._id === baseServiceId
-)
-setSelectedBaseService(selectedService || null)
           } else {
-            console.error("[v0] Failed to load service data:", serviceResponse)
-            Swal.fire({
-              icon: "error",
-              title: "Error",
-              text: "Failed to load service details. Redirecting...",
-            })
+            setAlertInfo({ show: true, message: "Failed to load service details.", severity: "error" })
             setTimeout(() => navigate("/services"), 2000)
           }
         }
       } catch (error) {
-        console.error("[v0] Error fetching data:", error)
+        console.error("Error fetching data:", error)
         if (isEditMode) {
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Failed to load service data: " + error.message,
-          })
+          setAlertInfo({ show: true, message: "Failed to load mapping data: " + error.message, severity: "error" })
           setTimeout(() => navigate("/services"), 2000)
         }
       } finally {
@@ -170,7 +169,9 @@ setSelectedBaseService(selectedService || null)
     fetchData()
   }, [serviceId, isEditMode, navigate])
 
+
   useEffect(() => {
+    // When companies change, fetch the raw bike matrix
     const fetchBikeDetails = async () => {
       if (selectedCompanies.length === 0) {
         if (!isEditMode || bikes.length === 0) {
@@ -179,49 +180,41 @@ setSelectedBaseService(selectedService || null)
         return
       }
 
-      try {
-        const response = await filterBikesByCompaniesMultiple(selectedCompanies)
+      const companyIds = selectedCompanies.map(c => c._id)
 
+      try {
+        const response = await filterBikesByCompaniesMultiple(companyIds)
         if (response?.data && Array.isArray(response.data)) {
-          const bikeRows = response.data.map((item) => ({
+          const bikeRows = response.data.map(item => ({
+            id: `${item.model_id}_${item.variant_id}`,
             company_name: item.company_name,
             model_name: item.model_name,
             variant_name: item.variant_name,
-            cc: item.engine_cc,
-            price: null,
+            cc: Number(item.engine_cc) || 0,
+            manualPrice: null,
             model_id: item.model_id,
             variant_id: item.variant_id,
           }))
 
-setBikes((prevBikes) => {
-  const map = new Map()
+          setBikes(prevBikes => {
+            const map = new Map()
+            // Keep existing bikes so we don't lose their manual prices
+            prevBikes.forEach(b => map.set(b.id, b))
+            // Add any newly discovered bikes
+            bikeRows.forEach(b => {
+              if (!map.has(b.id)) map.set(b.id, b)
+            })
 
-  // keep existing (with price)
-  prevBikes.forEach((b) => {
-    const key = `${b.model_id}_${b.variant_id}`
-    map.set(key, b)
-  })
+            // IMPORTANT: If they deselect a company, we should probably REMOVE those bikes from state.
+            // But we will handle the cleanup naturally by strictly rendering bikes that match `selectedCompanies`.
+            // So we'll prune the map.
+            const allowedCompaniesNames = selectedCompanies.map(c => c.name.toLowerCase())
+            const filteredArray = Array.from(map.values()).filter(b => 
+              allowedCompaniesNames.includes(b.company_name.toLowerCase())
+            )
 
-  // add missing bikes
-  bikeRows.forEach((b) => {
-    const key = `${b.model_id}_${b.variant_id}`
-    if (!map.has(key)) {
-      map.set(key, b)
-    }
-  })
-
-  const merged = Array.from(map.values())
-
-  // ✅ SORT: priced bikes first
-  merged.sort((a, b) => {
-    if (a.price && !b.price) return -1
-    if (!a.price && b.price) return 1
-    return 0
-  })
-
-  return merged
-})
-
+            return filteredArray
+          })
         } else {
           setBikes([])
         }
@@ -232,142 +225,158 @@ setBikes((prevBikes) => {
     }
 
     fetchBikeDetails()
-  }, [selectedCompanies])
+  }, [selectedCompanies, isEditMode])
+
+
+  // ==========================================
+  // Pricing Engine Logic
+  // ==========================================
+
+  const addPricingRule = () => {
+    const min = Number(newRule.minCc)
+    const max = Number(newRule.maxCc)
+    const prc = Number(newRule.price)
+
+    if (min >= 0 && max >= min && prc > 0) {
+      setPricingRules(prev => [...prev, { id: Date.now(), minCc: min, maxCc: max, price: prc }])
+      setNewRule({ minCc: "", maxCc: "", price: "" })
+    } else {
+      setAlertInfo({ show: true, message: "Invalid rule. Check CC range and Price.", severity: "warning" })
+    }
+  }
+
+  const deletePricingRule = (ruleId) => {
+    setPricingRules(prev => prev.filter(r => r.id !== ruleId))
+  }
+
+  // Calculate effective prices on the fly
+  const calculatedBikes = useMemo(() => {
+    return bikes.map(bike => {
+      let computedPrice = null
+
+      // Check Rules Engine
+      for (const rule of pricingRules) {
+        if (bike.cc >= rule.minCc && bike.cc <= rule.maxCc) {
+          computedPrice = rule.price
+          // Could break here, assuming first matched rule applies
+          break;
+        }
+      }
+
+      // Manual overrides Auto.
+      const isManual = bike.manualPrice !== null && String(bike.manualPrice).trim() !== ""
+      const effectivePrice = isManual ? Number(bike.manualPrice) : computedPrice
+
+      return {
+        ...bike,
+        computedPrice,
+        effectivePrice,
+        isManualOverride: isManual
+      }
+    })
+  }, [bikes, pricingRules])
+
+
+  // DataGrid Handlers
+  const processRowUpdate = (newRow, oldRow) => {
+    // Treat empty string or 0 as "clear override"
+    const val = newRow.effectivePrice
+    const newManualPrice = (val === "" || val === null || val === undefined) ? null : Number(val)
+
+    // Update root state
+    setBikes(prev => prev.map(b => b.id === newRow.id ? { ...b, manualPrice: newManualPrice } : b))
+
+    // Note: DataGrid requires we return the updated row object exactly as it will render 
+    // before the useMemo triggers again. But because computedPrice relies on useMemo,
+    // returning the raw parsed effectivePrice is enough to satisfy the UI momentarily.
+    return { ...newRow, effectivePrice: newManualPrice }
+  }
+
+  const handleProcessRowUpdateError = (error) => {
+    setAlertInfo({ show: true, message: error.message, severity: "error" })
+  }
+
+  // DataGrid Columns Definition
+  const columns = [
+    { field: "company_name", headerName: "Company", width: 150, flex: 1 },
+    { field: "model_name", headerName: "Model", width: 180, flex: 1 },
+    { field: "variant_name", headerName: "Variant", width: 180, flex: 1 },
+    { field: "cc", headerName: "CC", width: 100, type: "number" },
+    {
+      field: "effectivePrice",
+      headerName: "Price (₹)",
+      width: 150,
+      editable: true,
+      type: "number",
+      renderCell: (params) => {
+        const hasPrice = params.value !== null && params.value !== undefined
+
+        if (!hasPrice) {
+          return <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>--</Typography>
+        }
+
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+            <Typography variant="body2" sx={{ fontWeight: params.row.isManualOverride ? 'bold' : 'normal', color: params.row.isManualOverride ? "primary.main" : "text.primary" }}>
+              ₹{params.value}
+            </Typography>
+            {!params.row.isManualOverride && params.row.computedPrice !== null && (
+               <Chip label="Auto" size="small" variant="outlined" color="success" sx={{ ml: 1, height: 20, fontSize: '0.65rem' }} />
+            )}
+          </Box>
+        )
+      }
+    }
+  ]
+
+  // ==========================================
+
 
   const validate = () => {
     const errors = {}
 
-    if (!formData.base_service_id) {
-      errors.base_service_id = "Please select a base service"
-    }
+    if (!selectedBaseService) errors.base_service_id = "Please select a base service"
+    if (!formData.description?.trim()) errors.description = "Please enter a description"
+    if (selectedCompanies.length === 0) errors.companies = "Please select at least one company"
+    if (!selectedDealer) errors.dealer = "Please select a dealer"
 
-    if (!formData.description || formData.description.trim() === "") {
-      errors.description = "Please enter a description"
-    }
-
-    if (selectedCompanies.length === 0) {
-      errors.companies = "Please select at least one company"
-    }
-
-    if (selectedDealer === "" || !selectedDealer) {
-      errors.dealer = "Please select a dealer"
-    }
-
-    const invalidBikes = bikes.filter(
-      (bike) => bike.price !== null && bike.price !== "" && (isNaN(bike.price) || Number.parseFloat(bike.price) <= 0),
-    )
-    if (invalidBikes.length > 0) {
-      errors.bikes = "Please enter valid positive prices for bikes"
-    }
-
-    const bikesWithPrice = bikes.filter(
-      (bike) => bike.price !== null && bike.price !== "" && Number.parseFloat(bike.price) > 0,
-    )
-    if (bikesWithPrice.length === 0) {
-      errors.noPrices = "At least one bike must have a valid price"
-    }
+    const pricedBikes = calculatedBikes.filter(b => b.effectivePrice !== null && b.effectivePrice > 0)
+    if (pricedBikes.length === 0 && calculatedBikes.length > 0) errors.noPrices = "At least one bike must have a valid price"
 
     setFormErrors(errors)
     return Object.keys(errors).length === 0
-  }
-
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData({ ...formData, [name]: value })
-
-    if (name === "base_service_id" && value) {
-      const service = baseServices.find((s) => s._id === value)
-      setSelectedBaseService(service || null)
-    } else if (name === "base_service_id" && !value) {
-      setSelectedBaseService(null)
-    }
-  }
-
-  const handleCompanyToggle = (companyId) => {
-    setSelectedCompanies((prev) => {
-      if (prev.includes(companyId)) {
-        return prev.filter((id) => id !== companyId)
-      } else {
-        return [...prev, companyId]
-      }
-    })
-  }
-
-  const handleDealerSelect = (dealerId) => {
-    setSelectedDealer(dealerId)
-  }
-
-  // Handle dealer search
-  const handleDealerSearch = (e) => {
-    const searchValue = e.target.value.toLowerCase()
-    setDealerSearchTerm(searchValue)
-
-    if (searchValue.trim() === "") {
-      setFilteredDealers(dealers)
-    } else {
-      const filtered = dealers.filter((dealer) => {
-        const shopName = (dealer.shopName || "").toLowerCase()
-        const ownerName = (dealer.ownerName || "").toLowerCase()
-        const phone = (dealer.phone || "").toLowerCase()
-        const city = (dealer.city || "").toLowerCase()
-
-        return (
-          shopName.includes(searchValue) ||
-          ownerName.includes(searchValue) ||
-          phone.includes(searchValue) ||
-          city.includes(searchValue)
-        )
-      })
-      setFilteredDealers(filtered)
-    }
-  }
-
-  // Update filtered dealers when dealers list changes
-  useEffect(() => {
-    setFilteredDealers(dealers)
-  }, [dealers])
-
-  const handleBikePriceChange = (index, value) => {
-    const updatedBikes = [...bikes]
-    updatedBikes[index].price = value === "" ? null : Number(value)
-    setBikes(updatedBikes)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setFormErrors({})
 
-    const isValid = validate()
-    if (!isValid) return
-
+    if (!validate()) return
     setIsSubmitting(true)
 
-    const bikesForSubmission = bikes
-      .filter((bike) => bike.price !== null && bike.price !== "")
-      .map((bike) => {
+    const bikesForSubmission = calculatedBikes
+      .filter(bike => bike.effectivePrice !== null && bike.effectivePrice > 0)
+      .map(bike => {
         const bikeObj = {
           model_id: bike.model_id || null,
           variant_id: bike.variant_id || null,
           cc: Number(bike.cc),
-          price: Number(bike.price),
+          price: Number(bike.effectivePrice),
         }
-        if (bike._id) {
-          bikeObj._id = bike._id
-        }
+        if (bike.dbId) bikeObj._id = bike.dbId
         return bikeObj
       })
 
     const formPayload = {
-      base_service_id: formData.base_service_id,
+      base_service_id: selectedBaseService?._id,
       description: formData.description,
-      companies: JSON.stringify(selectedCompanies),
-      dealer_id: selectedDealer,
+      companies: JSON.stringify(selectedCompanies.map(c => c._id)),
+      dealer_id: selectedDealer?._id,
       bikes: JSON.stringify(bikesForSubmission),
     }
 
     try {
       let response
-
       if (isEditMode) {
         response = await updateAdminService(serviceId, formPayload)
       } else {
@@ -375,24 +384,14 @@ setBikes((prevBikes) => {
       }
 
       if (response?.status === true || response?.status === 200) {
-        Swal.fire({
-          title: "Success!",
-          text: response.message || `Admin service ${isEditMode ? "updated" : "added"} successfully.`,
-          icon: "success",
-        })
-        navigate("/services")
+        setAlertInfo({ show: true, message: `Admin service ${isEditMode ? "updated" : "added"} successfully!`, severity: "success" })
+        setTimeout(() => navigate("/services"), 1500)
+      } else {
+        throw new Error(response.message || "Operation failed")
       }
     } catch (error) {
-      const err = error.response?.data
-      Swal.fire({
-        title: "Error!",
-        text: err?.message || "Something went wrong!",
-        icon: "error",
-      })
-
-      if (err?.field) {
-        setFormErrors((prev) => ({ ...prev, [err.field]: err.message }))
-      }
+      const errMessage = error.response?.data?.message || error.message || "Something went wrong!"
+      setAlertInfo({ show: true, message: errMessage, severity: "error" })
     } finally {
       setIsSubmitting(false)
     }
@@ -400,214 +399,273 @@ setBikes((prevBikes) => {
 
   if (isLoading) {
     return (
-      <div className="text-center p-5">
-        <p>Loading...</p>
-      </div>
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}>
+        <CircularProgress />
+      </Box>
     )
   }
 
   return (
-    <div className="row">
-      <div className="col-sm-12">
-        <div className="card-table card p-3">
-          <div className="card-body">
-            <form className="form-horizontal" onSubmit={handleSubmit}>
-              <div className="row">
-                <div className="col-md-6">
-                  <h5 className="mb-3">{isEditMode ? "Edit Admin Service" : "Create Admin Service"}</h5>
+    <Card elevation={3} sx={{ borderRadius: 2, p: { xs: 1, sm: 2 } }}>
+      <CardContent>
+        <Typography variant="h5" sx={{ mb: 4, fontWeight: "bold", color: "text.primary" }}>
+          {isEditMode ? "Edit Admin Service" : "Create Admin Service"}
+        </Typography>
 
-                  <div className="input-block mb-3">
-                    <label className="form-control-label">Base Service *</label>
-                    <select
-                      className={`form-control ${formErrors.base_service_id ? "is-invalid" : ""}`}
-                      name="base_service_id"
-                      value={formData.base_service_id}
-                      onChange={handleChange}
-                    >
-                      <option value="">-- Select Base Service --</option>
-                      {baseServices.map((service) => (
-                        <option key={service._id} value={service._id}>
-                          {service.name}
-                        </option>
-                      ))}
-                    </select>
-                    {formErrors.base_service_id && <div className="invalid-feedback">{formErrors.base_service_id}</div>}
-                  </div>
+        {alertInfo.show && alertInfo.severity === "error" && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setAlertInfo({ ...alertInfo, show: false })}>
+            {alertInfo.message}
+          </Alert>
+        )}
 
-                  <div className="input-block mb-3">
-                    <label className="form-control-label">Description *</label>
-                    <textarea
-                      className={`form-control ${formErrors.description ? "is-invalid" : ""}`}
-                      name="description"
-                      value={formData.description}
-                      onChange={handleChange}
-                      placeholder="Enter service description"
-                      rows="4"
-                    />
-                    {formErrors.description && <div className="invalid-feedback">{formErrors.description}</div>}
-                  </div>
+        <form onSubmit={handleSubmit}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 4 }}>
 
-                  {selectedBaseService && (
-                    <div className="input-block mb-3">
-                      <label className="form-control-label">Base Service Image</label>
-                      <div className="border rounded p-3 text-center" style={{ background: "#f8f9fa" }}>
-                        <img
-                          src={`${process.env.REACT_APP_IMAGE_BASE_URL}${selectedBaseService.image}`}
-                          alt={selectedBaseService.name}
-                          style={{
-                            maxWidth: "200px",
-                            maxHeight: "200px",
-                            border: "1px solid #ddd",
-                            borderRadius: "4px",
-                            padding: "5px",
-                            objectFit: "contain",
-                          }}
-                        />
-                        <div className="mt-2 small text-muted">
-                          <p className="mb-1">
-                            <strong>{selectedBaseService.name}</strong>
-                          </p>
-                          <p className="mb-0">Service Image Preview</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+            {/* LEFT COLUMN */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 
-                <div className="col-md-6">
-                  <div className="mb-4">
-                    <h5 className="mb-3">Select Dealers</h5>
-                    <div className="input-block mb-2">
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Search by shop name, owner, phone, or city..."
-                        value={dealerSearchTerm}
-                        onChange={handleDealerSearch}
-                        onFocus={() => setShowDealerDropdown(true)}
-                      />
-                    </div>
-                    <div
-                      className="company-selection-list border rounded p-3"
-                      style={{ maxHeight: "250px", overflowY: "auto", background: "#fdfdfd" }}
-                    >
-                      {filteredDealers.length > 0 ? (
-                        filteredDealers.map((dealer) => (
-                          <div key={dealer._id} className="form-check mb-2">
-                            <input
-                              className="form-check-input"
-                              type="radio"
-                              id={`dealer-${dealer._id}`}
-                              name="dealer"
-                              value={dealer._id}
-                              checked={selectedDealer === dealer._id}
-                              onChange={() => handleDealerSelect(dealer._id)}
-                            />
-                            <label className="form-check-label" htmlFor={`dealer-${dealer._id}`}>
-                              {dealer.shopName || dealer.name}
-                              {dealer.city && <span className="text-muted ms-2">({dealer.city})</span>}
-                            </label>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-muted">
-                          {dealerSearchTerm ? "No dealers found matching your search" : "No dealers available"}
-                        </div>
-                      )}
-                    </div>
-                    {formErrors.dealer && <div className="text-danger mt-1 small">{formErrors.dealer}</div>}
-                  </div>
+              <Autocomplete
+                options={baseServices}
+                getOptionLabel={(option) => option.name || ""}
+                value={selectedBaseService}
+                onChange={(_, newValue) => {
+                  setSelectedBaseService(newValue)
+                  setFormErrors(prev => ({ ...prev, base_service_id: null }))
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Base Service *"
+                    error={!!formErrors.base_service_id}
+                    helperText={formErrors.base_service_id}
+                  />
+                )}
+              />
 
-                  <h5 className="mb-3">Select Companies</h5>
+              <TextField
+                label="Description *"
+                multiline
+                rows={4}
+                value={formData.description}
+                onChange={(e) => {
+                  setFormData({ ...formData, description: e.target.value })
+                  setFormErrors(prev => ({ ...prev, description: null }))
+                }}
+                error={!!formErrors.description}
+                helperText={formErrors.description}
+              />
 
-                  <div className="input-block mb-3">
-                    <div
-                      className="company-selection-list border rounded p-3"
-                      style={{ maxHeight: "400px", overflowY: "auto" }}
-                    >
-                      {companies.map((company) => (
-                        <div key={company._id} className="form-check mb-2">
-                          <input
-                            className="form-check-input"
-                            type="checkbox"
-                            id={`company-${company._id}`}
-                            checked={selectedCompanies.includes(company._id)}
-                            onChange={() => handleCompanyToggle(company._id)}
-                          />
-                          <label className="form-check-label" htmlFor={`company-${company._id}`}>
-                            {company.name}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                    {formErrors.companies && <div className="text-danger mt-1 small">{formErrors.companies}</div>}
-                  </div>
-                </div>
-              </div>
-
-              {bikes.length > 0 && (
-                <div className="row mt-4">
-                  <div className="col-12">
-                    <hr className="my-3" />
-                    <h5 className="mb-3">Bike Models & Pricing</h5>
-                    <div className="alert alert-info small mb-3">
-                      <strong>Note:</strong> Company, Model, Variant, and CC are auto-filled. Please enter the price for
-                      each bike. Leave price empty to exclude a bike.
-                    </div>
-
-                    <div className="table-responsive" style={{ maxHeight: "500px", overflowY: "auto" }}>
-                      <table className="table table-bordered table-hover">
-                        <thead className="table-light sticky-top">
-                          <tr>
-                            <th>#</th>
-                            <th>Company</th>
-                            <th>Model</th>
-                            <th>Variant</th>
-                            <th>Engine CC</th>
-                            <th>Price (₹)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {bikes.map((bike, index) => (
-                            <tr key={index}>
-                              <td>{index + 1}</td>
-                              <td className="fw-bold">{bike.company_name}</td>
-                              <td>{bike.model_name}</td>
-                              <td>{bike.variant_name}</td>
-                              <td>{bike.cc} CC</td>
-                              <td>
-                                <input
-                                  type="number"
-                                  className={`form-control ${formErrors[`bike_price_${index}`] ? "is-invalid" : ""}`}
-                                  placeholder="Enter price (optional)"
-                                  value={bike.price || ""}
-                                  onChange={(e) => handleBikePriceChange(index, e.target.value)}
-                                />
-                                {formErrors[`bike_price_${index}`] && (
-                                  <div className="invalid-feedback">{formErrors[`bike_price_${index}`]}</div>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    {formErrors.noPrices && <div className="text-danger mt-2">{formErrors.noPrices}</div>}
-                    {formErrors.bikes && <div className="text-danger mt-2">{formErrors.bikes}</div>}
-                  </div>
-                </div>
+              {selectedBaseService && (
+                <Box sx={{ mt: 2, p: 2, bgcolor: "#f8f9fa", borderRadius: 2, border: "1px solid #eee", textAlign: "center" }}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Base Service Image Preview
+                  </Typography>
+                  <Avatar
+                    src={getImageUrl(selectedBaseService.image)}
+                    alt={selectedBaseService.name}
+                    variant="rounded"
+                    sx={{ width: 120, height: 120, mx: "auto", border: "1px solid #ddd" }}
+                  />
+                  <Typography variant="body1" fontWeight="bold" sx={{ mt: 1 }}>
+                    {selectedBaseService.name}
+                  </Typography>
+                </Box>
               )}
+            </Box>
 
-              <div className="text-end mt-3">
-                <button className="btn btn-primary px-5" type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Submitting..." : isEditMode ? "Update Service" : "Create Service"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
+            {/* RIGHT COLUMN */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+
+              <Autocomplete
+                options={dealers}
+                getOptionLabel={(option) => {
+                  if (!option) return ""
+                  const shop = option.shopName || option.name || "Unknown Shop"
+                  const city = option.city ? ` (${option.city})` : ""
+                  return `${shop}${city} - ${option.phone || ""}`
+                }}
+                value={selectedDealer}
+                onChange={(_, newValue) => {
+                  setSelectedDealer(newValue)
+                  setFormErrors(prev => ({ ...prev, dealer: null }))
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Assign to Dealer *"
+                    placeholder="Search by shop name, owner, city or phone..."
+                    error={!!formErrors.dealer}
+                    helperText={formErrors.dealer}
+                  />
+                )}
+              />
+
+              <Autocomplete
+                multiple
+                options={companies}
+                getOptionLabel={(option) => option.name || ""}
+                value={selectedCompanies}
+                onChange={(_, newValue) => {
+                  setSelectedCompanies(newValue)
+                  setFormErrors(prev => ({ ...prev, companies: null }))
+                }}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return (
+                      <Chip key={key} variant="outlined" label={option.name} {...tagProps} color="primary" />
+                    );
+                  })
+                }
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Bike Companies *"
+                    placeholder="Search companies..."
+                    error={!!formErrors.companies}
+                    helperText={formErrors.companies}
+                  />
+                )}
+              />
+
+            </Box>
+          </Box>
+
+          {/* BULK PRICING ENGINE & DATAGRID */}
+          {calculatedBikes.length > 0 && (
+            <Box sx={{ mt: 5 }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>Bike Pricing Engine</Typography>
+              
+              <Alert severity="info" sx={{ mb: 3 }}>
+                Use the <b>Rules Engine</b> to apply bulk pricing across all selected models based on their CC.
+                You can still double-click any cell in the <b>Price (₹)</b> column to manually override the rule.
+              </Alert>
+
+              {/* Rules UI */}
+              <Card variant="outlined" sx={{ mb: 4, bgcolor: 'grey.50' }}>
+                <CardContent>
+                  <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+                    Active Pricing Rules
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: pricingRules.length > 0 ? 3 : 0 }}>
+                    <TextField
+                      size="small"
+                      label="Min CC"
+                      type="number"
+                      value={newRule.minCc}
+                      onChange={(e) => setNewRule({ ...newRule, minCc: e.target.value })}
+                      sx={{ width: 120 }}
+                    />
+                    <TextField
+                      size="small"
+                      label="Max CC"
+                      type="number"
+                      value={newRule.maxCc}
+                      onChange={(e) => setNewRule({ ...newRule, maxCc: e.target.value })}
+                      sx={{ width: 120 }}
+                    />
+                    <TextField
+                      size="small"
+                      label="Apply Price"
+                      type="number"
+                      value={newRule.price}
+                      onChange={(e) => setNewRule({ ...newRule, price: e.target.value })}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                      }}
+                      sx={{ width: 150 }}
+                    />
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      startIcon={<AddCircleOutlineIcon />}
+                      onClick={addPricingRule}
+                      disabled={!newRule.minCc || !newRule.maxCc || !newRule.price}
+                    >
+                      Add Rule
+                    </Button>
+                  </Box>
+
+                  {/* Active Rules List */}
+                  {pricingRules.length > 0 && (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {pricingRules.map((rule) => (
+                        <Box key={rule.id} sx={{ display: 'flex', alignItems: 'center', p: 1, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                          <Typography variant="body2" sx={{ flexGrow: 1, ml: 1 }}>
+                            Any bike between <b>{rule.minCc} CC</b> and <b>{rule.maxCc} CC</b> = <b>₹{rule.price}</b>
+                          </Typography>
+                          <Tooltip title="Delete Rule">
+                            <IconButton size="small" color="error" onClick={() => deletePricingRule(rule.id)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Data Grid table */}
+              <Box sx={{ height: 600, width: '100%' }}>
+                <DataGrid
+                  rows={calculatedBikes} // The resolved prices
+                  columns={columns}
+                  processRowUpdate={processRowUpdate}
+                  onProcessRowUpdateError={handleProcessRowUpdateError}
+                  pageSizeOptions={[10, 25, 50, 100]}
+                  initialState={{
+                    pagination: { paginationModel: { pageSize: 50 } },
+                    sorting: { sortModel: [{ field: 'company_name', sort: 'asc' }] }
+                  }}
+                  disableRowSelectionOnClick
+                  sx={{
+                    bgcolor: "background.paper",
+                    '& .MuiDataGrid-columnHeaders': { bgcolor: '#f8f9fa' },
+                    '& .MuiDataGrid-cell--editable': {
+                      bgcolor: 'action.hover',
+                      cursor: 'pointer',
+                      '&:hover': { bgcolor: 'action.selected' }
+                    }
+                  }}
+                />
+              </Box>
+
+              {formErrors.noPrices && <Typography color="error" variant="body2" sx={{ mt: 2 }}>{formErrors.noPrices}</Typography>}
+            </Box>
+          )}
+
+          <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 2 }}>
+            <Button
+              variant="outlined"
+              color="inherit"
+              onClick={() => navigate("/services")}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              disabled={isSubmitting}
+              startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : null}
+            >
+              {isSubmitting ? "Saving..." : isEditMode ? "Update Service" : "Create Service"}
+            </Button>
+          </Box>
+        </form>
+      </CardContent>
+
+      <Snackbar
+        open={alertInfo.show && alertInfo.severity === "success"}
+        autoHideDuration={2000}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        onClose={() => setAlertInfo({ ...alertInfo, show: false })}
+      >
+        <Alert severity="success" variant="filled">{alertInfo.message}</Alert>
+      </Snackbar>
+    </Card>
   )
 }
 

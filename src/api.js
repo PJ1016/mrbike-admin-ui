@@ -360,6 +360,9 @@ export const getServiceList = () =>
 export const getAServiceList = getServiceList;
 export const getServices = getServiceList;
 
+// Update Admin Service
+
+
 export const deleteAdminService = async (serviceId) => {
   try {
     const response = await axios.delete(
@@ -741,12 +744,7 @@ export const getAdminServiceById = (serviceId) =>
 export const updateAdminService = async (serviceId, serviceData) => {
   try {
     const token = getAuthToken();
-
-    // Check if serviceData is already a JSON string or an object
-    const dataToSend =
-      typeof serviceData === "string" ? JSON.parse(serviceData) : serviceData;
-
-    console.log("Updating service with data:", dataToSend);
+    const dataToSend = typeof serviceData === "string" ? JSON.parse(serviceData) : serviceData;
 
     const response = await axios.put(
       `${API_BASE_URL}/service/admin/services/${serviceId}`,
@@ -754,32 +752,14 @@ export const updateAdminService = async (serviceId, serviceData) => {
       {
         headers: {
           "Content-Type": "application/json",
-          token: token ? token : "", // Your backend expects just token, not Bearer
+          token: token ? token : "",
         },
       },
     );
 
-    Swal.fire({
-      icon: "success",
-      title: "Service Updated Successfully!",
-      text: response.data.message || "The admin service has been updated.",
-      timer: 2000,
-      showConfirmButton: false,
-    });
-
     return response.data;
   } catch (error) {
-    console.error(
-      "[v0] Error updating admin service:",
-      error.response?.data || error.message,
-    );
-
-    Swal.fire({
-      icon: "error",
-      title: "Failed to Update Service",
-      text: error.response?.data?.message || "Something went wrong!",
-    });
-
+    console.error("Error updating admin service:", error.response?.data || error.message);
     throw error;
   }
 };

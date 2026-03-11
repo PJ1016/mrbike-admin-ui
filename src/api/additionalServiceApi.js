@@ -54,7 +54,6 @@ const apiRequest = async (method, endpoint, data = {}, showAlert = true, require
 export const getBaseAdditionalServices = () =>
   apiRequest("GET", "/base-additional-service", {}, false)
 
-// Create a new base additional service
 export const createBaseAdditionalService = async (payload) => {
   try {
     const response = await axios.post(
@@ -67,25 +66,9 @@ export const createBaseAdditionalService = async (payload) => {
         },
       }
     )
-
-    Swal.fire({
-      icon: "success",
-      title: "Success!",
-      text: response.data.message || "Base additional service created successfully",
-      timer: 2000,
-      showConfirmButton: false,
-    })
-
     return response.data
   } catch (error) {
     console.error("Error creating base additional service:", error.response?.data || error.message)
-
-    Swal.fire({
-      icon: "error",
-      title: "Failed to Create Service",
-      text: error.response?.data?.message || "Something went wrong!",
-    })
-
     throw error
   }
 }
@@ -107,25 +90,9 @@ export const updateBaseAdditionalService = async (id, payload) => {
         },
       }
     )
-
-    Swal.fire({
-      icon: "success",
-      title: "Success!",
-      text: response.data.message || "Base additional service updated successfully",
-      timer: 2000,
-      showConfirmButton: false,
-    })
-
     return response.data
   } catch (error) {
     console.error("Error updating base additional service:", error.response?.data || error.message)
-
-    Swal.fire({
-      icon: "error",
-      title: "Failed to Update Service",
-      text: error.response?.data?.message || "Something went wrong!",
-    })
-
     throw error
   }
 }
@@ -141,25 +108,9 @@ export const deleteBaseAdditionalService = async (id) => {
         },
       }
     )
-
-    Swal.fire({
-      icon: "success",
-      title: "Success!",
-      text: response.data.message || "Base additional service deleted successfully",
-      timer: 2000,
-      showConfirmButton: false,
-    })
-
     return response.data
   } catch (error) {
     console.error("Error deleting base additional service:", error.response?.data || error.message)
-
-    Swal.fire({
-      icon: "error",
-      title: "Failed to Delete Service",
-      text: error.response?.data?.message || "Something went wrong!",
-    })
-
     throw error
   }
 }
@@ -181,25 +132,9 @@ export const createAdditionalService = async (payload) => {
         },
       }
     )
-
-    Swal.fire({
-      icon: "success",
-      title: "Success!",
-      text: response.data.message || "Additional service created successfully",
-      timer: 2000,
-      showConfirmButton: false,
-    })
-
     return response.data
   } catch (error) {
     console.error("Error creating additional service:", error.response?.data || error.message)
-
-    Swal.fire({
-      icon: "error",
-      title: "Failed to Create Service",
-      text: error.response?.data?.message || "Something went wrong!",
-    })
-
     throw error
   }
 }
@@ -225,25 +160,9 @@ export const updateAdditionalService = async (id, payload) => {
         },
       }
     )
-
-    Swal.fire({
-      icon: "success",
-      title: "Success!",
-      text: response.data.message || "Additional service updated successfully",
-      timer: 2000,
-      showConfirmButton: false,
-    })
-
     return response.data
   } catch (error) {
     console.error("Error updating additional service:", error.response?.data || error.message)
-
-    Swal.fire({
-      icon: "error",
-      title: "Failed to Update Service",
-      text: error.response?.data?.message || "Something went wrong!",
-    })
-
     throw error
   }
 }
@@ -259,25 +178,9 @@ export const deleteAdditionalService = async (id) => {
         },
       }
     )
-
-    Swal.fire({
-      icon: "success",
-      title: "Success!",
-      text: response.data.message || "Additional service deleted successfully",
-      timer: 2000,
-      showConfirmButton: false,
-    })
-
     return response.data
   } catch (error) {
     console.error("Error deleting additional service:", error.response?.data || error.message)
-
-    Swal.fire({
-      icon: "error",
-      title: "Failed to Delete Service",
-      text: error.response?.data?.message || "Something went wrong!",
-    })
-
     throw error
   }
 }

@@ -1,21 +1,49 @@
-'use client'
-
 import { useState, useEffect } from 'react'
-import Swal from 'sweetalert2'
+import { useNavigate, useParams, Link } from 'react-router-dom'
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  TextField,
+  Button,
+  Stack,
+  Breadcrumbs,
+  Avatar,
+  IconButton,
+  Alert,
+  CircularProgress,
+  Snackbar,
+  Grid
+} from '@mui/material'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import CloudUploadIcon from '@mui/icons-material/CloudUpload'
+import SaveIcon from '@mui/icons-material/Save'
 import { createBaseAdditionalService, getBaseAdditionalServiceById, updateBaseAdditionalService } from '../../api/additionalServiceApi'
-import { useNavigate, useParams } from 'react-router-dom'
+
+// Helper to form image URLs correctly
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return "";
+  if (imagePath.startsWith("http")) return imagePath;
+  const baseUrl = process.env.REACT_APP_IMAGE_BASE_URL || "https://api.mrbikedoctor.cloud/";
+  return `${baseUrl}${imagePath}`;
+};
 
 const BaseAdditionalServiceForm = ({ isEdit = false }) => {
   const navigate = useNavigate()
   const { id } = useParams()
+  
   const [formData, setFormData] = useState({
     name: '',
   })
   const [image, setImage] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
   const [existingImage, setExistingImage] = useState(null)
+  
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [alertInfo, setAlertInfo] = useState({ show: false, message: '', severity: 'success' })
 
   useEffect(() => {
     if (isEdit && id) {
@@ -30,7 +58,7 @@ const BaseAdditionalServiceForm = ({ isEdit = false }) => {
           }
         } catch (error) {
           console.error('Error fetching service:', error)
-          Swal.fire('Error', 'Failed to load service details', 'error')
+          setAlertInfo({ show: true, message: 'Failed to load service details', severity: 'error' })
         } finally {
           setIsLoading(false)
         }
@@ -59,10 +87,20 @@ const BaseAdditionalServiceForm = ({ isEdit = false }) => {
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData({ ...formData, [name]: value })
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: '' }))
+    }
   }
 
   const handleFileChange = (e) => {
-    setImage(e.target.files[0])
+    const file = e.target.files[0]
+    if (file) {
+      setImage(file)
+      setImagePreview(URL.createObjectURL(file))
+      if (formErrors.image) {
+        setFormErrors(prev => ({ ...prev, image: '' }))
+      }
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -87,9 +125,14 @@ const BaseAdditionalServiceForm = ({ isEdit = false }) => {
       }
 
       if (response?.status === true || response?.status === 200) {
-        navigate('/base-additional-services')
+        setAlertInfo({ show: true, message: `Base Service ${isEdit ? 'updated' : 'created'} successfully!`, severity: 'success' })
+        setTimeout(() => navigate('/base-additional-services'), 1500)
       }
     } catch (error) {
+      console.error('Error submitting form:', error)
+      const errMessage = error.response?.data?.message || 'Something went wrong!'
+      setAlertInfo({ show: true, message: errMessage, severity: 'error' })
+      
       const err = error.response?.data
       if (err?.field) {
         setFormErrors((prev) => ({ ...prev, [err.field]: err.message }))
@@ -101,97 +144,179 @@ const BaseAdditionalServiceForm = ({ isEdit = false }) => {
 
   if (isLoading) {
     return (
-      <div className="page-wrapper">
-        <div className="content container-fluid">
-          <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+        <CircularProgress />
+      </Box>
     )
   }
 
   return (
     <div className="page-wrapper">
       <div className="content container-fluid">
-        <div className="page-header">
-          <div className="content-page-header">
-            <h5>{isEdit ? 'Edit' : 'Create'} Base Additional Service</h5>
-          </div>
-        </div>
+        <Box sx={{ py: 1 }}>
+          <Box sx={{ mb: 4 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2}>
+              <Box>
+                <Typography variant="h4" fontWeight="700" color="text.primary">
+                  {isEdit ? 'Edit' : 'Create'} Base Service
+                </Typography>
+                <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
+                  <Typography color="text.secondary" variant="body2">Dashboard</Typography>
+                  <Link to="/base-additional-services" style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <Typography color="text.secondary" variant="body2" sx={{ '&:hover': { color: 'primary.main' } }}>
+                      Base Additional Services
+                    </Typography>
+                  </Link>
+                  <Typography color="text.primary" variant="body2" fontWeight="500">
+                    {isEdit ? 'Edit' : 'Create'}
+                  </Typography>
+                </Breadcrumbs>
+              </Box>
 
-        <div className="row">
-          <div className="col-sm-12">
-            <div className="card-table card p-3">
-              <div className="card-body">
-                <form className="form-horizontal" onSubmit={handleSubmit}>
-                  <div className="row">
-                    <div className="col-md-8">
-                      <div className="input-block mb-3">
-                        <label className="form-control-label">Service Name *</label>
-                        <input
-                          className={`form-control ${formErrors.name ? 'is-invalid' : ''}`}
-                          name="name"
-                          type="text"
-                          placeholder="e.g. Wheel Alignment"
-                          value={formData.name}
-                          onChange={handleChange}
-                        />
-                        {formErrors.name && <div className="invalid-feedback">{formErrors.name}</div>}
-                      </div>
+              <Button
+                variant="outlined"
+                color="inherit"
+                startIcon={<ArrowBackIcon />}
+                onClick={() => navigate(-1)}
+                sx={{ fontWeight: 'bold', borderColor: 'divider', '&:hover': { bgcolor: 'grey.100' } }}
+              >
+                Back
+              </Button>
+            </Stack>
+          </Box>
 
-                      <div className="input-block mb-3">
-                        <label className="form-control-label">Service Image {!isEdit && '*'}</label>
-                        <input
-                          type="file"
-                          name="image"
-                          className={`form-control ${formErrors.image ? 'is-invalid' : ''}`}
-                          onChange={handleFileChange}
-                          accept="image/*"
-                        />
-                        {formErrors.image && <div className="invalid-feedback">{formErrors.image}</div>}
-                        {isEdit && existingImage && (
-                          <div className="mt-2 alert alert-info small">
-                            Current image is set. Upload a new one to replace it.
-                          </div>
+          <Card elevation={3} sx={{ borderRadius: 2 }}>
+            <CardContent sx={{ p: { xs: 2, sm: 4 } }}>
+              <form onSubmit={handleSubmit}>
+                <Grid container spacing={4}>
+                  <Grid item xs={12} md={7}>
+                    <Stack spacing={3}>
+                      <TextField
+                        fullWidth
+                        label="Service Name *"
+                        name="name"
+                        placeholder="e.g. Wheel Alignment"
+                        value={formData.name}
+                        onChange={handleChange}
+                        error={!!formErrors.name}
+                        helperText={formErrors.name}
+                      />
+
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                          Service Image {!isEdit && '*'}
+                        </Typography>
+                        <Stack direction="row" spacing={2} alignItems="center">
+                          <Button
+                            component="label"
+                            variant="outlined"
+                            startIcon={<CloudUploadIcon />}
+                            sx={{ height: '56px' }}
+                          >
+                            Upload File
+                            <input
+                              type="file"
+                              hidden
+                              accept="image/*"
+                              onChange={handleFileChange}
+                            />
+                          </Button>
+                          <Typography variant="body2" color="text.secondary">
+                            {image ? image.name : 'No file chosen'}
+                          </Typography>
+                        </Stack>
+                        {formErrors.image && (
+                          <Typography variant="caption" color="error" sx={{ ml: 1, mt: 0.5, display: 'block' }}>
+                            {formErrors.image}
+                          </Typography>
                         )}
-                      </div>
-                    </div>
+                      </Box>
+                    </Stack>
+                  </Grid>
 
-                    <div className="col-md-4">
-                      {image && (
-                        <div className="mt-3">
-                          <label className="form-control-label">Preview</label>
-                          <img
-                            src={URL.createObjectURL(image) || '/placeholder.svg'}
-                            alt="Preview"
-                            style={{ maxWidth: '100%', maxHeight: '200px' }}
-                          />
-                        </div>
+                  <Grid item xs={12} md={5}>
+                    <Box sx={{ 
+                      height: '100%', 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      p: 2,
+                      bgcolor: 'grey.50',
+                      borderRadius: 2,
+                      border: '1px dashed',
+                      borderColor: 'divider',
+                      minHeight: '200px'
+                    }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
+                        Image Preview
+                      </Typography>
+                      
+                      {(imagePreview || existingImage) ? (
+                        <Avatar
+                          src={imagePreview || getImageUrl(existingImage)}
+                          variant="rounded"
+                          sx={{ width: 180, height: 180, boxShadow: 2 }}
+                        />
+                      ) : (
+                        <Box sx={{ 
+                          width: 180, 
+                          height: 180, 
+                          bgcolor: 'grey.200', 
+                          borderRadius: 2,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <Typography variant="body2" color="text.secondary">No Image</Typography>
+                        </Box>
                       )}
-                    </div>
-                  </div>
 
-                  <div className="text-end mt-3">
-                    <button
-                      className="btn btn-secondary me-2 px-4"
-                      type="button"
-                      onClick={() => navigate('/base-additional-services')}
-                    >
-                      Cancel
-                    </button>
-                    <button className="btn btn-primary px-5" type="submit" disabled={isSubmitting}>
-                      {isSubmitting ? 'Submitting...' : isEdit ? 'Update Service' : 'Create Service'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
+                      {isEdit && existingImage && !image && (
+                        <Typography variant="caption" color="info.main" sx={{ mt: 2 }}>
+                          Current image is displayed. Upload to replace.
+                        </Typography>
+                      )}
+                    </Box>
+                  </Grid>
+                </Grid>
+
+                <Box sx={{ mt: 4, pt: 2, borderTop: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    onClick={() => navigate('/base-additional-services')}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    disabled={isSubmitting}
+                    size="large"
+                    startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+                  >
+                    {isSubmitting ? 'Submitting...' : isEdit ? 'Update Service' : 'Create Service'}
+                  </Button>
+                </Box>
+              </form>
+            </CardContent>
+          </Card>
+        </Box>
       </div>
+
+      <Snackbar
+        open={alertInfo.show}
+        autoHideDuration={4000}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        onClose={() => setAlertInfo({ ...alertInfo, show: false })}
+      >
+        <Alert severity={alertInfo.severity} variant="filled" sx={{ width: '100%' }}>
+          {alertInfo.message}
+        </Alert>
+      </Snackbar>
     </div>
   )
 }

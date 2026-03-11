@@ -1,9 +1,16 @@
-'use client'
-
 import { useRef, useState, useEffect } from 'react'
 import BaseAdditionalServiceTable from '../../components/Additional/BaseAdditionalServiceTable'
 import { Link } from 'react-router-dom'
 import { getBaseAdditionalServices } from '../../api/additionalServiceApi'
+import {
+  Box,
+  Typography,
+  Button,
+  Stack,
+  Breadcrumbs,
+} from "@mui/material";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import LibraryAddIcon from "@mui/icons-material/LibraryAdd";
 
 const BaseAdditionalServices = () => {
   const [data, setData] = useState([])
@@ -12,24 +19,18 @@ const BaseAdditionalServices = () => {
 
   const tableHeaders = ['#', 'Service Image', 'Service Name', 'Created At', 'Actions']
 
-  const triggerDownloadExcel = useRef(null)
-  const triggerDownloadPDF = useRef(null)
-
   useEffect(() => {
     const fetchServices = async () => {
       try {
         setLoading(true)
-        console.log('[v0] Fetching base additional services...')
         const response = await getBaseAdditionalServices()
         if (response && response.status === true) {
-          console.log('[v0] Base additional services data received:', response.data)
           setData(response.data || [])
         } else {
-          console.error('[v0] API error or no data:', response)
           setData([])
         }
       } catch (error) {
-        console.error('[v0] Error fetching base additional services:', error)
+        console.error('Error fetching base additional services:', error)
         setData([])
       } finally {
         setLoading(false)
@@ -46,30 +47,57 @@ const BaseAdditionalServices = () => {
   return (
     <div className="page-wrapper">
       <div className="content container-fluid">
-        <div className="page-header">
-          <div className="content-page-header">
-            <h5>Base Additional Services</h5>
-            <div className="list-btn">
-              <ul className="filter-list">
-                <li>
-                  <Link className="btn btn-primary" to="/create-base-additional-service">
-                    <i className="fa fa-plus-circle me-2" /> Add Base Additional Service
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
+        <Box sx={{ py: 1 }}>
+          <Box sx={{ mb: 4 }}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", sm: "center" }}
+              spacing={2}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                <LibraryAddIcon sx={{ color: "#2e83ff", fontSize: 32 }} />
+                <Box>
+                  <Typography variant="h4" fontWeight="700" color="text.primary">
+                    Base Additional Services
+                  </Typography>
+                  <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
+                    <Typography color="text.secondary" variant="body2">
+                      Dashboard
+                    </Typography>
+                    <Typography
+                      color="text.primary"
+                      variant="body2"
+                      fontWeight="500"
+                    >
+                      Base Additional Services
+                    </Typography>
+                  </Breadcrumbs>
+                </Box>
+              </Box>
 
-        <BaseAdditionalServiceTable
-          datas={data}
-          triggerDownloadExcel={triggerDownloadExcel}
-          triggerDownloadPDF={triggerDownloadPDF}
-          tableHeaders={tableHeaders}
-          text="Base Additional Services"
-          onServiceDeleted={handleRefresh}
-          loading={loading}
-        />
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <Button
+                  component={Link}
+                  to="/create-base-additional-service"
+                  variant="contained"
+                  color="primary"
+                  startIcon={<AddCircleOutlineIcon />}
+                  sx={{ fontWeight: "bold" }}
+                >
+                  Add Base Additional Service
+                </Button>
+              </Box>
+            </Stack>
+          </Box>
+
+          <BaseAdditionalServiceTable
+            datas={data}
+            tableHeaders={tableHeaders}
+            onServiceDeleted={handleRefresh}
+            loading={loading}
+          />
+        </Box>
       </div>
     </div>
   )
