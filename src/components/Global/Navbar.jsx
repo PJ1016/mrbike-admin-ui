@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import img1 from "../../assets2/img/logos/logo.png"
 import img2 from "../../assets2/img/logos/logo-small.png"
 import img3 from "../../assets/img/profiles/avatar-07.jpg"
+import GlobalSearch from "./GlobalSearch"
 
 const Navbar = () => {
   const navigate = useNavigate()
@@ -60,6 +61,10 @@ const Navbar = () => {
       <Link className="mobile_btn" id="mobile_btn" onClick={toggleSidebar}>
         <i className="fas fa-bars" />
       </Link>
+
+      <div className="d-flex align-items-center ms-4 flex-grow-1 justify-content-center">
+        <GlobalSearch />
+      </div>
       <ul className="nav nav-tabs user-menu">
         <li className="nav-item dropdown">
           <Link

@@ -6,7 +6,10 @@ import {
   Outlet,
   Navigate,
 } from "react-router-dom";
+import { useEffect } from "react";
+import { useDispatch } from "react-redux";
 import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
+import { fetchGlobalSearchData } from "./redux/slices/searchSlice";
 import "./App.css";
 import AddAdmin from "./pages/admin/AddAdmin";
 import Sidebar from "./components/Global/Sidebar";
@@ -104,8 +107,13 @@ function App() {
 // test
 
 const AppContent = () => {
+  const dispatch = useDispatch();
   const location = useLocation();
   const hideNavbar = location.pathname.toLowerCase() === "/login";
+
+  useEffect(() => {
+    dispatch(fetchGlobalSearchData());
+  }, [dispatch]);
 
   return (
     <>

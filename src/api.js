@@ -362,7 +362,6 @@ export const getServices = getServiceList;
 
 // Update Admin Service
 
-
 export const deleteAdminService = async (serviceId) => {
   try {
     const response = await axios.delete(
@@ -744,7 +743,8 @@ export const getAdminServiceById = (serviceId) =>
 export const updateAdminService = async (serviceId, serviceData) => {
   try {
     const token = getAuthToken();
-    const dataToSend = typeof serviceData === "string" ? JSON.parse(serviceData) : serviceData;
+    const dataToSend =
+      typeof serviceData === "string" ? JSON.parse(serviceData) : serviceData;
 
     const response = await axios.put(
       `${API_BASE_URL}/service/admin/services/${serviceId}`,
@@ -759,7 +759,10 @@ export const updateAdminService = async (serviceId, serviceData) => {
 
     return response.data;
   } catch (error) {
-    console.error("Error updating admin service:", error.response?.data || error.message);
+    console.error(
+      "Error updating admin service:",
+      error.response?.data || error.message,
+    );
     throw error;
   }
 };
@@ -798,7 +801,6 @@ export const createBaseService = async (serviceData) => {
 
 export const getBaseServiceById = (serviceId) =>
   apiRequest("GET", `/service/admin/base-services/${serviceId}`, {}, false);
-
 export const updateBaseService = async (serviceId, serviceData) => {
   try {
     const response = await axios.put(
