@@ -1,0 +1,414 @@
+{
+    "success": true,
+    "count": 5,
+    "vendors": [
+        {
+            "_id": "69a52ced18ab1694d5c40175",
+            "phone": "9542129932",
+            "shopImages": [],
+            "tax": 0,
+            "formProgress": {
+                "currentStep": 1,
+                "completedSteps": {
+                    "basicInfo": true,
+                    "locationInfo": true,
+                    "shopDetails": true,
+                    "documents": false,
+                    "bankDetails": false
+                },
+                "lastActiveStep": 1
+            },
+            "registrationStatus": "Pending",
+            "otp": "9999",
+            "otpExpiry": "2026-03-02T06:28:41.375Z",
+            "loginAttempts": 0,
+            "isVerify": false,
+            "isProfile": false,
+            "isDoc": false,
+            "isActive": true,
+            "status": {
+                "adminApproved": false,
+                "isActive": false,
+                "isVerified": false
+            },
+            "documentVerification": {
+                "aadhar": false,
+                "pan": false,
+                "bank": false,
+                "shop": false
+            },
+            "businessHours": {
+                "days": []
+            },
+            "notifications": {
+                "email": true,
+                "sms": true,
+                "app": true
+            },
+            "services": [],
+            "gender": "Female",
+            "dob": null,
+            "online": false,
+            "creatorModel": "Vendor",
+            "creatorType": "self",
+            "createdAt": "2026-03-02T06:23:41.397Z",
+            "updatedAt": "2026-03-02T06:26:11.079Z",
+            "id": 7,
+            "__v": 0,
+            "personalEmail": "Naresh@gmail.com",
+            "completionTimestamps": {
+                "locationInfo": "2026-03-02T06:25:19.302Z",
+                "shopDetails": "2026-03-02T06:26:11.079Z"
+            },
+            "latitude": 17.445655,
+            "longitude": 78.64105333333333,
+            "permanentAddress": {
+                "address": "CJWR+7C Secunderabad, Telangana, India",
+                "city": "Secunderabad",
+                "state": "Telangana"
+            },
+            "shopPincode": "50008",
+            "holiday": "Sunday",
+            "shopContact": "9542129932",
+            "shopEmail": "Bike@gmail.com",
+            "shopName": "Bike 4"
+        },
+        {
+            "_id": "69a6f20c18ab1694d5c40274",
+            "phone": "9494039564",
+            "shopImages": [],
+            "tax": 0,
+            "formProgress": {
+                "currentStep": 1,
+                "completedSteps": {
+                    "basicInfo": true,
+                    "locationInfo": true,
+                    "shopDetails": true,
+                    "documents": false,
+                    "bankDetails": false
+                },
+                "lastActiveStep": 1
+            },
+            "registrationStatus": "Pending",
+            "otp": "9999",
+            "otpExpiry": "2026-03-07T15:16:34.574Z",
+            "loginAttempts": 0,
+            "isVerify": false,
+            "isProfile": false,
+            "isDoc": false,
+            "isActive": true,
+            "status": {
+                "adminApproved": false,
+                "isActive": false,
+                "isVerified": false
+            },
+            "documentVerification": {
+                "aadhar": false,
+                "pan": false,
+                "bank": false,
+                "shop": false
+            },
+            "businessHours": {
+                "days": []
+            },
+            "notifications": {
+                "email": true,
+                "sms": true,
+                "app": true
+            },
+            "services": [],
+            "gender": "Male",
+            "dob": null,
+            "online": false,
+            "creatorModel": "Vendor",
+            "creatorType": "self",
+            "createdAt": "2026-03-03T14:37:00.701Z",
+            "updatedAt": "2026-03-07T15:11:34.586Z",
+            "id": 8,
+            "__v": 0,
+            "personalEmail": "Ha@gmail.com",
+            "completionTimestamps": {
+                "locationInfo": "2026-03-03T14:39:19.928Z",
+                "shopDetails": "2026-03-03T14:40:32.577Z"
+            },
+            "latitude": -21.7853787,
+            "longitude": -46.5619303,
+            "permanentAddress": {
+                "address": "Poços de Caldas, State of Minas Gerais, Brazil",
+                "city": "Poços de Caldas",
+                "state": "State of Minas Gerais"
+            },
+            "shopPincode": "50885555",
+            "holiday": "Sunday",
+            "shopContact": "7207545465",
+            "shopEmail": "Me@flgmail.com",
+            "shopName": "Bika stro24"
+        },
+        {
+            "_id": "69b0ed4918ab1694d5c40b10",
+            "phone": "7287955464",
+            "shopImages": [],
+            "tax": 0,
+            "formProgress": {
+                "currentStep": 1,
+                "completedSteps": {
+                    "basicInfo": true,
+                    "locationInfo": true,
+                    "shopDetails": true,
+                    "documents": true,
+                    "bankDetails": false
+                },
+                "lastActiveStep": 1
+            },
+            "registrationStatus": "Pending",
+            "otp": "9999",
+            "otpExpiry": "2026-03-11T04:38:26.591Z",
+            "loginAttempts": 0,
+            "isVerify": false,
+            "isProfile": false,
+            "isDoc": true,
+            "isActive": true,
+            "status": {
+                "adminApproved": false,
+                "isActive": false,
+                "isVerified": false
+            },
+            "documentVerification": {
+                "aadhar": true,
+                "pan": true,
+                "bank": false,
+                "shop": true
+            },
+            "businessHours": {
+                "days": []
+            },
+            "notifications": {
+                "email": true,
+                "sms": true,
+                "app": true
+            },
+            "services": [],
+            "gender": "Male",
+            "dob": null,
+            "online": false,
+            "creatorModel": "Vendor",
+            "creatorType": "self",
+            "createdAt": "2026-03-11T04:19:21.857Z",
+            "updatedAt": "2026-03-11T04:34:05.262Z",
+            "id": 10,
+            "__v": 0,
+            "personalEmail": "netha.hny@gmail.com",
+            "completionTimestamps": {
+                "locationInfo": "2026-03-11T04:20:21.930Z",
+                "shopDetails": "2026-03-11T04:21:20.161Z",
+                "documents": "2026-03-11T04:34:05.261Z"
+            },
+            "latitude": 17.4456181,
+            "longitude": 78.6412431,
+            "permanentAddress": {
+                "address": "beside INFOSYS SEZ CAMPUS, Pocharam, Hyderabad, Secunderabad, Telangana 500088, India",
+                "city": "Hyderabad",
+                "state": "Telangana"
+            },
+            "shopPincode": "500088",
+            "holiday": "No Holidays",
+            "shopContact": "7287955464",
+            "shopEmail": "Bikedoc@gmail.com",
+            "shopName": "Bikedoc2",
+            "aadharCardNo": "856494949794",
+            "documents": {
+                "aadharBack": "uploads/vendors/1773203645232_image_aadharBack.jpg",
+                "aadharFront": "uploads/vendors/1773203645229_image_aadharFront.jpg",
+                "faceVerificationImage": "uploads/vendors/1773203645252_image_faceVerificationImage.jpg",
+                "panCardFront": "uploads/vendors/1773203645247_image_panCard.jpg",
+                "shopCertificate": "uploads/vendors/1773203645249_image_shopCertificate.jpg"
+            },
+            "panCardNo": "AJWPN7449H",
+            "shopOpeningDate": "2026-03-11T00:00:00.000Z"
+        },
+        {
+            "_id": "69b0efd318ab1694d5c40b28",
+            "phone": "9292005464",
+            "shopImages": [],
+            "tax": 0,
+            "formProgress": {
+                "currentStep": 1,
+                "completedSteps": {
+                    "basicInfo": true,
+                    "locationInfo": true,
+                    "shopDetails": true,
+                    "documents": true,
+                    "bankDetails": true
+                },
+                "lastActiveStep": 1
+            },
+            "registrationStatus": "Pending",
+            "otp": "9999",
+            "otpExpiry": "2026-03-11T04:35:11.131Z",
+            "loginAttempts": 0,
+            "isVerify": false,
+            "isProfile": false,
+            "isDoc": true,
+            "isActive": true,
+            "status": {
+                "adminApproved": false,
+                "isActive": false,
+                "isVerified": false
+            },
+            "documentVerification": {
+                "aadhar": true,
+                "pan": true,
+                "bank": false,
+                "shop": true
+            },
+            "businessHours": {
+                "days": []
+            },
+            "notifications": {
+                "email": true,
+                "sms": true,
+                "app": true
+            },
+            "services": [],
+            "gender": "Male",
+            "dob": null,
+            "online": false,
+            "creatorModel": "Vendor",
+            "creatorType": "self",
+            "createdAt": "2026-03-11T04:30:11.140Z",
+            "updatedAt": "2026-03-11T04:33:07.901Z",
+            "id": 11,
+            "__v": 0,
+            "personalEmail": "netha.hny@gmail.com",
+            "completionTimestamps": {
+                "locationInfo": "2026-03-11T04:31:05.320Z",
+                "shopDetails": "2026-03-11T04:31:46.633Z",
+                "documents": "2026-03-11T04:32:35.424Z",
+                "bankDetails": "2026-03-11T04:33:07.736Z"
+            },
+            "latitude": 17.4359044,
+            "longitude": 78.6622155,
+            "permanentAddress": {
+                "address": "Annojiguda, Hyderabad, Telangana 500088, India",
+                "city": "Hyderabad",
+                "state": "Telangana"
+            },
+            "shopPincode": "500088",
+            "holiday": "No Holidays",
+            "shopContact": "9292005464",
+            "shopEmail": "bikedoc@gmail.com",
+            "shopName": "Bikedoc3",
+            "aadharCardNo": "546649565962",
+            "documents": {
+                "aadharBack": "uploads/vendors/1773203555407_image_aadharBack.jpg",
+                "aadharFront": "uploads/vendors/1773203555404_image_aadharFront.jpg",
+                "faceVerificationImage": "uploads/vendors/1773203555418_image_faceVerificationImage.jpg",
+                "panCardFront": "uploads/vendors/1773203555413_image_panCard.jpg",
+                "shopCertificate": "uploads/vendors/1773203555416_image_shopCertificate.jpg"
+            },
+            "panCardNo": "AJWPN7448H",
+            "shopOpeningDate": "2023-03-11T00:00:00.000Z",
+            "bankDetails": {
+                "accountHolderName": "SURESH",
+                "accountNumber": "3522625383",
+                "ifscCode": "CBIN0284811",
+                "bankName": "CBI"
+            },
+            "submittedAt": "2026-03-11T04:33:07.900Z"
+        },
+        {
+            "_id": "69b1bb5318ab1694d5c40d39",
+            "shopName": "Hello",
+            "email": "praveen.jayanth.1111@gmail.com",
+            "phone": "09494039564",
+            "password": "1234566",
+            "aadharCardNo": "121212121212",
+            "panCardNo": "FCIPP0987K",
+            "shopPincode": "518422",
+            "fullAddress": "5-54/1 Thotagiri Steet Atmakur",
+            "city": "Hyderabad",
+            "state": "Telangana",
+            "latitude": 12,
+            "longitude": 12,
+            "ownerName": "q",
+            "shopImages": [
+                "uploads/dealer-documents/shopImages-1773255507599-184516921.jpg",
+                "uploads/dealer-documents/shopImages-1773255507600-313239049.jpg",
+                "uploads/dealer-documents/shopImages-1773255507601-961970870.jpg",
+                "uploads/dealer-documents/shopImages-1773255507601-656000973.jpg"
+            ],
+            "personalEmail": "praveen.jayanth.1111@gmail.com",
+            "personalPhone": "09494039564",
+            "alternatePhone": "09494039564",
+            "permanentAddress": {
+                "address": "5-54/1 Thotagiri Steet Atmakur",
+                "state": "Telangana",
+                "city": "Hyderabad"
+            },
+            "presentAddress": {
+                "address": "5-54/1 Thotagiri Steet Atmakur",
+                "state": "Telangana",
+                "city": "Hyderabad"
+            },
+            "documents": {
+                "panCardFront": "uploads/dealer-documents/panCardFront-1773255507606-849726860.jpg",
+                "aadharFront": "uploads/dealer-documents/aadharFront-1773255507606-527595040.jpg",
+                "aadharBack": "uploads/dealer-documents/aadharBack-1773255507606-475644964.jpg"
+            },
+            "bankDetails": {
+                "accountHolderName": "Pj",
+                "ifscCode": "12346666",
+                "bankName": "sbi",
+                "accountNumber": "1234546"
+            },
+            "commission": 12,
+            "tax": 12,
+            "formProgress": {
+                "currentStep": 1,
+                "completedSteps": {
+                    "basicInfo": false,
+                    "locationInfo": false,
+                    "shopDetails": false,
+                    "documents": false,
+                    "bankDetails": false
+                },
+                "lastActiveStep": 1
+            },
+            "registrationStatus": "Pending",
+            "loginAttempts": 0,
+            "isVerify": false,
+            "isProfile": true,
+            "isDoc": true,
+            "isActive": true,
+            "status": {
+                "adminApproved": false,
+                "isActive": false,
+                "isVerified": false
+            },
+            "documentVerification": {
+                "aadhar": false,
+                "pan": false,
+                "bank": false,
+                "shop": false
+            },
+            "businessHours": {
+                "days": []
+            },
+            "notifications": {
+                "email": true,
+                "sms": true,
+                "app": true
+            },
+            "services": [],
+            "gender": "Male",
+            "dob": null,
+            "online": false,
+            "creatorModel": "Vendor",
+            "creatorType": "self",
+            "createdAt": "2026-03-11T18:58:27.629Z",
+            "updatedAt": "2026-03-11T18:58:27.629Z",
+            "id": 12,
+            "__v": 0
+        }
+    ]
+}

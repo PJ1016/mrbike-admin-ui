@@ -1,13 +1,10 @@
-"use client";
-
 import { useState, useEffect } from "react";
-import Swal from "sweetalert2";
 import {
   createBaseService,
   getBaseServiceById,
   updateBaseService,
 } from "../../api";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import {
   TextField,
   InputAdornment,
@@ -17,15 +14,19 @@ import {
   Box,
   Typography,
   Button,
-  Grid,
   Card,
   CardContent,
   Divider,
+  Alert,
+  Breadcrumbs,
+  Stack,
+  Snackbar,
 } from "@mui/material";
 import { BsStars } from "react-icons/bs";
 import axios from "axios";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
+import SettingsIcon from "@mui/icons-material/Settings";
 
 const AI_API_URL =
   process.env.REACT_APP_AI_API_URL || "http://localhost:8001/ai/generate";
@@ -44,6 +45,10 @@ const BaseServiceForm = ({ isEdit = false }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [globalError, setGlobalError] = useState(null);
+
+  // Snackbar state
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
   useEffect(() => {
     if (isEdit && id) {
@@ -61,7 +66,7 @@ const BaseServiceForm = ({ isEdit = false }) => {
           }
         } catch (error) {
           console.error("Error fetching service:", error);
-          Swal.fire("Error", "Failed to load service details", "error");
+          setGlobalError("Failed to load service details. Please try again.");
         } finally {
           setIsLoading(false);
         }
@@ -107,6 +112,7 @@ const BaseServiceForm = ({ isEdit = false }) => {
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       setImage(e.target.files[0]);
+      setFormErrors((prev) => ({ ...prev, image: null })); // clear image error
     }
   };
 
@@ -114,6 +120,7 @@ const BaseServiceForm = ({ isEdit = false }) => {
     if (!formData.name.trim()) return;
 
     setIsGenerating(true);
+    setGlobalError(null);
     try {
       const { data } = await axios.post(AI_API_URL, {
         prompt: `Write a clear, professional description for a bike service called "${formData.name}". Please provide the description ONLY as a short list of bullet points using standard dashes (-). Do not use any markdown formatting like asterisks (**) for bolding. Do not include any introductory text, conversational filler, or concluding remarks.`,
@@ -124,7 +131,7 @@ const BaseServiceForm = ({ isEdit = false }) => {
       }
     } catch (error) {
       console.error("Failed to generate description:", error);
-      Swal.fire("Error", "Failed to generate AI description", "error");
+      setSnackbar({ open: true, message: "Failed to generate AI description", severity: "error" });
     } finally {
       setIsGenerating(false);
     }
@@ -133,6 +140,7 @@ const BaseServiceForm = ({ isEdit = false }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormErrors({});
+    setGlobalError(null);
 
     const isValid = validate();
     if (!isValid) return;
@@ -152,26 +160,24 @@ const BaseServiceForm = ({ isEdit = false }) => {
         response = await createBaseService(form);
       }
 
-      if (response?.status === true || response?.status === 200) {
-        Swal.fire({
-          icon: "success",
-          title: "Success!",
-          text: `Service successfully ${isEdit ? "updated" : "created"}.`,
-          timer: 2000,
-          showConfirmButton: false,
+      if (response?.status === true || response?.status === 200 || response?.message) {
+        setSnackbar({
+          open: true,
+          message: `Service successfully ${isEdit ? "updated" : "created"}.`,
+          severity: "success"
         });
-        navigate("/base-services");
+        
+        // Wait a brief moment before navigating back to let the snackbar show
+        setTimeout(() => {
+          navigate("/base-services");
+        }, 1200);
       }
     } catch (error) {
       const err = error.response?.data;
       if (err?.field) {
         setFormErrors((prev) => ({ ...prev, [err.field]: err.message }));
       } else {
-        Swal.fire(
-          "Error",
-          "An unexpected error occurred during submission",
-          "error",
-        );
+        setGlobalError(err?.message || "An unexpected error occurred during submission");
       }
     } finally {
       setIsSubmitting(false);
@@ -184,7 +190,7 @@ const BaseServiceForm = ({ isEdit = false }) => {
     variant: "outlined",
     size: "small",
     onChange: handleChange,
-    slotProps: { label: { shrink: true } },
+    InputLabelProps: { shrink: true },
   };
 
   const renderImageSection = () => {
@@ -285,14 +291,7 @@ const BaseServiceForm = ({ isEdit = false }) => {
 
   if (isLoading) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "400px",
-        }}
-      >
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
         <CircularProgress />
       </Box>
     );
@@ -301,108 +300,139 @@ const BaseServiceForm = ({ isEdit = false }) => {
   return (
     <div className="page-wrapper">
       <div className="content container-fluid">
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="h6" fontWeight={600}>
-            {isEdit ? "Edit" : "Create"} Base Service
-          </Typography>
-        </Box>
+        <Box sx={{ py: 1 }}>
+          {/* Header & Breadcrumbs matching Bookings */}
+          <Box sx={{ mb: 4 }}>
+            <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "center" }} spacing={2}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                <SettingsIcon sx={{ color: "#2e83ff", fontSize: 32 }} />
+                <Box>
+                  <Typography variant="h4" fontWeight="700" color="text.primary">
+                    {isEdit ? "Edit Base Service" : "Add Base Service"}
+                  </Typography>
+                  <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
+                    <Typography color="text.secondary" variant="body2">
+                      Dashboard
+                    </Typography>
+                    <Link to="/base-services" style={{ textDecoration: 'none', color: 'inherit' }}>
+                      <Typography color="text.secondary" variant="body2" sx={{ '&:hover': { color: 'primary.main', textDecoration: 'underline' } }}>
+                        Services
+                      </Typography>
+                    </Link>
+                    <Typography color="text.primary" variant="body2" fontWeight="500">
+                      {isEdit ? "Edit" : "Add"}
+                    </Typography>
+                  </Breadcrumbs>
+                </Box>
+              </Box>
+            </Stack>
+          </Box>
 
-        <Box sx={{ width: "100%", maxWidth: "800px" }}>
-          <Card
-            elevation={2}
-            sx={{
-              borderRadius: 2,
-              border: "none",
-              boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.05)",
-              width: "100%",
-            }}
-          >
-            <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-              <form onSubmit={handleSubmit}>
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                  <TextField
-                    {...fieldProps}
-                    label="Service Name"
-                    name="name"
-                    value={formData.name}
-                    error={!!formErrors.name}
-                    helperText={formErrors.name}
-                    required
-                    placeholder="e.g. General Service"
-                  />
+          <Box sx={{ width: "100%", maxWidth: "800px" }}>
+            <Card
+              elevation={3}
+              sx={{
+                borderRadius: 2,
+                width: "100%",
+                border: "1px solid #e0e0e0",
+              }}
+            >
+              <CardContent sx={{ p: { xs: 2, md: 4 } }}>
+                <form onSubmit={handleSubmit}>
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                    
+                    {globalError && (
+                      <Alert severity="error" sx={{ mb: 1 }}>
+                        {globalError}
+                      </Alert>
+                    )}
 
-                  <TextField
-                    {...fieldProps}
-                    label="Service Description"
-                    name="description"
-                    value={formData.description}
-                    multiline
-                    rows={6}
-                    required
-                    error={!!formErrors.description}
-                    helperText={formErrors.description}
-                    placeholder="Enter description..."
-                    slotProps={{
-                      ...fieldProps.slotProps,
-                      input: {
+                    <TextField
+                      {...fieldProps}
+                      label="Service Name"
+                      name="name"
+                      value={formData.name}
+                      error={!!formErrors.name}
+                      helperText={formErrors.name}
+                      required
+                      placeholder="e.g. General Service"
+                    />
+
+                    <TextField
+                      {...fieldProps}
+                      label="Service Description"
+                      name="description"
+                      value={formData.description}
+                      multiline
+                      rows={6}
+                      required
+                      error={!!formErrors.description}
+                      helperText={formErrors.description}
+                      placeholder="Enter description..."
+                      InputProps={{
                         endAdornment: (
-                          <InputAdornment
-                            position="end"
-                            sx={{ alignSelf: "flex-end", mb: 1 }}
-                          >
+                          <InputAdornment position="end" sx={{ alignSelf: "flex-end", mb: 1, mr: -1 }}>
                             <Tooltip title="Generate description with AI">
                               <IconButton
                                 color="primary"
                                 onClick={handleGenerateDescription}
                                 disabled={!formData.name.trim() || isGenerating}
                               >
-                                {isGenerating ? (
-                                  <CircularProgress size={24} />
-                                ) : (
-                                  <BsStars />
-                                )}
+                                {isGenerating ? <CircularProgress size={24} /> : <BsStars />}
                               </IconButton>
                             </Tooltip>
                           </InputAdornment>
                         ),
-                      },
-                    }}
-                  />
+                      }}
+                    />
 
-                  {renderImageSection()}
+                    {renderImageSection()}
 
-                  <Divider sx={{ my: 1 }} />
+                    <Divider sx={{ my: 1 }} />
 
-                  <Box
-                    sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}
-                  >
-                    <Button
-                      variant="outlined"
-                      onClick={() => navigate("/base-services")}
-                      disabled={isSubmitting}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <CircularProgress size={24} color="inherit" />
-                      ) : isEdit ? (
-                        "Update Service"
-                      ) : (
-                        "Create Service"
-                      )}
-                    </Button>
+                    <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+                      <Button
+                        variant="outlined"
+                        onClick={() => navigate("/base-services")}
+                        disabled={isSubmitting}
+                        sx={{ fontWeight: "bold" }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        disabled={isSubmitting}
+                        sx={{ fontWeight: "bold", minWidth: 140 }}
+                      >
+                        {isSubmitting ? (
+                          <CircularProgress size={24} color="inherit" />
+                        ) : isEdit ? (
+                          "Update Service"
+                        ) : (
+                          "Create Service"
+                        )}
+                      </Button>
+                    </Box>
                   </Box>
-                </Box>
-              </form>
-            </CardContent>
-          </Card>
+                </form>
+              </CardContent>
+            </Card>
+          </Box>
         </Box>
       </div>
+      
+      {/* Snackbar for Success messages */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity={snackbar.severity} variant="filled" sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

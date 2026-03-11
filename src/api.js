@@ -806,27 +806,12 @@ export const createBaseService = async (serviceData) => {
       },
     );
 
-    Swal.fire({
-      icon: "success",
-      title: "Base Service Created Successfully!",
-      text: response.data.message || "The base service has been created.",
-      timer: 2000,
-      showConfirmButton: false,
-    });
-
     return response.data;
   } catch (error) {
     console.error(
       "Error creating base service:",
       error.response?.data || error.message,
     );
-
-    Swal.fire({
-      icon: "error",
-      title: "Failed to Create Base Service",
-      text: error.response?.data?.message || "Something went wrong!",
-    });
-
     throw error;
   }
 };
@@ -847,27 +832,12 @@ export const updateBaseService = async (serviceId, serviceData) => {
       },
     );
 
-    Swal.fire({
-      icon: "success",
-      title: "Base Service Updated Successfully!",
-      text: response.data.message || "The base service has been updated.",
-      timer: 2000,
-      showConfirmButton: false,
-    });
-
     return response.data;
   } catch (error) {
     console.error(
       "Error updating base service:",
       error.response?.data || error.message,
     );
-
-    Swal.fire({
-      icon: "error",
-      title: "Failed to Update Base Service",
-      text: error.response?.data?.message || "Something went wrong!",
-    });
-
     throw error;
   }
 };
@@ -883,27 +853,9 @@ export const deleteBaseService = async (serviceId) => {
       },
     );
 
-    Swal.fire({
-      icon: "success",
-      title: "Success!",
-      text: response.data.message || "Base service deleted successfully",
-      timer: 2000,
-      showConfirmButton: false,
-    });
-
     return response.data;
   } catch (error) {
     console.error("Delete failed:", error.response?.data || error.message);
-
-    const errorMessage =
-      error.response?.data?.message || "Could not delete base service";
-
-    Swal.fire({
-      icon: "error",
-      title: "Deletion Failed",
-      text: errorMessage,
-    });
-
     throw error;
   }
 };

@@ -1,13 +1,50 @@
-"use client"
+import { useState, useMemo, useRef } from "react";
+import { useDownloadExcel } from "react-export-table-to-excel";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import { deleteAdminService } from "../../api";
+import { useNavigate } from "react-router-dom";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TextField,
+  InputAdornment,
+  TablePagination,
+  IconButton,
+  Box,
+  Typography,
+  Avatar,
+  Tooltip,
+  Skeleton,
+  TableSortLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  CircularProgress,
+  Alert,
+  Chip,
+  Grid,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+} from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import InventoryIcon from "@mui/icons-material/Inventory";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import SettingsIcon from "@mui/icons-material/Settings";
 
-import { useState, useMemo, useRef } from "react"
-import Swal from "sweetalert2"
-import { useDownloadExcel } from "react-export-table-to-excel"
-import jsPDF from "jspdf"
-import "jspdf-autotable"
-import ImagePreview from "../Global/ImagePreview"
-import { deleteAdminService } from "../../api"
-import { useNavigate } from "react-router-dom"
+const API_IMAGE_BASE = "https://api.mrbikedoctor.cloud/";
 
 const ServiceTable = ({
   triggerDownloadExcel,
@@ -19,404 +56,454 @@ const ServiceTable = ({
   loading,
   error,
 }) => {
-  const navigate = useNavigate()
-  const tableRef = useRef(null)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [showEditModal, setShowEditModal] = useState(false)
+  const navigate = useNavigate();
+  const tableRef = useRef(null);
+  
+  const [searchTerm, setSearchTerm] = useState("");
+  const [order, setOrder] = useState("desc");
+  const [orderBy, setOrderBy] = useState("createdAt");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  
+  const [showEditModal, setShowEditModal] = useState(false);
   const [editFormData, setEditFormData] = useState({
     _id: "",
     base_service_id: {},
     companies: [],
     dealer_id: {},
     bikes: [],
-  })
+  });
 
-  const handleView = (service) => {
-    setEditFormData({
-      _id: service._id,
-      base_service_id: service.base_service_id || {},
-      companies: service.companies || [],
-      dealer_id: service.dealer_id || {},
-      bikes: service.bikes || [],
-    })
-    setShowEditModal(true)
-  }
+  // Action Menu State
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedService, setSelectedService] = useState(null);
 
-  const rowsPerPage = 10
+  // Dialog State
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState(null);
 
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    return path.startsWith("http") ? path : `${API_IMAGE_BASE}${path}`;
+  };
+
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  };
+
+  const handleMenuOpen = (event, service) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedService(service);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleView = () => {
+    if (selectedService) {
+      setEditFormData({
+        _id: selectedService._id,
+        base_service_id: selectedService.base_service_id || {},
+        companies: selectedService.companies || [],
+        dealer_id: selectedService.dealer_id || {},
+        bikes: selectedService.bikes || [],
+      });
+      setShowEditModal(true);
+    }
+    handleMenuClose();
+  };
+
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+    setActionError(null);
+    handleMenuClose();
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedService) return;
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      const response = await deleteAdminService(selectedService._id);
+      if (response && response.status === true) {
+        setDeleteDialogOpen(false);
+        if (onServiceDeleted) onServiceDeleted();
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Could not delete service";
+      setActionError(msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Export integrations
   const { onDownload } = useDownloadExcel({
     currentTableRef: tableRef.current,
     filename: "Service_List",
     sheet: "Services",
-  })
+  });
 
   const exportToPDF = () => {
-    const doc = new jsPDF()
-    doc.text("Service List", 14, 10)
+    const doc = new jsPDF();
+    doc.text("Service List", 14, 10);
+    const table = tableRef.current;
+    if (!table) return;
+    doc.autoTable({ html: "#service-mui-table", startY: 20, theme: "striped" });
+    doc.save(`${text}.pdf`);
+  };
 
-    const table = tableRef.current
-    if (!table) {
-      console.error("Table not found!")
-      return
+  if (triggerDownloadExcel) triggerDownloadExcel.current = onDownload;
+  if (triggerDownloadPDF) triggerDownloadPDF.current = exportToPDF;
+
+  // Search & Filter
+  const filteredData = useMemo(() => {
+    let dataList = Array.isArray(datas) ? [...datas] : [];
+
+    if (searchTerm.trim()) {
+      dataList = dataList.filter((item) => {
+        const search = searchTerm.toLowerCase();
+        const serviceNameMatch = item.base_service_id?.name?.toLowerCase().includes(search) ?? false;
+        const companiesMatch = item.companies?.some((company) => company.name?.toLowerCase().includes(search)) ?? false;
+        return serviceNameMatch || companiesMatch;
+      });
     }
 
-    doc.autoTable({
-      html: "#example",
-      startY: 20,
-      theme: "striped",
-    })
+    dataList.sort((a, b) => {
+      let valA = a[orderBy];
+      let valB = b[orderBy];
 
-    doc.save(`${text}.pdf`)
-  }
-
-  const handleDelete = async (serviceId) => {
-    Swal.fire({
-      title: "Are you sure?",
-      text: "You won't be able to revert this!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, delete it!",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const response = await deleteAdminService(serviceId)
-          if (response && response.status === true) {
-            onServiceDeleted()
-          }
-        } catch (error) {
-          console.error("[v0] Delete failed in UI:", error)
-        }
+      if (orderBy === "name") {
+        valA = a.base_service_id?.name || "";
+        valB = b.base_service_id?.name || "";
+      } else if (orderBy === "createdAt" || orderBy === "updatedAt") {
+        valA = new Date(valA);
+        valB = new Date(valB);
       }
-    })
-  }
 
-  // Filtered data based on search
-  const filteredData = useMemo(() => {
-    const dataList = Array.isArray(datas) ? datas : []
+      if (typeof valA === "string") valA = valA.toLowerCase();
+      if (typeof valB === "string") valB = valB.toLowerCase();
 
-    if (searchTerm.trim() === "") return dataList
+      if (valA < valB) return order === "asc" ? -1 : 1;
+      if (valA > valB) return order === "asc" ? 1 : -1;
+      return 0;
+    });
 
-    return dataList.filter((item) => {
-      const search = searchTerm.toLowerCase()
-
-      const serviceNameMatch = item.base_service_id?.name?.toLowerCase().includes(search) ?? false
-      const companiesMatch = item.companies?.some((company) => company.name?.toLowerCase().includes(search)) ?? false
-
-      return serviceNameMatch || companiesMatch
-    })
-  }, [datas, searchTerm])
-
-  const totalPages = Math.ceil(filteredData.length / rowsPerPage)
+    return dataList;
+  }, [datas, searchTerm, order, orderBy]);
 
   const currentData = useMemo(() => {
-    const start = (currentPage - 1) * rowsPerPage
-    return filteredData.slice(start, start + rowsPerPage)
-  }, [filteredData, currentPage])
-
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) setCurrentPage(page)
-  }
-
-  triggerDownloadExcel.current = onDownload
-  triggerDownloadPDF.current = exportToPDF
-
-  const memoizedServiceList = currentData.map((data, index) => (
-    <tr key={data._id}>
-      <td>{(currentPage - 1) * rowsPerPage + index + 1}</td>
-      <td>{data.serviceId || "N/A"}</td>
-      <td>{data.base_service_id?.image ? <ImagePreview image={data.base_service_id.image} /> : "N/A"}</td>
-      <td>{data.base_service_id?.name || "N/A"}</td>
-      <td style={{ whiteSpace: "normal", wordBreak: "break-word", maxWidth: "300px" }}>
-        {data.companies && data.companies.length > 0 ? (
-          <div className="d-flex flex-wrap gap-1">
-            {data.companies.map((company, idx) => (
-              <span key={idx} className="badge bg-info text-dark">
-                {company.name}
-              </span>
-            ))}
-          </div>
-        ) : (
-          "N/A"
-        )}
-      </td>
-      <td>
-        {data.dealer_id ? (
-          <span className="badge bg-success text-white">
-            {typeof data.dealer_id === "object" ? data.dealer_id.shopName || "N/A" : "N/A"}
-          </span>
-        ) : (
-          "N/A"
-        )}
-      </td>
-      <td>
-        {data.dealer_id ? (
-          <span className="badge bg-secondary text-white">
-            {typeof data.dealer_id === "object" ? data.dealer_id.dealerId || "N/A" : "N/A"}
-          </span>
-        ) : (
-          "N/A"
-        )}
-      </td>
-      {/* <td>
-        {data.bikes && data.bikes.length > 0 ? (
-          <ul className="mb-0 list-unstyled">
-            {data.bikes
-              .sort((a, b) => a.cc - b.cc)
-              .map((bike, idx) => (
-                <li key={idx} className="small">
-                  ₹{bike.price}
-                </li>
-              ))}
-          </ul>
-        ) : (
-          "N/A"
-        )}
-      </td> */}
-      <td>{new Date(data.createdAt).toLocaleDateString()}</td>
-      <td>{new Date(data.updatedAt).toLocaleDateString()}</td>
-      <td className="d-flex align-items-center">
-        <div className="dropdown">
-          <a href="#" className="btn-action-icon" data-bs-toggle="dropdown">
-            <i className="fas fa-ellipsis-v" />
-          </a>
-          <ul className="dropdown-menu dropdown-menu-end">
-            <li>
-              <button className="dropdown-item" onClick={() => handleView(data)}>
-                <i className="far fa-eye me-2" /> View
-              </button>
-            </li>
-            <li>
-              <button className="dropdown-item" onClick={() => navigate(`/edit-services/${data._id}`)}>
-                <i className="far fa-edit me-2" /> Edit Pricing
-              </button>
-            </li>
-            <li>
-              <button className="dropdown-item" onClick={() => handleDelete(data._id)}>
-                <i className="far fa-trash-alt me-2" /> Delete
-              </button>
-            </li>
-          </ul>
-        </div>
-      </td>
-    </tr>
-  ))
+    const start = page * rowsPerPage;
+    return filteredData.slice(start, start + rowsPerPage);
+  }, [filteredData, page, rowsPerPage]);
 
   return (
-    <>
-      <div className="row">
-        <div className="col-sm-12">
-          <div className="card-table card p-2">
-            <div className="card-body">
-              <div className="mb-3">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Search by service name or company"
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                />
-              </div>
-              <div className="table-responsive">
-                <table ref={tableRef} id="example" className="table table-striped">
-                  <thead className="thead-light" style={{ backgroundColor: "#2e83ff" }}>
-                    <tr>
-                      {tableHeaders.map((header, index) => (
-                        <th key={index}>{header}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="list">
-                    {loading ? (
-                      <tr>
-                        <td colSpan={tableHeaders.length} className="text-center py-5">
-                          <div className="d-flex justify-content-center align-items-center flex-column">
-                            <div className="spinner-border text-primary" role="status">
-                              <span className="visually-hidden">Loading...</span>
-                            </div>
-                            <div className="mt-2">Loading services...</div>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : error ? (
-                      <tr>
-                        <td
-                          colSpan={tableHeaders.length}
-                          style={{
-                            textAlign: "center",
-                            color: "red",
-                            padding: "20px",
-                            fontWeight: "bold",
-                          }}
-                        >
-                          {error}
-                        </td>
-                      </tr>
-                    ) : filteredData.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={tableHeaders.length}
-                          style={{
-                            textAlign: "center",
-                            padding: "20px",
-                            fontStyle: "italic",
-                            color: "#555",
-                          }}
-                        >
-                          No Services found.
-                        </td>
-                      </tr>
-                    ) : (
-                      memoizedServiceList
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              <div className="d-flex justify-content-between align-items-center mt-4 p-3 bg-light rounded shadow-sm">
-                <div className="text-muted" style={{ fontWeight: "500", fontSize: "0.9rem" }}>
-                  Total Records: <span className="text-primary fw-bold">{filteredData.length}</span>
-                </div>
+    <Box sx={{ width: "100%", mt: 2 }}>
+      {/* Search Header */}
+      <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <TextField
+          variant="outlined"
+          size="small"
+          placeholder="Search service name or company..."
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setPage(0);
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" color="action" />
+              </InputAdornment>
+            ),
+            endAdornment: searchTerm && (
+              <InputAdornment position="end">
+                <IconButton size="small" onClick={() => setSearchTerm("")}>
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+          sx={{ width: { xs: "100%", sm: 340 } }}
+        />
+        <Typography variant="body2" color="text.secondary">
+          {filteredData.length} service{filteredData.length !== 1 ? "s" : ""}
+        </Typography>
+      </Box>
 
-                <nav aria-label="Page navigation example">
-                  <ul className="pagination pagination-sm mb-0">
-                    <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
-                      <button
-                        className="page-link"
-                        onClick={() => setCurrentPage(currentPage - 1)}
-                        aria-label="Previous"
+      {/* Styled Table container */}
+      <TableContainer
+        component={Paper}
+        elevation={3}
+        sx={{
+          borderRadius: 2,
+          overflowX: "auto",
+          "&::-webkit-scrollbar": { height: "8px" },
+          "&::-webkit-scrollbar-thumb": { backgroundColor: "#ccc", borderRadius: "10px" },
+        }}
+      >
+        <Table id="service-mui-table" ref={tableRef} size="small" sx={{ minWidth: 1000 }}>
+          <TableHead sx={{ backgroundColor: "#2e83ff" }}>
+            <TableRow>
+              {tableHeaders.map((header) => {
+                const isSortable = header === "Service Name" || header === "Created At" || header === "Updated At";
+                let property = "";
+                if (header === "Service Name") property = "name";
+                else if (header === "Created At") property = "createdAt";
+                else if (header === "Updated At") property = "updatedAt";
+
+                return (
+                  <TableCell
+                    key={header}
+                    align={header === "Action" ? "center" : "left"}
+                    sx={{ fontWeight: "bold", py: 1.5, whiteSpace: "nowrap", color: "white" }}
+                  >
+                    {isSortable ? (
+                      <TableSortLabel
+                        active={orderBy === property}
+                        direction={orderBy === property ? order : "asc"}
+                        onClick={() => handleRequestSort(property)}
+                        sx={{
+                          color: "white !important",
+                          "& .MuiTableSortLabel-icon": { color: "white !important" },
+                        }}
                       >
-                        &laquo;
-                      </button>
-                    </li>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <li key={page} className={`page-item ${page === currentPage ? "active" : ""}`}>
-                        <button className="page-link" onClick={() => handlePageChange(page)}>
-                          {page}
-                        </button>
-                      </li>
-                    ))}
-                    <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
-                      <button className="page-link" onClick={() => setCurrentPage(currentPage + 1)} aria-label="Next">
-                        &raquo;
-                      </button>
-                    </li>
-                  </ul>
-                </nav>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {showEditModal && (
-        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <div className="modal-dialog modal-dialog-centered modal-lg">
-            <div className="modal-content shadow-lg border-0 rounded-3">
-              <div className="modal-header bg-primary text-white">
-                <h5 className="modal-title">View Service Details</h5>
-                <button
-                  type="button"
-                  className="btn-close btn-close-white"
-                  onClick={() => setShowEditModal(false)}
-                ></button>
-              </div>
-
-              <div className="modal-body p-4">
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <label className="form-label">Service Name (Read-Only)</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={editFormData.base_service_id?.name || ""}
-                      disabled
-                    />
-                  </div>
-
-                  <div className="col-md-6">
-                    <label className="form-label">Companies (Read-Only)</label>
-                    <div className="form-control" style={{ height: "auto", background: "#f8f9fa" }}>
-                      {editFormData.companies && editFormData.companies.length > 0 ? (
-                        <div className="d-flex flex-wrap gap-1">
-                          {editFormData.companies.map((company, idx) => (
-                            <span key={idx} className="badge bg-info text-dark">
-                              {company.name}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-muted">No companies</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="col-md-6">
-                    <label className="form-label">Dealer Name (Read-Only)</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={
-                        editFormData.dealer_id && typeof editFormData.dealer_id === "object"
-                          ? editFormData.dealer_id.shopName || "N/A"
-                          : "N/A"
-                      }
-                      disabled
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Dealer ID (Read-Only)</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={
-                        editFormData.dealer_id && typeof editFormData.dealer_id === "object"
-                          ? editFormData.dealer_id.dealerId || "N/A"
-                          : "N/A"
-                      }
-                      disabled
-                    />
-                  </div>
-
-                  <div className="col-12">
-                    <label className="form-label">Bikes & Pricing</label>
-                    {editFormData.bikes && editFormData.bikes.length > 0 ? (
-                      <div className="table-responsive" style={{ maxHeight: "300px", overflowY: "auto" }}>
-                        <table className="table table-sm table-bordered">
-                          <thead className="table-light">
-                            <tr>
-                              <th>CC</th>
-                              <th>Price (₹)</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {editFormData.bikes
-                              .sort((a, b) => a.cc - b.cc)
-                              .map((bike, idx) => (
-                                <tr key={idx}>
-                                  <td>{bike.cc} CC</td>
-                                  <td>₹{bike.price}</td>
-                                </tr>
-                              ))}
-                          </tbody>
-                        </table>
-                      </div>
+                        {header}
+                      </TableSortLabel>
                     ) : (
-                      <span className="text-muted">No bikes</span>
+                      header
                     )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  )
-}
+                  </TableCell>
+                );
+              })}
+            </TableRow>
+          </TableHead>
 
-export default ServiceTable
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={tableHeaders.length} align="center" sx={{ py: 6 }}>
+                  <CircularProgress size={36} />
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Loading services…
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={tableHeaders.length} align="center" sx={{ py: 6 }}>
+                  <Typography variant="body1" color="error">{error}</Typography>
+                </TableCell>
+              </TableRow>
+            ) : currentData.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={tableHeaders.length} align="center" sx={{ py: 6 }}>
+                  <Box sx={{ opacity: 0.3, mb: 1 }}>
+                    <InventoryIcon sx={{ fontSize: 40 }} />
+                  </Box>
+                  <Typography variant="body2" color="text.secondary">
+                    No services found
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              currentData.map((service, index) => (
+                <TableRow key={service._id} hover sx={{ "&:hover": { bgcolor: "#f8faff" } }}>
+                  <TableCell sx={{ color: "text.secondary", fontSize: "0.8rem" }}>
+                    {page * rowsPerPage + index + 1}
+                  </TableCell>
+                  <TableCell sx={{ fontFamily: "monospace", color: "#2e83ff", fontWeight: "bold" }}>
+                    {service.serviceId || "N/A"}
+                  </TableCell>
+                  <TableCell>
+                    <Avatar
+                      src={getImageUrl(service.base_service_id?.image)}
+                      variant="rounded"
+                      sx={{ width: 40, height: 40, border: "1px solid #eee", bgcolor: "#fcfcfc" }}
+                    >
+                      {service.base_service_id?.name?.charAt(0)}
+                    </Avatar>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
+                      {service.base_service_id?.name || "N/A"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ maxWidth: "200px" }}>
+                    {service.companies && service.companies.length > 0 ? (
+                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                        {service.companies.map((company, idx) => (
+                          <Chip key={idx} size="small" label={company.name} sx={{ fontSize: "0.7rem", bgcolor: "#e0f2fe", color: "#0284c7" }} />
+                        ))}
+                      </Box>
+                    ) : "N/A"}
+                  </TableCell>
+                  <TableCell>
+                    {service.dealer_id ? (
+                      <Chip size="small" label={typeof service.dealer_id === "object" ? service.dealer_id.shopName || "N/A" : "N/A"} color="success" sx={{ fontSize: "0.7rem", height: 24 }} />
+                    ) : "N/A"}
+                  </TableCell>
+                  <TableCell>
+                    {service.dealer_id ? (
+                      <Chip size="small" label={typeof service.dealer_id === "object" ? service.dealer_id.dealerId || "N/A" : "N/A"} color="default" sx={{ fontSize: "0.7rem", height: 24 }} />
+                    ) : "N/A"}
+                  </TableCell>
+                  <TableCell sx={{ whiteSpace: "nowrap" }}>
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(service.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ whiteSpace: "nowrap" }}>
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(service.updatedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <IconButton size="small" onClick={(e) => handleMenuOpen(e, service)}>
+                      <MoreVertIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <TablePagination
+        component="div"
+        count={filteredData.length}
+        page={page}
+        onPageChange={(e, newPage) => setPage(newPage)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={(e) => {
+          setRowsPerPage(parseInt(e.target.value, 10));
+          setPage(0);
+        }}
+        rowsPerPageOptions={[5, 10, 25, 50]}
+      />
+
+      {/* Actions Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        transformOrigin={{ horizontal: "right", vertical: "top" }}
+        anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+        PaperProps={{ elevation: 3, sx: { minWidth: 150, borderRadius: 2 } }}
+      >
+        <MenuItem onClick={handleView} sx={{ fontSize: "0.875rem" }}>
+          <ListItemIcon><VisibilityIcon fontSize="small" color="primary" /></ListItemIcon> View Profile
+        </MenuItem>
+        <MenuItem onClick={() => { handleMenuClose(); navigate(`/edit-services/${selectedService?._id}`); }} sx={{ fontSize: "0.875rem" }}>
+          <ListItemIcon><EditIcon fontSize="small" color="info" /></ListItemIcon> Edit Pricing
+        </MenuItem>
+        <MenuItem onClick={handleDeleteClick} sx={{ fontSize: "0.875rem", color: "error.main" }}>
+          <ListItemIcon><DeleteIcon fontSize="small" color="error" /></ListItemIcon> Delete
+        </MenuItem>
+      </Menu>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => { if (!actionLoading) setDeleteDialogOpen(false); }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, color: "error.main", pb: 1 }}>
+          <DeleteIcon /> Delete Service?
+        </DialogTitle>
+        <DialogContent sx={{ pb: 1 }}>
+          {actionError && <Alert severity="error" sx={{ mb: 2 }}>{actionError}</Alert>}
+          <Typography variant="body2" color="text.secondary">
+            Are you sure you want to permanently delete <b>"{selectedService?.base_service_id?.name}"</b>? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button variant="outlined" size="small" color="inherit" onClick={() => setDeleteDialogOpen(false)} disabled={actionLoading} sx={{ fontWeight: "bold" }}>
+            Cancel
+          </Button>
+          <Button variant="contained" size="small" color="error" onClick={handleConfirmDelete} disabled={actionLoading} startIcon={actionLoading ? <CircularProgress size={16} color="inherit" /> : null} sx={{ fontWeight: "bold" }}>
+            Yes, Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Details Dialog */}
+      <Dialog open={showEditModal} onClose={() => setShowEditModal(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 2, borderBottom: "1px solid #e0e0e0" }}>
+          <SettingsIcon sx={{ color: "primary.main" }} /> 
+          <Typography variant="h6" fontWeight="bold">Service Details</Typography>
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="caption" color="text.secondary" fontWeight="bold">SERVICE NAME</Typography>
+              <Typography variant="body1" sx={{ mt: 0.5, p: 1.5, bgcolor: "#f8f9fa", borderRadius: 1 }}>
+                {editFormData.base_service_id?.name || "N/A"}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="caption" color="text.secondary" fontWeight="bold">COMPANIES</Typography>
+              <Box sx={{ mt: 0.5, p: 1.5, bgcolor: "#f8f9fa", borderRadius: 1, minHeight: "48px" }}>
+                {editFormData.companies && editFormData.companies.length > 0 ? (
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                    {editFormData.companies.map((company, idx) => (
+                      <Chip key={idx} size="small" label={company.name} sx={{ bgcolor: "#e0f2fe", color: "#0284c7", fontWeight: "bold" }} />
+                    ))}
+                  </Box>
+                ) : <Typography variant="body2" color="text.secondary">No companies</Typography>}
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="caption" color="text.secondary" fontWeight="bold">DEALER NAME</Typography>
+              <Typography variant="body1" sx={{ mt: 0.5, p: 1.5, bgcolor: "#f8f9fa", borderRadius: 1 }}>
+                {editFormData.dealer_id && typeof editFormData.dealer_id === "object" ? editFormData.dealer_id.shopName || "N/A" : "N/A"}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="caption" color="text.secondary" fontWeight="bold">DEALER ID</Typography>
+              <Typography variant="body1" sx={{ mt: 0.5, p: 1.5, bgcolor: "#f8f9fa", borderRadius: 1, fontFamily: "monospace", color: "#2e83ff", fontWeight: "bold" }}>
+                {editFormData.dealer_id && typeof editFormData.dealer_id === "object" ? editFormData.dealer_id.dealerId || "N/A" : "N/A"}
+              </Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="caption" color="text.secondary" fontWeight="bold">BIKES & PRICING</Typography>
+              <Box sx={{ mt: 1, border: "1px solid #e0e0e0", borderRadius: 2, overflow: "hidden" }}>
+                {editFormData.bikes && editFormData.bikes.length > 0 ? (
+                  <Table size="small">
+                    <TableHead sx={{ bgcolor: "#F8FAFC" }}>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: "bold", color: "text.secondary" }}>CC</TableCell>
+                        <TableCell sx={{ fontWeight: "bold", color: "text.secondary", align: "right" }}>PRICE (₹)</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {editFormData.bikes.sort((a, b) => a.cc - b.cc).map((bike, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell>{bike.cc} CC</TableCell>
+                          <TableCell sx={{ fontWeight: "bold", color: "success.main" }}>₹{bike.price}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <Box sx={{ p: 3, textAlign: "center" }}>
+                    <Typography variant="body2" color="text.secondary">No bikes or pricing found</Typography>
+                  </Box>
+                )}
+              </Box>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 1 }}>
+          <Button variant="outlined" onClick={() => setShowEditModal(false)} sx={{ fontWeight: "bold" }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+    </Box>
+  );
+};
+
+export default ServiceTable;

@@ -1,122 +1,142 @@
-"use client"
-
-import { useRef, useState, useEffect } from "react"
-import ServiceTable from "../../components/Service/ServiceTable"
-import { Link } from "react-router-dom"
-import { getServiceList } from "../../api"
+import { useRef, useState, useEffect } from "react";
+import ServiceTable from "../../components/Service/ServiceTable";
+import { Link } from "react-router-dom";
+import { getServiceList } from "../../api";
+import {
+  Box,
+  Typography,
+  Button,
+  Stack,
+  Breadcrumbs,
+} from "@mui/material";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import MiscellaneousServicesIcon from "@mui/icons-material/MiscellaneousServices";
+import DownloadIcon from "@mui/icons-material/Download";
 
 const Services = () => {
-  const [data, setData] = useState([])
-  const [refresh, setRefresh] = useState(false)
+  const [data, setData] = useState([]);
+  const [refresh, setRefresh] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const tableHeaders = [
     "#",
     "Service ID",
-    "Service Name",
     "Image",
+    "Service Name",
     "Companies",
     "Dealer Name",
     "Dealer ID",
-    // "Bike Details (Price)",
     "Created At",
     "Updated At",
     "Action",
-  ]
+  ];
 
-  const triggerDownloadExcel = useRef(null)
-  const triggerDownloadPDF = useRef(null)
+  const triggerDownloadExcel = useRef(null);
+  const triggerDownloadPDF = useRef(null);
 
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        console.log("[v0] Fetching services from /service/adminservices...")
-        const response = await getServiceList()
-        // Since apiRequest returns response.data, 'response' here is the JSON body.
+        setLoading(true);
+        const response = await getServiceList();
         if (response && response.status === true) {
-          console.log("[v0] Data received:", response.data)
-          setData(response.data || [])
+          setData(response.data || []);
         } else {
-          console.error("[v0] API error or no data:", response)
-          setData([])
+          setData([]);
         }
       } catch (error) {
-        console.error("[v0] Error fetching services:", error)
-        setData([])
+        console.error("Error fetching services:", error);
+        setData([]);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
 
-    fetchServices()
-  }, [refresh])
+    fetchServices();
+  }, [refresh]);
 
   const handleRefresh = () => {
-    setRefresh((prev) => !prev)
-  }
+    setRefresh((prev) => !prev);
+  };
 
   return (
     <div className="page-wrapper">
       <div className="content container-fluid">
-        <div className="page-header">
-          <div className="content-page-header">
-            <h5>Services</h5>
-            <div className="list-btn">
-              <ul className="filter-list">
-                <li>
-                  <div className="dropdown dropdown-action">
-                    <button className="btn btn-primary" data-bs-toggle="dropdown">
-                      <span>
-                        <i className="fe fe-download me-2" />
-                      </span>
-                      Download
-                    </button>
-                    <div className="dropdown-menu dropdown-menu-end">
-                      <ul className="d-block">
-                        <li>
-                          <button
-                            className="download-item"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              if (triggerDownloadExcel.current) triggerDownloadExcel.current()
-                            }}
-                          >
-                            <i className="far fa-file-excel me-2" /> EXCEL
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            className="download-item"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              if (triggerDownloadPDF.current) triggerDownloadPDF.current()
-                            }}
-                          >
-                            <i className="far fa-file-pdf me-2" /> PDF
-                          </button>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </li>
-                <li>
-                  <Link className="btn btn-primary" to="/addServices">
-                    <i className="fa fa-plus-circle me-2" /> Add New Service
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
+        <Box sx={{ py: 1 }}>
+          <Box sx={{ mb: 4 }}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", sm: "center" }}
+              spacing={2}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                <MiscellaneousServicesIcon sx={{ color: "#2e83ff", fontSize: 32 }} />
+                <Box>
+                  <Typography variant="h4" fontWeight="700" color="text.primary">
+                    Services
+                  </Typography>
+                  <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
+                    <Typography color="text.secondary" variant="body2">
+                      Dashboard
+                    </Typography>
+                    <Typography
+                      color="text.primary"
+                      variant="body2"
+                      fontWeight="500"
+                    >
+                      Services
+                    </Typography>
+                  </Breadcrumbs>
+                </Box>
+              </Box>
 
-        <ServiceTable
-          datas={data}
-          triggerDownloadExcel={triggerDownloadExcel}
-          triggerDownloadPDF={triggerDownloadPDF}
-          tableHeaders={tableHeaders}
-          text={"Services"}
-          onServiceDeleted={handleRefresh}
-        />
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<DownloadIcon />}
+                  onClick={() => triggerDownloadExcel.current?.()}
+                  sx={{ color: "text.secondary", borderColor: "#e0e0e0", fontWeight: "bold" }}
+                >
+                  Excel
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<DownloadIcon />}
+                  onClick={() => triggerDownloadPDF.current?.()}
+                  sx={{ color: "text.secondary", borderColor: "#e0e0e0", fontWeight: "bold" }}
+                >
+                  PDF
+                </Button>
+                <Button
+                  component={Link}
+                  to="/addServices"
+                  variant="contained"
+                  color="primary"
+                  startIcon={<AddCircleOutlineIcon />}
+                  sx={{ fontWeight: "bold" }}
+                >
+                  Add New Service
+                </Button>
+              </Box>
+            </Stack>
+          </Box>
+
+          <ServiceTable
+            datas={data}
+            triggerDownloadExcel={triggerDownloadExcel}
+            triggerDownloadPDF={triggerDownloadPDF}
+            tableHeaders={tableHeaders}
+            text="Services"
+            onServiceDeleted={handleRefresh}
+            loading={loading}
+          />
+        </Box>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Services
+export default Services;

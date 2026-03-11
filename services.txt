@@ -1,0 +1,220 @@
+{
+    "status": true,
+    "message": "Admin services fetched successfully",
+    "data": [
+        {
+            "_id": "69ac436118ab1694d5c408c6",
+            "base_service_id": {
+                "_id": "69ac3ef618ab1694d5c40825",
+                "name": "GENRALSERVICE",
+                "image": "uploads/base-services/image-1772895990114.png"
+            },
+            "companies": [
+                {
+                    "_id": "6954b9bc4b8fa716ce636096",
+                    "name": "BAJAJ",
+                    "id": "6954b9bc4b8fa716ce636096"
+                }
+            ],
+            "bikes": [
+                {
+                    "model_id": "6954c56c4b8fa716ce636279",
+                    "variant_id": "6954c58d4b8fa716ce636282",
+                    "cc": 100,
+                    "price": 999,
+                    "_id": "69ac436118ab1694d5c408c7"
+                }
+            ],
+            "dealer_id": {
+                "_id": "695f2ccf431ecaa7542397b8",
+                "id": 5,
+                "shopName": "Bikes shop2",
+                "dealerId": "MRBD0005"
+            },
+            "description": "HKJKKHKHK",
+            "serviceId": "MKBDSVC-006",
+            "createdAt": "2026-03-07T15:25:21.686Z",
+            "updatedAt": "2026-03-07T15:25:21.686Z",
+            "id": 33,
+            "__v": 0
+        },
+        {
+            "_id": "699da92a4930db29948effcc",
+            "base_service_id": {
+                "_id": "696cce1026c71e144cb382af",
+                "name": "General service",
+                "image": "uploads/base-services/image-1768742769865.jpeg"
+            },
+            "companies": [
+                {
+                    "_id": "6954d23b4b8fa716ce6362a1",
+                    "name": "HERO",
+                    "id": "6954d23b4b8fa716ce6362a1"
+                }
+            ],
+            "bikes": [
+                {
+                    "model_id": "6954eb004b8fa716ce636372",
+                    "variant_id": "6954eb0d4b8fa716ce636374",
+                    "cc": 100,
+                    "price": 500,
+                    "_id": "699da92a4930db29948effcd"
+                },
+                {
+                    "model_id": "6954eb004b8fa716ce636372",
+                    "variant_id": "6954eb194b8fa716ce63637b",
+                    "cc": 100,
+                    "price": 500,
+                    "_id": "699da92a4930db29948effce"
+                },
+                {
+                    "model_id": "6954eb2a4b8fa716ce636383",
+                    "variant_id": "6954eb364b8fa716ce636385",
+                    "cc": 100,
+                    "price": 500,
+                    "_id": "699da92a4930db29948effcf"
+                },
+                {
+                    "model_id": "6954eb2a4b8fa716ce636383",
+                    "variant_id": "6954eb454b8fa716ce63638c",
+                    "cc": 100,
+                    "price": 500,
+                    "_id": "699da92a4930db29948effd0"
+                },
+                {
+                    "model_id": "6954d93f4b8fa716ce63631d",
+                    "variant_id": "6954ea234b8fa716ce636345",
+                    "cc": 100,
+                    "price": 500,
+                    "_id": "699da92a4930db29948effd1"
+                },
+                {
+                    "model_id": "6954d93f4b8fa716ce63631d",
+                    "variant_id": "6954e9904b8fa716ce636332",
+                    "cc": 100,
+                    "price": 500,
+                    "_id": "699da92a4930db29948effd2"
+                },
+                {
+                    "model_id": "6954d93f4b8fa716ce63631d",
+                    "variant_id": "6954e9fc4b8fa716ce636339",
+                    "cc": 100,
+                    "price": 500,
+                    "_id": "699da92a4930db29948effd3"
+                },
+                {
+                    "model_id": "6954d93f4b8fa716ce63631d",
+                    "variant_id": "6954e8c04b8fa716ce636324",
+                    "cc": 100,
+                    "price": 600,
+                    "_id": "69a4642c1dd5a1d86a7ee677"
+                },
+                {
+                    "model_id": "6954d93f4b8fa716ce63631d",
+                    "variant_id": "6954e8d14b8fa716ce63632b",
+                    "cc": 100,
+                    "price": 700,
+                    "_id": "69a465b718ab1694d5c40029"
+                },
+                {
+                    "model_id": "6954eeac4b8fa716ce636458",
+                    "variant_id": "6954eeb94b8fa716ce63645a",
+                    "cc": 100,
+                    "price": 550,
+                    "_id": "69a52c3918ab1694d5c40113"
+                }
+            ],
+            "dealer_id": {
+                "_id": "695f2ccf431ecaa7542397b8",
+                "id": 5,
+                "shopName": "Bikes shop2",
+                "dealerId": "MRBD0005"
+            },
+            "description": "need bullet points ",
+            "serviceId": "MKBDSVC-005",
+            "createdAt": "2026-02-24T13:35:38.749Z",
+            "updatedAt": "2026-03-02T06:20:41.134Z",
+            "id": 32,
+            "__v": 0
+        },
+        {
+            "_id": "698eca506286ca6c714db680",
+            "base_service_id": {
+                "_id": "696cce1026c71e144cb382af",
+                "name": "General service",
+                "image": "uploads/base-services/image-1768742769865.jpeg"
+            },
+            "companies": [
+                {
+                    "_id": "6954b9bc4b8fa716ce636096",
+                    "name": "BAJAJ",
+                    "id": "6954b9bc4b8fa716ce636096"
+                }
+            ],
+            "bikes": [
+                {
+                    "model_id": "6954c0ac4b8fa716ce636168",
+                    "variant_id": "6954c18e4b8fa716ce63619f",
+                    "cc": 100,
+                    "price": 500,
+                    "_id": "698eca506286ca6c714db681"
+                },
+                {
+                    "model_id": "6954c0ac4b8fa716ce636168",
+                    "variant_id": "6954c0c94b8fa716ce63616c",
+                    "cc": 100,
+                    "price": 1000,
+                    "_id": "698eca506286ca6c714db682"
+                }
+            ],
+            "dealer_id": {
+                "_id": "695f2ccf431ecaa7542397b8",
+                "id": 5,
+                "shopName": "Bikes shop2",
+                "dealerId": "MRBD0005"
+            },
+            "description": "genrek",
+            "serviceId": "MKBDSVC-004",
+            "createdAt": "2026-02-13T06:53:04.750Z",
+            "updatedAt": "2026-02-13T06:53:04.750Z",
+            "id": 31,
+            "__v": 0
+        },
+        {
+            "_id": "698dd19e6286ca6c714d97f4",
+            "base_service_id": {
+                "_id": "696d10de26c71e144cb38ecc",
+                "name": "ENGINE FITTING",
+                "image": "uploads/base-services/image-1768755422355.jpeg"
+            },
+            "companies": [
+                {
+                    "_id": "6954b9bc4b8fa716ce636096",
+                    "name": "BAJAJ",
+                    "id": "6954b9bc4b8fa716ce636096"
+                }
+            ],
+            "bikes": [
+                {
+                    "model_id": "6954c24f4b8fa716ce6361df",
+                    "variant_id": "6954c2ce4b8fa716ce636204",
+                    "cc": 160,
+                    "price": 1500,
+                    "_id": "698dd19e6286ca6c714d97f5"
+                }
+            ],
+            "dealer_id": {
+                "_id": "695f2ccf431ecaa7542397b8",
+                "id": 5,
+                "shopName": "Bikes shop2",
+                "dealerId": "MRBD0005"
+            },
+            "description": "✔ Old engine removal with complete safety\r\n✔ Engine bay inspection & cleaning\r\n✔ New / Reconditioned engine installation\r\n✔ Engine mounting & proper alignment\r\n✔ Electrical wiring & sensor connection setup\r\n✔ Engine oil & coolant filling\r\n✔ Leak testing (Oil / Coolant check)\r\n✔ ECU scanning & error check\r\n✔ Final road test & performance verification",
+            "serviceId": "MKBDSVC-003",
+            "createdAt": "2026-02-12T13:11:58.533Z",
+            "updatedAt": "2026-02-12T13:11:58.533Z",
+            "id": 30,
+            "__v": 0
+        }
+    ]
+}

@@ -1,358 +1,721 @@
-import React, { useState, useMemo, useRef } from "react";
-import Swal from "sweetalert2";
-import "jspdf-autotable";
+import React, { useMemo, useState } from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Typography,
+  Button,
+  Box,
+  Chip,
+  IconButton,
+  TablePagination,
+  TextField,
+  InputAdornment,
+  TableSortLabel,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Avatar,
+  Divider,
+  Grid,
+  CircularProgress,
+  Alert,
+} from "@mui/material";
+import {
+  Search as SearchIcon,
+  Visibility as VisibilityIcon,
+  CheckCircle as CheckCircleIcon,
+  Pending as PendingIcon,
+  Cancel as CancelIcon,
+  Info as InfoIcon,
+  MoreVert as MoreVertIcon,
+  VerifiedUser as VerifiedIcon,
+  FiberManualRecord as DotIcon,
+  Business as BusinessIcon,
+  AccountBalance as BankIcon,
+  LocationOn as LocationIcon,
+  CloudDone as SuccessDocIcon,
+} from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
+import { updateDealerVerification, deleteDealer } from "../../api";
 
-const DealerVerficationTable = ({ tableHeaders, datas, text, onBannerDeleted, loading }) => {
-  const navigate = useNavigate()
-  const tableRef = useRef(null);
+const API_BASE_URL = "https://api.mrbikedoctor.cloud";
+
+const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
+  const navigate = useNavigate();
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editFormData, setEditFormData] = useState({
-    _id: '',
-    name: '',
-    banner_image: '',
-    from_date: '',
-    expiry_date: ''
-  });
-  const [editLoading, setEditLoading] = useState(false);
+  const [order, setOrder] = useState("desc");
+  const [orderBy, setOrderBy] = useState("createdAt");
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedDealer, setSelectedDealer] = useState(null);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [actionError, setActionError] = useState(null);
 
-  const handleEdit = (banner) => {
-    setEditFormData({
-      _id: banner._id,
-      name: banner.name || '',
-      banner_image: banner.banner_image || '',
-      from_date: banner.from_date ? new Date(banner.from_date).toISOString().split('T')[0] : '',
-      expiry_date: banner.expiry_date ? new Date(banner.expiry_date).toISOString().split('T')[0] : ''
-    });
-    setShowEditModal(true);
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setEditFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    setEditLoading(true);
-    try {
-      // Add your API call to update banner here
-      // Example: const response = await updateBanner(editFormData._id, editFormData);
-      Swal.fire('Success!', 'Banner updated successfully!', 'success');
-      setShowEditModal(false);
-      onBannerDeleted(); // Refresh the list
-    } catch (error) {
-      Swal.fire('Error!', 'Failed to update banner', 'error');
-    } finally {
-      setEditLoading(false);
-    }
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
   };
 
   const filteredData = useMemo(() => {
-    if (!searchTerm.trim()) return datas;
-    return datas.filter((item) =>
-      [item.name, item._id]
-        .some((field) => field?.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [searchTerm, datas]);
+    let result = datas || [];
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(
+        (item) =>
+          item.shopName?.toLowerCase().includes(term) ||
+          item.ownerName?.toLowerCase().includes(term) ||
+          item.email?.toLowerCase().includes(term) ||
+          item.phone?.toLowerCase().includes(term) ||
+          item._id?.toLowerCase().includes(term),
+      );
+    }
 
-  const rowsPerPage = 10;
-  const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+    return [...result].sort((a, b) => {
+      let valueA = a[orderBy] || "";
+      let valueB = b[orderBy] || "";
+
+      if (orderBy === "createdAt" || orderBy === "updatedAt") {
+        valueA = new Date(valueA).getTime();
+        valueB = new Date(valueB).getTime();
+      }
+
+      if (order === "asc") {
+        return valueA < valueB ? -1 : valueA > valueB ? 1 : 0;
+      } else {
+        return valueB < valueA ? -1 : valueB > valueA ? 1 : 0;
+      }
+    });
+  }, [datas, searchTerm, order, orderBy]);
 
   const currentData = useMemo(() => {
-    const start = (currentPage - 1) * rowsPerPage;
+    const start = page * rowsPerPage;
     return filteredData.slice(start, start + rowsPerPage);
-  }, [filteredData, currentPage, rowsPerPage]);
+  }, [filteredData, page, rowsPerPage]);
 
-  const memoizedTableRows = useMemo(() => {
-    console.log("Rendering table rows",currentData);
-    return currentData?.map((data, index) => (
-      <tr key={data._id}>
-        <td>{index + 1}</td>
-        <td>{data._id || "N/A"}</td>
-        <td>{data.commission || 0}%</td>
-        <td>{data.tax}%</td>
-        <td>{data.ownerName || "N/A"}</td>
-        <td>{"N/A"}</td>
-        <td>{data.presentAddress?.address || data.permanentAddress?.address || "N/A"}</td>
-        <td style={{ color: data.aadharCardNo ? 'green' : 'red' }}>
-          {data.aadharCardNo || 'N/A'}
-        </td>
-        <td style={{ color: data.panCardNo ? 'green' : 'red' }}>
-          {data.panCardNo || 'N/A'}
-        </td>
-        <td>{data.shopName || "N/A"}</td>
-        <td>{data.email || "N/A"}</td>
-        <td>{data.phone || "N/A"}</td>
-        <td>{data.fullAddress || "N/A"}</td>
-        <td>{data.state || "N/A"}</td>
-        <td>{data.shopPincode || "N/A"}</td>
-        <td>{data.isVerify ? "Yes" : "No"}</td>
-        <td>{data.isBlock ? "Blocked" : "Active"}</td>
-        <td>{new Date(data.createdAt).toLocaleDateString()}</td>
-        <td>{new Date(data.updatedAt).toLocaleDateString()}</td>
-        <td>{data.city || "N/A"}</td>
-        <td>{data.bankDetails?.bankName || "N/A"}</td>
-        <td>{data.bankDetails?.accountNumber || "N/A"}</td>
-        <td>{data.bankDetails?.ifscCode || "N/A"}</td>
-        <td>{data.isProfile ? "Yes" : "No"}</td>
-        <td>
-          {data.documents?.aadharFront && data.documents?.aadharBack && data.documents?.panCardFront ? (
-            <span className="text-green-600 font-semibold" style={{ color: "green" }}>Yes</span>
-          ) : (
-            <span className="text-red-600 font-semibold" style={{ color: "red" }}>No</span>
-          )}
-        </td>
-        <td className="d-flex align-items-center">
-          <div className="dropdown">
-            <a href="#" className="btn-action-icon" data-bs-toggle="dropdown">
-              <i className="fas fa-ellipsis-v" />
-            </a>
-            <ul className="dropdown-menu dropdown-menu-end">
-              {/* <li>
-                <a
-                  className="dropdown-item"
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate(`/view-verify-dealer/${data._id}`);
-                  }}
-                >
-                  <i className="fa-solid fa-eye me-2" /> View Details
-                </a>
-              </li> */}
-              <li>
-                <a
-                  className="dropdown-item"
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate(`/update-dealer-verify/${data._id}`);
-                  }}
-                >
-                  <i className="far fa-edit me-2" /> Edit
-                </a>
-              </li>
-            </ul>
-          </div>
-        </td>
-      </tr>
-    ));
-  }, [currentData]);
+  const handleChangePage = (event, newPage) => setPage(newPage);
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const getStatusConfig = (status, type) => {
+    if (type === "verification") {
+      return status
+        ? {
+            label: "Verified",
+            color: "success",
+            icon: <VerifiedIcon fontSize="small" />,
+          }
+        : {
+            label: "Unverified",
+            color: "warning",
+            icon: <PendingIcon fontSize="small" />,
+          };
+    }
+    if (type === "registration") {
+      const s = status?.toLowerCase() || "";
+      if (s === "pending")
+        return { color: "warning", icon: <DotIcon fontSize="small" /> };
+      if (s === "approved")
+        return { color: "success", icon: <CheckCircleIcon fontSize="small" /> };
+      return { color: "default", icon: <InfoIcon fontSize="small" /> };
+    }
+    return { color: "default" };
+  };
+
+  const headers = [
+    { id: "id", label: "#", sortable: false },
+    { id: "shopName", label: "Shop Details", sortable: true },
+    { id: "ownerName", label: "Owner Info", sortable: true },
+    { id: "docs", label: "Documents", sortable: false },
+    { id: "verification", label: "Verification", sortable: true },
+    { id: "registration", label: "Reg Status", sortable: true },
+    { id: "createdAt", label: "Requested On", sortable: true },
+    { id: "actions", label: "Action", sortable: false },
+  ];
+
+  const handleActionClick = (event, dealer) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedDealer(dealer);
+  };
+
+  const handleActionClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleOpenReview = () => {
+    setReviewDialogOpen(true);
+    handleActionClose();
+  };
+
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith("http")) return path;
+    return `${API_BASE_URL}/${path}`;
+  };
+
+  const executeConfirmedAction = async () => {
+    if (!selectedDealer || !confirmAction) return;
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      if (confirmAction === "approve") {
+        await updateDealerVerification(selectedDealer._id);
+      } else if (confirmAction === "reject") {
+        await deleteDealer(selectedDealer._id);
+      }
+      setConfirmAction(null);
+      setReviewDialogOpen(false);
+      if (onRefresh) onRefresh();
+    } catch (error) {
+      console.error("Action failed:", error);
+      const msg = error?.response?.data?.message || "Something went wrong. Please try again.";
+      setActionError(msg);
+      setConfirmAction(null);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   return (
-    <>
-      <div className="row">
-        <div className="col-sm-12">
-          <div className="card-table card p-2">
-            <div className="card-body">
-              <div className="mb-3">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Search by promo code, service or discount"
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1);
+    <Box sx={{ width: "100%", mt: 2 }}>
+      <Box
+        sx={{
+          mb: 3,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <TextField
+          variant="outlined"
+          size="small"
+          placeholder="Search by Shop, Owner, or Phone..."
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setPage(0);
+          }}
+          sx={{ width: { xs: "100%", sm: 350 } }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Box>
+
+      <TableContainer
+        component={Paper}
+        elevation={3}
+        sx={{
+          borderRadius: 2,
+          overflowX: "auto",
+        }}
+      >
+        <Table id="dealer-verify-table" sx={{ minWidth: 1200 }}>
+          <TableHead sx={{ backgroundColor: "#2e83ff" }}>
+            <TableRow>
+              {headers.map((header) => (
+                <TableCell
+                  key={header.id}
+                  sx={{
+                    color: "white",
+                    fontWeight: "bold",
+                    whiteSpace: "nowrap",
                   }}
-                />
-              </div>
-              <div className="table-responsive">
-                <table ref={tableRef} id="example" className="table table-striped">
-                  <thead className="thead-light" style={{ backgroundColor: "#2e83ff" }}>
-                    <tr>{tableHeaders.map((header, index) => (<th key={index}>{header}</th>))}</tr>
-                  </thead>
-                  <tbody className="list">
-                    {loading ? (
-                      <tr>
-                        <td colSpan={tableHeaders.length} className="text-center py-5">
-                          <div className="spinner-border text-primary" role="status" style={{ width: "3rem", height: "3rem" }}>
-                            <span className="visually-hidden">Loading...</span>
-                          </div>
-                          <div className="mt-2">Loading Banners...</div>
-                        </td>
-                      </tr>
-                    ) : filteredData.length === 0 ? (
-                      <tr>
-                        <td colSpan={tableHeaders.length} className="text-center py-5">
-                          <div className="d-flex flex-column align-items-center text-muted">
-                            <i className="fa fa-box-open mb-3" style={{ fontSize: "2rem", color: "#adb5bd" }}></i>
-                            <h6 className="mb-1" style={{ fontWeight: 600 }}>No Dealers Request Found</h6>
-                            {/* <p style={{ fontSize: "0.9rem", color: "#6c757d", margin: 0 }}>
-                              Add a new banner.
-                            </p> */}
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      memoizedTableRows
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              <div className="d-flex justify-content-between align-items-center mt-3">
-                <div className="text-muted">
-                  Total Records: <span className="fw-bold text-primary">{filteredData.length}</span>
-                </div>
-
-                <nav aria-label="Page navigation example">
-                  <ul className="pagination pagination-sm mb-0">
-                    <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
-                      <button
-                        className="page-link"
-                        onClick={() => setCurrentPage(currentPage - 1)}
-                        aria-label="Previous"
-                      >
-                        &laquo;
-                      </button>
-                    </li>
-
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                      <li
-                        key={pageNum}
-                        className={`page-item ${pageNum === currentPage ? "active" : ""}`}
-                        aria-current={pageNum === currentPage ? "page" : undefined}
-                      >
-                        <button
-                          className="page-link"
-                          onClick={() => setCurrentPage(pageNum)}
-                        >
-                          {pageNum}
-                        </button>
-                      </li>
-                    ))}
-
-                    <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
-                      <button
-                        className="page-link"
-                        onClick={() => setCurrentPage(currentPage + 1)}
-                        aria-label="Next"
-                      >
-                        &raquo;
-                      </button>
-                    </li>
-                  </ul>
-                </nav>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      {showEditModal && (
-        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header bg-primary text-white">
-                <h5 className="modal-title">View Banner</h5>
-                <button
-                  type="button"
-                  className="btn-close btn-close-white"
-                  onClick={() => setShowEditModal(false)}
-                  disabled={editLoading}
-                ></button>
-              </div>
-              <form onSubmit={handleEditSubmit}>
-                <div className="modal-body">
-                  {editLoading ? (
-                    <div className="text-center py-4">
-                      <div className="spinner-border text-primary" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                      </div>
-                    </div>
+                >
+                  {header.sortable ? (
+                    <TableSortLabel
+                      active={orderBy === header.id}
+                      direction={orderBy === header.id ? order : "asc"}
+                      onClick={() => handleRequestSort(header.id)}
+                      sx={{
+                        color: "white !important",
+                        "&.MuiTableSortLabel-active": {
+                          color: "white !important",
+                        },
+                        "& .MuiTableSortLabel-icon": {
+                          color: "white !important",
+                        },
+                      }}
+                    >
+                      {header.label}
+                    </TableSortLabel>
                   ) : (
-                    <>
-                      <div className="mb-3">
-                        <label className="form-label">Banner Name</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          name="name"
-                          value={editFormData.name}
-                          onChange={handleInputChange}
-                          required
-                          disabled
-                        />
-                      </div>
-                      <div className="row">
-                        <div className="col-md-6 mb-3">
-                          <label className="form-label">From Date</label>
-                          <input
-                            type="date"
-                            className="form-control"
-                            name="from_date"
-                            value={editFormData.from_date}
-                            onChange={handleInputChange}
-                            required
-                            disabled
-                          />
-                        </div>
-                        <div className="col-md-6 mb-3">
-                          <label className="form-label">Expiry Date</label>
-                          <input
-                            type="date"
-                            className="form-control"
-                            name="expiry_date"
-                            value={editFormData.expiry_date}
-                            onChange={handleInputChange}
-                            required
-                            disabled
-                          />
-                        </div>
-                      </div>
-                      <div className="mb-3">
-                        <label className="form-label">Banner Image URL</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          name="banner_image"
-                          value={editFormData.banner_image}
-                          onChange={handleInputChange}
-                          disabled
-                        />
-                        {editFormData.banner_image && (
-                          <img
-                            src={editFormData.banner_image}
-                            alt="Banner Preview"
-                            className="img-thumbnail mt-2"
-                            style={{ maxHeight: '150px' }}
-                          />
-                        )}
-                      </div>
-                    </>
+                    header.label
                   )}
-                </div>
-                {/* <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setShowEditModal(false)}
-                    disabled={editLoading}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
+                  <CircularProgress size={40} sx={{ mb: 2 }} />
+                  <Typography variant="body1" color="text.secondary">
+                    Loading Dealers...
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : filteredData.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
+                  <Typography
+                    variant="body1"
+                    sx={{ fontStyle: "italic", color: "text.secondary" }}
                   >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={editLoading}
-                  >
-                    {editLoading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                        Saving...
-                      </>
-                    ) : 'Save Changes'}
-                  </button>
-                </div> */}
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+                    No dealer verification requests found.
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              currentData.map((dealer, index) => {
+                const isDocsComplete = dealer.isDoc;
+                const verifyStatus = getStatusConfig(
+                  dealer.isVerify,
+                  "verification",
+                );
+                const regStatus = getStatusConfig(
+                  dealer.registrationStatus,
+                  "registration",
+                );
+
+                return (
+                  <TableRow key={dealer._id} hover>
+                    <TableCell>{page * rowsPerPage + index + 1}</TableCell>
+                    <TableCell>
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                          {dealer.shopName || "N/A"}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                        >
+                          {dealer.city || "N/A"}, {dealer.state || "N/A"}
+                        </Typography>
+                        <Typography variant="caption" color="primary">
+                          {dealer.phone}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box>
+                        <Typography variant="body2">
+                          {dealer.ownerName || "N/A"}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {dealer.email || "N/A"}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={isDocsComplete ? "DOCS ADDED" : "NO DOCS"}
+                        size="small"
+                        color={isDocsComplete ? "success" : "error"}
+                        variant="outlined"
+                        sx={{ fontWeight: "bold", borderRadius: "6px" }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={verifyStatus.label}
+                        color={verifyStatus.color}
+                        icon={verifyStatus.icon}
+                        size="small"
+                        sx={{ fontWeight: "bold" }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={dealer.registrationStatus || "Pending"}
+                        color={regStatus.color}
+                        icon={regStatus.icon}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontWeight: "bold", textTransform: "capitalize" }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      {new Date(dealer.createdAt).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </TableCell>
+                    <TableCell>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleActionClick(e, dealer)}
+                      >
+                        <MoreVertIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={filteredData.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+      </TableContainer>
+
+      {/* Action Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleActionClose}
+      >
+        <MenuItem onClick={handleOpenReview}>
+          <VisibilityIcon
+            fontSize="small"
+            sx={{ mr: 1, color: "primary.main" }}
+          />{" "}
+          Review Profile
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleActionClose();
+            setReviewDialogOpen(true);
+            setConfirmAction("approve");
+          }}
+        >
+          <VerifiedIcon
+            fontSize="small"
+            sx={{ mr: 1, color: "success.main" }}
+          />{" "}
+          Quick Verify
+        </MenuItem>
+      </Menu>
+
+      {/* Dealer Review Dialog */}
+      <Dialog
+        open={reviewDialogOpen}
+        onClose={() => { if (!actionLoading) { setReviewDialogOpen(false); setActionError(null); } }}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            bgcolor: "#f8faff",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Avatar sx={{ bgcolor: "primary.main" }}>
+              {selectedDealer?.shopName?.[0]}
+            </Avatar>
+            <Box>
+              <Typography variant="h6">{selectedDealer?.shopName}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                Dealer ID: {selectedDealer?._id}
+              </Typography>
+            </Box>
+          </Box>
+          <Chip
+            label={selectedDealer?.registrationStatus || "Pending"}
+            color={
+              getStatusConfig(
+                selectedDealer?.registrationStatus,
+                "registration",
+              ).color
+            }
+            size="small"
+          />
+        </DialogTitle>
+
+        {/* Inline error alert */}
+        {actionError && (
+          <Alert severity="error" onClose={() => setActionError(null)} sx={{ mx: 3, mt: 2, borderRadius: 2 }}>
+            {actionError}
+          </Alert>
+        )}
+        <DialogContent dividers sx={{ p: 4 }}>
+          {selectedDealer && (
+            <Grid container spacing={4}>
+              {/* LEFT COLUMN */}
+              <Grid item xs={12} md={6}>
+
+                {/* Business Profile */}
+                <Box sx={{ mb: 3 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+                    <BusinessIcon color="primary" fontSize="small" />
+                    <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main" }}>BUSINESS PROFILE</Typography>
+                  </Box>
+                  {[
+                    { label: "Shop Name", value: selectedDealer.shopName },
+                    { label: "Owner Name", value: selectedDealer.ownerName },
+                    { label: "Gender", value: selectedDealer.gender },
+                    { label: "Phone", value: selectedDealer.phone },
+                    { label: "Shop Phone", value: selectedDealer.shopContact },
+                    { label: "Personal Email", value: selectedDealer.personalEmail || selectedDealer.email },
+                    { label: "Shop Email", value: selectedDealer.shopEmail },
+                    { label: "Alt. Phone", value: selectedDealer.alternatePhone },
+                    { label: "Commission", value: selectedDealer.commission != null ? `${selectedDealer.commission}%` : null },
+                    { label: "Tax", value: selectedDealer.tax != null ? `${selectedDealer.tax}%` : null },
+                    { label: "Holiday", value: selectedDealer.holiday },
+                    { label: "Shop Pincode", value: selectedDealer.shopPincode },
+                    { label: "Opening Date", value: selectedDealer.shopOpeningDate ? new Date(selectedDealer.shopOpeningDate).toLocaleDateString("en-GB") : null },
+                  ].map((item) => (
+                    <Box key={item.label} sx={{ display: "flex", mb: 0.75 }}>
+                      <Typography variant="caption" sx={{ fontWeight: "bold", minWidth: 110, color: "text.secondary" }}>{item.label}:</Typography>
+                      <Typography variant="caption">{item.value || "N/A"}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+
+                {/* Address */}
+                <Box sx={{ mb: 3 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+                    <LocationIcon color="primary" fontSize="small" />
+                    <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main" }}>ADDRESS & LOCATION</Typography>
+                  </Box>
+                  {[
+                    { label: "Full Address", value: selectedDealer.fullAddress || selectedDealer.permanentAddress?.address },
+                    { label: "City / State", value: `${selectedDealer.city || selectedDealer.permanentAddress?.city || "N/A"}, ${selectedDealer.state || selectedDealer.permanentAddress?.state || "N/A"}` },
+                    { label: "Present Addr.", value: selectedDealer.presentAddress?.address },
+                    { label: "GPS", value: selectedDealer.latitude ? `${selectedDealer.latitude}, ${selectedDealer.longitude}` : null },
+                  ].map((item) => (
+                    <Box key={item.label} sx={{ display: "flex", mb: 0.75 }}>
+                      <Typography variant="caption" sx={{ fontWeight: "bold", minWidth: 110, color: "text.secondary" }}>{item.label}:</Typography>
+                      <Typography variant="caption" sx={{ wordBreak: "break-word" }}>{item.value || "N/A"}</Typography>
+                    </Box>
+                  ))}
+                  {selectedDealer.latitude && (
+                    <Button variant="text" size="small" startIcon={<LocationIcon />}
+                      href={`https://www.google.com/maps/search/?api=1&query=${selectedDealer.latitude},${selectedDealer.longitude}`}
+                      target="_blank" sx={{ textTransform: "none", mt: 0.5 }}>
+                      View on Google Maps
+                    </Button>
+                  )}
+                </Box>
+
+                {/* Banking */}
+                <Box sx={{ mb: 3 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+                    <BankIcon color="primary" fontSize="small" />
+                    <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main" }}>BANKING DETAILS</Typography>
+                  </Box>
+                  {[
+                    { label: "Account Holder", value: selectedDealer.bankDetails?.accountHolderName },
+                    { label: "Bank Name", value: selectedDealer.bankDetails?.bankName },
+                    { label: "Account No.", value: selectedDealer.bankDetails?.accountNumber },
+                    { label: "IFSC Code", value: selectedDealer.bankDetails?.ifscCode },
+                  ].map((item) => (
+                    <Box key={item.label} sx={{ display: "flex", mb: 0.75 }}>
+                      <Typography variant="caption" sx={{ fontWeight: "bold", minWidth: 110, color: "text.secondary" }}>{item.label}:</Typography>
+                      <Typography variant="caption">{item.value || "N/A"}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+
+                {/* ID Numbers */}
+                <Box>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+                    <VisibilityIcon color="primary" fontSize="small" />
+                    <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main" }}>IDENTITY NUMBERS</Typography>
+                  </Box>
+                  {[
+                    { label: "Aadhar No.", value: selectedDealer.aadharCardNo },
+                    { label: "PAN No.", value: selectedDealer.panCardNo },
+                  ].map((item) => (
+                    <Box key={item.label} sx={{ display: "flex", mb: 0.75 }}>
+                      <Typography variant="caption" sx={{ fontWeight: "bold", minWidth: 110, color: "text.secondary" }}>{item.label}:</Typography>
+                      <Typography variant="caption" sx={{ fontFamily: "monospace", letterSpacing: 1 }}>{item.value || "N/A"}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </Grid>
+
+              {/* RIGHT COLUMN: Documents */}
+              <Grid item xs={12} md={6}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+                  <VisibilityIcon color="primary" fontSize="small" />
+                  <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main" }}>VERIFICATION DOCUMENTS</Typography>
+                </Box>
+
+                {/* Doc verification status row */}
+                {selectedDealer.documentVerification && (
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mb: 2 }}>
+                    {Object.entries(selectedDealer.documentVerification).map(([key, val]) => (
+                      <Chip key={key} label={key.toUpperCase()} size="small"
+                        color={val ? "success" : "default"} variant={val ? "filled" : "outlined"}
+                        icon={val ? <CheckCircleIcon fontSize="small" /> : undefined}
+                        sx={{ fontWeight: "bold", fontSize: "0.65rem" }}
+                      />
+                    ))}
+                  </Box>
+                )}
+
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {[
+                    { label: "Aadhar Front", path: selectedDealer.documents?.aadharFront },
+                    { label: "Aadhar Back", path: selectedDealer.documents?.aadharBack },
+                    { label: "PAN Card", path: selectedDealer.documents?.panCardFront },
+                    { label: "Shop Certificate", path: selectedDealer.documents?.shopCertificate },
+                    { label: "Face Verification", path: selectedDealer.documents?.faceVerificationImage },
+                    { label: "Shop Photo", path: selectedDealer.shopImages?.[0] },
+                  ].map((doc) => (
+                    <Box key={doc.label}>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+                        <Typography variant="caption" sx={{ fontWeight: "bold" }}>{doc.label}</Typography>
+                        {doc.path && <SuccessDocIcon color="success" sx={{ fontSize: 16 }} />}
+                      </Box>
+                      {doc.path ? (
+                        <Paper elevation={0}
+                          sx={{ height: 110, border: "1px solid #e2e8f0", borderRadius: 2, overflow: "hidden", bgcolor: "#fcfcfc", cursor: "pointer", "&:hover": { opacity: 0.85 } }}
+                          onClick={() => window.open(getImageUrl(doc.path), "_blank")}
+                        >
+                          <img src={getImageUrl(doc.path)} alt={doc.label}
+                            style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                        </Paper>
+                      ) : (
+                        <Box sx={{ height: 40, bgcolor: "#f5f5f5", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Typography variant="caption" color="text.secondary">Not uploaded</Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  ))}
+                </Box>
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+
+        <DialogActions
+          sx={{
+            p: 0,
+            flexDirection: "column",
+            alignItems: "stretch",
+            bgcolor: "#f8faff",
+          }}
+        >
+          {/* Inline confirmation strip — shown when an action is pending */}
+          {confirmAction && (
+            <Box
+              sx={{
+                px: 3,
+                py: 2,
+                bgcolor: confirmAction === "approve" ? "#e8f5e9" : "#fdecea",
+                borderTop: "1px solid",
+                borderColor:
+                  confirmAction === "approve" ? "#a5d6a7" : "#ef9a9a",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 2,
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 500,
+                  color: confirmAction === "approve" ? "#2e7d32" : "#c62828",
+                }}
+              >
+                {confirmAction === "approve"
+                  ? `Confirm approval of "${selectedDealer?.shopName}"?`
+                  : `Permanently delete "${selectedDealer?.shopName}"? This cannot be undone.`}
+              </Typography>
+              <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="inherit"
+                  onClick={() => setConfirmAction(null)}
+                  disabled={actionLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color={confirmAction === "approve" ? "success" : "error"}
+                  onClick={executeConfirmedAction}
+                  disabled={actionLoading}
+                  startIcon={
+                    actionLoading ? (
+                      <CircularProgress size={16} color="inherit" />
+                    ) : null
+                  }
+                >
+                  {confirmAction === "approve" ? "Yes, Approve" : "Yes, Delete"}
+                </Button>
+              </Box>
+            </Box>
+          )}
+
+          {/* Main action buttons */}
+          <Box
+            sx={{ display: "flex", p: 2, gap: 1, justifyContent: "flex-end" }}
+          >
+            <Button
+              onClick={() => {
+                setReviewDialogOpen(false);
+                setConfirmAction(null);
+              }}
+              variant="outlined"
+              color="inherit"
+              disabled={actionLoading}
+            >
+              Close
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<CancelIcon />}
+              onClick={() => setConfirmAction("reject")}
+              disabled={actionLoading || confirmAction === "reject"}
+            >
+              Reject Application
+            </Button>
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<CheckCircleIcon />}
+              onClick={() => setConfirmAction("approve")}
+              disabled={
+                actionLoading ||
+                selectedDealer?.isVerify ||
+                confirmAction === "approve"
+              }
+            >
+              {selectedDealer?.isVerify ? "Already Verified" : "Approve Dealer"}
+            </Button>
+          </Box>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 
-export default DealerVerficationTable
+export default DealerVerficationTable;

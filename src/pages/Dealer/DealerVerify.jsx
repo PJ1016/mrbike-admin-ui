@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import DealerVerficationTable from "../../components/Dealers/DealerVerficationTable";
 import { Link } from "react-router-dom";
 import { getBannerList, getDealersVerify } from "../../api";
+import { Typography } from "@mui/material";
 
 const DealerVerify = () => {
   const [data, setData] = useState([]);
@@ -43,7 +44,7 @@ const DealerVerify = () => {
       try {
         const response = await getDealersVerify();
         if (response.success) {
-          console.log("Response",response)
+          console.log("Response", response);
           setData(response.vendors);
         }
       } catch (error) {
@@ -65,20 +66,21 @@ const DealerVerify = () => {
       <div className="content container-fluid">
         <div className="page-header">
           <div className="content-page-header">
-            <h5>Verify Dealers</h5>
+            <h5>Dealer Verification Requests</h5>
+            <Typography variant="body2" color="text.secondary">
+              Review and approve dealer registration documents and profiles.
+            </Typography>
           </div>
         </div>
 
         <DealerVerficationTable
           datas={data}
           loading={loading}
-          tableHeaders={tableHeaders}
-          text={"Banners"}
-          onBannerDeleted={handleRefresh}
+          onRefresh={handleRefresh}
         />
       </div>
     </div>
   );
 };
 
-export default DealerVerify
+export default DealerVerify;

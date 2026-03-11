@@ -1,0 +1,130 @@
+{
+    "status": 200,
+    "message": "Success",
+    "data": [
+        {
+            "_id": "69a6f79718ab1694d5c4050d",
+            "base_additional_service_id": {
+                "_id": "69a6f73518ab1694d5c40502",
+                "name": "Chain Sprocket REPLACEMENT",
+                "image": "uploads/base-additional-services/image-1772549941562.webp"
+            },
+            "description": "FDLFLDJFLDFL",
+            "bikes": [
+                {
+                    "cc": 100,
+                    "price": 300
+                },
+                {
+                    "cc": 125,
+                    "price": 350
+                }
+            ],
+            "dealer_id": null,
+            "serviceId": "MKBDASVC-009",
+            "createdAt": "2026-03-03T15:00:39.641Z",
+            "updatedAt": "2026-03-03T15:00:39.641Z",
+            "id": 15
+        },
+        {
+            "_id": "698ed6116286ca6c714dbe76",
+            "base_additional_service_id": {
+                "_id": "698ed5d26286ca6c714dbe2f",
+                "name": "Full Bike Service",
+                "image": "uploads/base-additional-services/image-1770968530839.png"
+            },
+            "description": "wa",
+            "bikes": [
+                {
+                    "cc": 100,
+                    "price": 120
+                }
+            ],
+            "dealer_id": {
+                "_id": "695f2ccf431ecaa7542397b8",
+                "shopName": "Bikes shop2",
+                "email": "netha.hny@gmail.com",
+                "dealerId": null
+            },
+            "serviceId": "MKBDASVC-008",
+            "createdAt": "2026-02-13T07:43:13.678Z",
+            "updatedAt": "2026-02-13T07:43:13.678Z",
+            "id": 14
+        },
+        {
+            "_id": "698ed6056286ca6c714dbe5f",
+            "base_additional_service_id": {
+                "_id": "698ed5f06286ca6c714dbe4a",
+                "name": "ROHAN SAHU",
+                "image": "uploads/base-additional-services/image-1770968560474.png"
+            },
+            "description": "tets",
+            "bikes": [
+                {
+                    "cc": 100,
+                    "price": 1200
+                }
+            ],
+            "dealer_id": {
+                "_id": "695f2ccf431ecaa7542397b8",
+                "shopName": "Bikes shop2",
+                "email": "netha.hny@gmail.com",
+                "dealerId": null
+            },
+            "serviceId": "MKBDASVC-007",
+            "createdAt": "2026-02-13T07:43:01.630Z",
+            "updatedAt": "2026-02-13T07:43:01.630Z",
+            "id": 13
+        },
+        {
+            "_id": "698de89f6286ca6c714da5e7",
+            "base_additional_service_id": {
+                "_id": "6980d77166f6982e7cd5d76d",
+                "name": "Chain",
+                "image": "uploads/base-additional-services/image-1770051441775.jpeg"
+            },
+            "description": "Normal Chain Change",
+            "bikes": [
+                {
+                    "cc": 100,
+                    "price": 250
+                }
+            ],
+            "dealer_id": {
+                "_id": "695f2ccf431ecaa7542397b8",
+                "shopName": "Bikes shop2",
+                "email": "netha.hny@gmail.com",
+                "dealerId": null
+            },
+            "serviceId": "MKBDASVC-006",
+            "createdAt": "2026-02-12T14:50:07.745Z",
+            "updatedAt": "2026-02-13T07:38:30.347Z",
+            "id": 11
+        },
+        {
+            "_id": "698de8836286ca6c714da5da",
+            "base_additional_service_id": {
+                "_id": "6989769c6286ca6c714d965b",
+                "name": "WASHING",
+                "image": "uploads/base-additional-services/image-1770616476373.jpg"
+            },
+            "description": "Normal Bike Wash",
+            "bikes": [
+                {
+                    "cc": 100,
+                    "price": 100
+                }
+            ],
+            "dealer_id": {
+                "_id": "695f2ccf431ecaa7542397b8",
+                "shopName": "Bikes shop2",
+                "email": "netha.hny@gmail.com",
+                "dealerId": null
+            },
+            "serviceId": "MKBDASVC-005",
+            "createdAt": "2026-02-12T14:49:39.976Z",
+            "updatedAt": "2026-02-13T07:38:39.742Z",
+            "id": 10
+        }
+    ]
+}
