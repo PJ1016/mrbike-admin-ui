@@ -633,6 +633,8 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
                                         stateName="state"
                                         cityName="city"
                                         errors={errors}
+                                        stateLabel="Shop State"
+                                        cityLabel="Shop City"
                                     />
                                 </div>
                             </div>
@@ -853,6 +855,8 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
                                         stateName="permanentState"
                                         cityName="permanentCity"
                                         errors={errors}
+                                        stateLabel="Permanent State"
+                                        cityLabel="Permanent City"
                                     />
                                 </div>
                                 <div className="input-block mb-3 col-md-6">
@@ -889,6 +893,8 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
                                         cityName="presentCity"
                                         errors={errors}
                                         disabled={sameAsPermanent}
+                                        stateLabel="Present State"
+                                        cityLabel="Present City"
                                     />
                                 </div>
                             </div>

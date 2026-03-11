@@ -1,54 +1,133 @@
-import { useEffect, useState } from 'react';
-import StateCitySelect from '../Global/StateCitySelect';
-import Swal from 'sweetalert2';
+import React, { useState, useEffect } from "react";
+import {
+  Box,
+  Stepper,
+  Step,
+  StepLabel,
+  Button,
+  Typography,
+  TextField,
+  Grid,
+  Paper,
+  Stack,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  InputAdornment,
+  Divider,
+  Chip,
+  IconButton,
+  FormControlLabel,
+  Checkbox,
+  CircularProgress,
+} from "@mui/material";
+import {
+  Storefront as ShopIcon,
+  Person as PersonIcon,
+  AccountBalance as BankIcon,
+  CloudUpload as UploadIcon,
+  Delete as DeleteIcon,
+  AddPhotoAlternate as AddIcon,
+  CheckCircle as SuccessIcon,
+  LocationOn as LocationIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  Lock as LockIcon,
+} from "@mui/icons-material";
+import Swal from "sweetalert2";
 import { addDealer } from "../../api";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
+
+const steps = [
+  "Shop Details",
+  "Personal Profile",
+  "Bank Information",
+  "Documents",
+];
+
+const STATE_CITY_DATA = {
+  "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore"],
+  "Arunachal Pradesh": ["Itanagar", "Tawang", "Ziro"],
+  Assam: ["Guwahati", "Silchar", "Dibrugarh"],
+  Bihar: ["Patna", "Gaya", "Bhagalpur"],
+  Chhattisgarh: ["Raipur", "Bilaspur", "Durg"],
+  Goa: ["Panaji", "Margao", "Mapusa"],
+  Gujarat: ["Ahmedabad", "Surat", "Vadodara", "Rajkot"],
+  Haryana: ["Gurgaon", "Faridabad", "Panipat", "Ambala"],
+  "Himachal Pradesh": ["Shimla", "Manali", "Dharamshala"],
+  Jharkhand: ["Ranchi", "Jamshedpur", "Dhanbad"],
+  Karnataka: ["Bengaluru", "Mysuru", "Mangaluru"],
+  Kerala: ["Thiruvananthapuram", "Kochi", "Kozhikode"],
+  "Madhya Pradesh": ["Indore", "Bhopal", "Jabalpur", "Gwalior"],
+  Maharashtra: ["Mumbai", "Pune", "Nagpur", "Nashik"],
+  Manipur: ["Imphal"],
+  Meghalaya: ["Shillong"],
+  Mizoram: ["Aizawl"],
+  Nagaland: ["Kohima", "Dimapur"],
+  Odisha: ["Bhubaneswar", "Cuttack", "Rourkela"],
+  Punjab: ["Ludhiana", "Amritsar", "Jalandhar"],
+  Rajasthan: ["Jaipur", "Jodhpur", "Udaipur", "Kota"],
+  Sikkim: ["Gangtok"],
+  "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli"],
+  Telangana: ["Hyderabad", "Warangal", "Nizamabad"],
+  Tripura: ["Agartala"],
+  "Uttar Pradesh": ["Lucknow", "Kanpur", "Varanasi", "Agra"],
+  Uttarakhand: ["Dehradun", "Haridwar", "Nainital"],
+  "West Bengal": ["Kolkata", "Asansol", "Siliguri"],
+};
 
 const DealerForm = () => {
-  const [formData, setFormData] = useState({
-    shopName: '',
-    email: '',
-    phone: '',
-    password: '',
-    shopPincode: '',
-    ownerName: '',
-    fullAddress: '',
-    city: '',
-    state: '',
-    comission: '',
-    tax: '',
-    latitude: '',
-    longitude: '',
-    personalEmail: '',
-    personalPhone: '',
-    alternatePhone: '',
-    shopState: 'Madhya Pradesh',
-    shopCity: 'Indore',
-    shopPinCode: '',
-    accountHolderName: '',
-    ifscCode: '',
-    bankName: '',
-    accountNumber: '',
-    permanentAddress: "",
-    presentAddress: '',
-    permanentState: "",
-    permanentCity: "",
-    presentState: "",
-    presentCity: "",
-    aadharCardNo: "",
-    panCardNo: ""
-  });
-
-  const [errors, setErrors] = useState({});
+  const navigate = useNavigate();
+  const [activeStep, setActiveStep] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sameAsPermanent, setSameAsPermanent] = useState(false);
   const [previewUrls, setPreviewUrls] = useState([]);
   const [panCardFront, setPanCardFront] = useState(null);
+  const [panPreview, setPanPreview] = useState(null);
   const [aadharFront, setAadharFront] = useState(null);
+  const [aadharFrontPreview, setAadharFrontPreview] = useState(null);
   const [aadharBack, setAadharBack] = useState(null);
-  const [sameAsPermanent, setSameAsPermanent] = useState(false);
-  const navigate = useNavigate()
+  const [aadharBackPreview, setAadharBackPreview] = useState(null);
+  const [errors, setErrors] = useState({});
+
+  const [formData, setFormData] = useState({
+    // Shop Details
+    shopName: "",
+    email: "",
+    phone: "",
+    password: "",
+    shopPincode: "",
+    fullAddress: "",
+    state: "Telangana",
+    city: "Hyderabad",
+    comission: "",
+    tax: "",
+    latitude: "",
+    longitude: "",
+    // Personal Details
+    ownerName: "",
+    personalEmail: "",
+    personalPhone: "",
+    alternatePhone: "",
+    aadharCardNo: "",
+    panCardNo: "",
+    shopPinCode: "",
+    permanentAddress: "",
+    permanentState: "Telangana",
+    permanentCity: "Hyderabad",
+    presentAddress: "",
+    presentState: "Telangana",
+    presentCity: "Hyderabad",
+    // Bank Details
+    accountHolderName: "",
+    bankName: "",
+    accountNumber: "",
+    ifscCode: "",
+  });
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, checked } = e.target;
     if (name === "sameAsPermanent") {
       setSameAsPermanent(checked);
       if (checked) {
@@ -59,845 +138,891 @@ const DealerForm = () => {
           presentCity: prev.permanentCity,
         }));
       }
-      return;
-    }
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    if (
-      (name === "personalPhone" && value === formData.alternatePhone) ||
-      (name === "alternatePhone" && value === formData.personalPhone)
-    ) {
-      setErrors((prev) => ({
-        ...prev,
-        alternatePhone: "Alternate phone must be different from personal phone",
-      }));
     } else {
-      setErrors((prev) => ({
-        ...prev,
-        alternatePhone: undefined,
-      }));
-    }
+      setFormData((prev) => {
+        const updated = { ...prev, [name]: value };
+        if (name === "state") updated.city = "";
+        if (name === "permanentState") updated.permanentCity = "";
+        if (name === "presentState") updated.presentCity = "";
 
-  };
-
-  const validate = () => {
-    const newErrors = {};
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const phoneRegex = /^[0-9]{10}$/;
-    const pincodeRegex = /^[1-9][0-9]{5}$/;
-    const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
-    const accountNumberRegex = /^[0-9]{9,18}$/;
-
-    if (!formData.shopName.trim()) newErrors.shopName = 'Shop name is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    else if (!emailRegex.test(formData.email)) newErrors.email = 'Invalid email format';
-    if (!formData.phone.trim()) newErrors.phone = 'Contact is required';
-    else if (!phoneRegex.test(formData.phone)) newErrors.phone = 'Invalid phone number (10 digits)';
-    if (!formData.password.trim()) newErrors.password = 'Password is required';
-    else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
-    if (!formData.shopPincode.trim()) newErrors.shopPincode = 'Pincode is required';
-    else if (!pincodeRegex.test(formData.shopPincode)) newErrors.shopPincode = 'Invalid pincode (6 digits)';
-    if (!formData.ownerName.trim()) newErrors.ownerName = 'Owner name is required';
-    if (!formData.fullAddress.trim()) newErrors.fullAddress = 'Address is required';
-    if (!formData.city.trim()) newErrors.city = 'City is required';
-    if (!formData.state.trim()) newErrors.state = 'State is required';
-    if (!formData.panCardNo?.trim()) {
-      newErrors.panCardNo = 'PAN card number is required';
-    } else {
-      const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-      const sanitizedPan = formData.panCardNo.trim().toUpperCase();
-      if (!panRegex.test(sanitizedPan)) {
-        newErrors.panCardNo = 'Invalid PAN card format (e.g., ABCDE1234F)';
-      }
-    }
-    if (!formData.comission) {
-      newErrors.comission = 'Commission is required';
-    } else if (isNaN(formData.comission)) {
-      newErrors.comission = 'Commission must be a number';
-    } else {
-      const commissionValue = parseFloat(formData.comission);
-      if (commissionValue < 0) {
-        newErrors.comission = 'Commission cannot be negative';
-      } else if (commissionValue > 100) {
-        newErrors.comission = 'Commission cannot be greater than 100%';
-      }
-    }
-    if (formData.tax) {
-      if (isNaN(formData.tax)) {
-        newErrors.tax = 'Tax must be a number';
-      } else {
-        const taxValue = parseFloat(formData.tax);
-        if (taxValue < 0) {
-          newErrors.tax = 'Tax cannot be negative';
-        } else if (taxValue > 18) {
-          newErrors.tax = 'Tax cannot be greater than 18%';
+        if (sameAsPermanent) {
+          if (name === "permanentAddress") updated.presentAddress = value;
+          if (name === "permanentState") updated.presentState = value;
+          if (name === "permanentCity") updated.presentCity = value;
         }
-      }
-    }
-    if (!formData.latitude.trim()) newErrors.latitude = 'Latitude is required';
-    else if (isNaN(formData.latitude)) newErrors.latitude = 'Must be a number';
-    if (!formData.longitude.trim()) newErrors.longitude = 'Longitude is required';
-    else if (isNaN(formData.longitude)) newErrors.longitude = 'Must be a number';
-
-    if (!formData.personalEmail.trim()) newErrors.personalEmail = 'Email is required';
-    else if (!emailRegex.test(formData.personalEmail)) newErrors.personalEmail = 'Invalid email format';
-    if (!formData.personalPhone.trim()) newErrors.personalPhone = 'Personal Phone is required';
-    else if (!phoneRegex.test(formData.personalPhone)) newErrors.personalPhone = 'Invalid phone number (10 digits)';
-    if (!formData.alternatePhone.trim()) newErrors.alternatePhone = 'Alternate Phone is required';
-    else if (!phoneRegex.test(formData.alternatePhone)) newErrors.alternatePhone = 'Invalid phone number (10 digits)';
-    if (!formData.permanentAddress.trim()) newErrors.permanentAddress = 'Permanent Address is required';
-    if (!formData.presentAddress) newErrors.presentAddress = 'Present Address is required';
-    if (!formData.shopCity.trim()) newErrors.shopCity = 'City is required';
-    if (!formData.shopState.trim()) newErrors.shopState = 'State is required';
-    if (!formData.shopPinCode.trim()) newErrors.shopPinCode = 'Pincode is required';
-    else if (!pincodeRegex.test(formData.shopPinCode)) newErrors.shopPinCode = 'Invalid pincode (6 digits)';
-    if (!formData.permanentState.trim()) newErrors.permanentState = 'Permanent state is required';
-    if (!formData.permanentCity.trim()) newErrors.permanentCity = 'Permanent city is required';
-    if (!formData.presentState.trim()) newErrors.presentState = 'Present state is required';
-    if (!formData.presentCity.trim()) newErrors.presentCity = 'Present city is required';
-
-    if (!formData.accountHolderName.trim()) newErrors.accountHolderName = 'Account holder name is required';
-    if (!formData.ifscCode.trim()) newErrors.ifscCode = 'IFSC code is required';
-    else if (!ifscRegex.test(formData.ifscCode)) newErrors.ifscCode = 'Invalid IFSC code format';
-    if (!formData.bankName.trim()) newErrors.bankName = 'Bank name is required';
-    if (!formData.accountNumber.trim()) newErrors.accountNumber = 'Account number is required';
-    else if (!accountNumberRegex.test(formData.accountNumber)) newErrors.accountNumber = 'Account number must be 9-18 digits';
-
-    if (previewUrls.length === 0) newErrors.shopImages = 'At least one shop image is required';
-    if (!panCardFront) newErrors.panCardFront = 'PAN card front is required';
-    if (!aadharFront) newErrors.adharCardFront = 'Aadhar card front is required';
-    if (!aadharBack) newErrors.adharCardBack = 'Aadhar card front is required';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validate()) return;
-
-    const sanitizedPan = formData.panCardNo?.trim().toUpperCase();
-    const sanitizedAadhar = formData.aadharCardNo?.replace(/\s/g, '');
-
-    const form = new FormData();
-
-    const allowedTextFields = [
-      "shopName",
-      "email",
-      "phone",
-      "password",
-      "shopPincode",
-      "ownerName",
-      "fullAddress",
-      "city",
-      "state",
-      "latitude",
-      "longitude",
-      "personalEmail",
-      "personalPhone",
-      "alternatePhone",
-      "shopState",
-      "shopCity",
-      "shopPinCode",
-      "accountHolderName",
-      "ifscCode",
-      "bankName",
-      "accountNumber",
-      "permanentAddress",
-      "presentAddress",
-      "permanentState",
-      "permanentCity",
-      "presentState",
-      "presentCity",
-      "comission",
-      "tax"
-    ];
-
-    // Append text fields
-    allowedTextFields.forEach((key) => {
-      if (formData[key] !== undefined && formData[key] !== null) {
-        form.append(key, formData[key]);
-      }
-    });
-
-    // Append sanitized aadhar/pan
-    if (sanitizedAadhar) form.append("aadharCardNo", sanitizedAadhar);
-    if (sanitizedPan) form.append("panCardNo", sanitizedPan);
-
-    // Append documents
-    if (panCardFront) form.append("panCardFront", panCardFront);
-    if (aadharFront) form.append("aadharFront", aadharFront);
-    if (aadharBack) form.append("aadharBack", aadharBack);
-
-    try {
-      console.log("Data here:-", form)
-      const response = await addDealer(form);
-
-      if (response.success) {
-        Swal.fire({
-          title: "Success!",
-          text: response.message || "Dealer added successfully",
-          icon: "success"
-        });
-
-        setFormData({
-          shopName: '',
-          email: '',
-          phone: '',
-          password: '',
-          shopPincode: '',
-          ownerName: '',
-          fullAddress: '',
-          city: '',
-          state: '',
-          latitude: '',
-          longitude: '',
-          personalEmail: '',
-          personalPhone: '',
-          alternatePhone: '',
-          shopState: '',
-          shopCity: '',
-          shopPinCode: '',
-          goDigital: false,
-          pickupAndDrop: false,
-          accountHolderName: '',
-          ifscCode: '',
-          bankName: '',
-          accountNumber: '',
-          permanentAddress: '',
-          presentAddress: '',
-          aadharCardNo: '',
-          panCardNo: '',
-          gstNumber: '',
-          comission: '',
-          tax: ''
-        });
-
-        setPreviewUrls([]);
-        setPanCardFront(null);
-        setAadharFront(null);
-        setAadharBack(null);
-        navigate("/dealers");
-      }
-    } catch (error) {
-      const errorData = error.response?.data;
-
-      Swal.fire({
-        title: "Error!",
-        text: errorData?.message || "An unexpected error occurred",
-        icon: "error"
+        return updated;
       });
-
-      if (errorData?.field === "shop-email") {
-        setErrors(prev => ({
-          ...prev,
-          email: errorData.message
-        }));
-      }
-
-      console.error("Submission error:", error);
     }
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  useEffect(() => {
-    if (formData.comission) {
-      const value = parseFloat(formData.comission);
-      if (value > 100) {
-        setErrors(prev => ({ ...prev, comission: 'Commission cannot be greater than 100%' }));
-      }
-    }
+  const handleNext = () => {
+    setActiveStep((prev) => prev + 1);
+    window.scrollTo(0, 0);
+  };
 
-    if (formData.tax) {
-      const value = parseFloat(formData.tax);
-      if (value > 18) {
-        setErrors(prev => ({ ...prev, tax: 'Tax cannot be greater than 18%' }));
-      }
-    }
-  }, [formData.comission, formData.tax]);
+  const handleBack = () => {
+    setActiveStep((prev) => prev - 1);
+    window.scrollTo(0, 0);
+  };
 
-  const handleMultipleImages = (e) => {
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1200;
+          if (width > height) {
+            if (width > maxDim) {
+              height *= maxDim / width;
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width *= maxDim / height;
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              const compressedFile = new File([blob], file.name, {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              });
+              resolve({
+                file: compressedFile,
+                preview: URL.createObjectURL(compressedFile),
+              });
+            },
+            "image/jpeg",
+            0.7,
+          );
+        };
+      };
+    });
+  };
+
+  const [shopImages, setShopImages] = useState([]); // Real files for submission
+
+  const handleMultipleImages = async (e) => {
     const files = Array.from(e.target.files).slice(0, 5 - previewUrls.length);
-    const newUrls = files.map((file) => URL.createObjectURL(file));
-    setPreviewUrls((prev) => [...prev, ...newUrls]);
-    setErrors({ ...errors, shopImages: undefined });
+    for (const file of files) {
+      const { file: optimized, preview } = await compressImage(file);
+      setShopImages((prev) => [...prev, optimized]);
+      setPreviewUrls((prev) => [...prev, preview]);
+    }
   };
 
-  const handleRemoveImage = (indexToRemove) => {
-    setPreviewUrls((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  const handleRemoveImage = (index) => {
+    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
+    setShopImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleFileUpload = (e, setFile, fieldName) => {
+  const handleFileChange = async (e, fileSetter, previewSetter) => {
     const file = e.target.files[0];
     if (file) {
-      setFile(file);
-      setErrors({ ...errors, [fieldName]: undefined });
+      const { file: optimized, preview } = await compressImage(file);
+      fileSetter(optimized);
+      previewSetter(preview);
     }
   };
 
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    const apiData = new FormData();
+    Object.keys(formData).forEach((key) => apiData.append(key, formData[key]));
+
+    // Use compressed shop images
+    shopImages.forEach((file) => apiData.append("shopImages", file));
+
+    if (panCardFront) apiData.append("panCardFront", panCardFront);
+    if (aadharFront) apiData.append("aadharFront", aadharFront);
+    if (aadharBack) apiData.append("aadharBack", aadharBack);
+
+    try {
+      const res = await addDealer(apiData);
+      if (res.success) {
+        Swal.fire("Success", "Dealer added successfully", "success");
+        navigate("/dealers");
+      }
+    } catch (err) {
+      Swal.fire("Error", "Something went wrong", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const renderGridRow = (items) => (
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: {
+          xs: "1fr",
+          md: "repeat(3, 1fr)",
+        },
+        gap: 3,
+        mb: 3,
+        alignItems: "start",
+      }}
+    >
+      {items.map((item, idx) => (
+        <Box key={idx} sx={{ width: "100%" }}>
+          {item}
+        </Box>
+      ))}
+    </Box>
+  );
+
+  const renderStep0 = () => (
+    <Box>
+      <Typography
+        variant="h5"
+        sx={{
+          color: "#2e83ff",
+          fontWeight: 800,
+          mb: 3,
+          pb: 1,
+          borderBottom: "2px solid #eef2f6",
+        }}
+      >
+        Shop Information
+      </Typography>
+      {renderGridRow([
+        <TextField
+          fullWidth
+          label="Shop Name"
+          name="shopName"
+          value={formData.shopName}
+          onChange={handleChange}
+          required
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <ShopIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+        />,
+        <TextField
+          fullWidth
+          label="Shop Email"
+          name="email"
+          value={formData.email}
+          onChange={handleChange}
+          required
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <EmailIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+        />,
+        <TextField
+          fullWidth
+          label="Shop Contact"
+          name="phone"
+          value={formData.phone}
+          onChange={handleChange}
+          required
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <PhoneIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+        />,
+      ])}
+      {renderGridRow([
+        <TextField
+          fullWidth
+          label="Password"
+          name="password"
+          type="password"
+          value={formData.password}
+          onChange={handleChange}
+          required
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <LockIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+        />,
+        <TextField
+          fullWidth
+          label="Shop Pincode"
+          name="shopPincode"
+          value={formData.shopPincode}
+          onChange={handleChange}
+          required
+        />,
+        <TextField
+          fullWidth
+          label="Full Shop Address"
+          name="fullAddress"
+          value={formData.fullAddress}
+          onChange={handleChange}
+          required
+        />,
+      ])}
+      {renderGridRow([
+        <FormControl fullWidth required>
+          <InputLabel>Shop State</InputLabel>
+          <Select
+            name="state"
+            value={formData.state}
+            label="Shop State"
+            onChange={handleChange}
+          >
+            {Object.keys(STATE_CITY_DATA).map((s) => (
+              <MenuItem key={s} value={s}>
+                {s}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>,
+        <FormControl fullWidth required disabled={!formData.state}>
+          <InputLabel>Shop City</InputLabel>
+          <Select
+            name="city"
+            value={formData.city}
+            label="Shop City"
+            onChange={handleChange}
+          >
+            {(STATE_CITY_DATA[formData.state] || []).map((c) => (
+              <MenuItem key={c} value={c}>
+                {c}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>,
+        <TextField
+          fullWidth
+          label="Commission (%)"
+          name="comission"
+          value={formData.comission}
+          onChange={handleChange}
+          required
+          InputProps={{
+            endAdornment: <InputAdornment position="end">%</InputAdornment>,
+          }}
+        />,
+      ])}
+      <Divider sx={{ mb: 3 }}>
+        <Chip label="Economics & Location" size="small" />
+      </Divider>
+      {renderGridRow([
+        <TextField
+          fullWidth
+          label="Tax (%)"
+          name="tax"
+          value={formData.tax}
+          onChange={handleChange}
+          InputProps={{
+            endAdornment: <InputAdornment position="end">%</InputAdornment>,
+          }}
+        />,
+        <TextField
+          fullWidth
+          label="Latitude"
+          name="latitude"
+          value={formData.latitude}
+          onChange={handleChange}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <LocationIcon fontSize="small" color="disabled" />
+              </InputAdornment>
+            ),
+          }}
+        />,
+        <TextField
+          fullWidth
+          label="Longitude"
+          name="longitude"
+          value={formData.longitude}
+          onChange={handleChange}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <LocationIcon fontSize="small" color="disabled" />
+              </InputAdornment>
+            ),
+          }}
+        />,
+      ])}
+    </Box>
+  );
+
+  const renderStep1 = () => (
+    <Box>
+      <Typography
+        variant="h5"
+        sx={{
+          color: "#2e83ff",
+          fontWeight: 800,
+          mb: 3,
+          pb: 1,
+          borderBottom: "2px solid #eef2f6",
+        }}
+      >
+        Owner Information
+      </Typography>
+      {renderGridRow([
+        <TextField
+          fullWidth
+          label="Owner Name"
+          name="ownerName"
+          value={formData.ownerName}
+          onChange={handleChange}
+          required
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <PersonIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+        />,
+        <TextField
+          fullWidth
+          label="Personal Email"
+          name="personalEmail"
+          value={formData.personalEmail}
+          onChange={handleChange}
+          required
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <EmailIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+        />,
+        <TextField
+          fullWidth
+          label="Personal Phone"
+          name="personalPhone"
+          value={formData.personalPhone}
+          onChange={handleChange}
+          required
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <PhoneIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+        />,
+      ])}
+      {renderGridRow([
+        <TextField
+          fullWidth
+          label="Alternate Phone"
+          name="alternatePhone"
+          value={formData.alternatePhone}
+          onChange={handleChange}
+        />,
+        <TextField
+          fullWidth
+          label="Aadhar Card No."
+          name="aadharCardNo"
+          value={formData.aadharCardNo}
+          onChange={handleChange}
+          required
+        />,
+        <TextField
+          fullWidth
+          label="PAN Card No."
+          name="panCardNo"
+          value={formData.panCardNo}
+          onChange={handleChange}
+          required
+        />,
+      ])}
+      {renderGridRow([
+        <TextField
+          fullWidth
+          label="Global PIN Code"
+          name="shopPinCode"
+          value={formData.shopPinCode}
+          onChange={handleChange}
+          required
+        />,
+        <FormControl fullWidth required>
+          <InputLabel>Permanent State</InputLabel>
+          <Select
+            name="permanentState"
+            value={formData.permanentState}
+            label="Permanent State"
+            onChange={handleChange}
+          >
+            {Object.keys(STATE_CITY_DATA).map((s) => (
+              <MenuItem key={s} value={s}>
+                {s}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>,
+        <FormControl fullWidth required disabled={!formData.permanentState}>
+          <InputLabel>Permanent City</InputLabel>
+          <Select
+            name="permanentCity"
+            value={formData.permanentCity}
+            label="Permanent City"
+            onChange={handleChange}
+          >
+            {(STATE_CITY_DATA[formData.permanentState] || []).map((c) => (
+              <MenuItem key={c} value={c}>
+                {c}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>,
+      ])}
+      <Grid container spacing={3} sx={{ mb: 2 }}>
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Permanent Address"
+            name="permanentAddress"
+            multiline
+            rows={2}
+            value={formData.permanentAddress}
+            onChange={handleChange}
+            required
+            sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                name="sameAsPermanent"
+                checked={sameAsPermanent}
+                onChange={handleChange}
+                color="primary"
+              />
+            }
+            label="Present Address is same as Permanent Address"
+            sx={{
+              "& .MuiFormControlLabel-label": {
+                fontWeight: 500,
+                color: "#475467",
+              },
+            }}
+          />
+        </Grid>
+      </Grid>
+      {!sameAsPermanent && (
+        <>
+          <Grid container spacing={3} sx={{ mb: 2 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Present Address"
+                name="presentAddress"
+                multiline
+                rows={2}
+                value={formData.presentAddress}
+                onChange={handleChange}
+                required
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+              />
+            </Grid>
+          </Grid>
+          {renderGridRow([
+            <FormControl fullWidth required>
+              <InputLabel>Present State</InputLabel>
+              <Select
+                name="presentState"
+                value={formData.presentState}
+                label="Present State"
+                onChange={handleChange}
+                sx={{ borderRadius: 2 }}
+              >
+                {Object.keys(STATE_CITY_DATA).map((s) => (
+                  <MenuItem key={s} value={s}>
+                    {s}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>,
+            <FormControl fullWidth required disabled={!formData.presentState}>
+              <InputLabel>Present City</InputLabel>
+              <Select
+                name="presentCity"
+                value={formData.presentCity}
+                label="Present City"
+                onChange={handleChange}
+                sx={{ borderRadius: 2 }}
+              >
+                {(STATE_CITY_DATA[formData.presentState] || []).map((c) => (
+                  <MenuItem key={c} value={c}>
+                    {c}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>,
+            <Box />, // Empty Box for 3rd column
+          ])}
+        </>
+      )}
+    </Box>
+  );
+
+  const renderStep2 = () => (
+    <Box>
+      <Typography
+        variant="h5"
+        sx={{
+          color: "#2e83ff",
+          fontWeight: 800,
+          mb: 3,
+          pb: 1,
+          borderBottom: "2px solid #eef2f6",
+        }}
+      >
+        Bank Information
+      </Typography>
+      {renderGridRow([
+        <TextField
+          fullWidth
+          label="Account Number"
+          name="accountNumber"
+          value={formData.accountNumber}
+          onChange={handleChange}
+          required
+        />,
+        <TextField
+          fullWidth
+          label="IFSC Code"
+          name="ifscCode"
+          value={formData.ifscCode}
+          onChange={handleChange}
+          required
+        />,
+        <TextField
+          fullWidth
+          label="Account Holder Name"
+          name="accountHolderName"
+          value={formData.accountHolderName}
+          onChange={handleChange}
+          required
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <PersonIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+        />,
+      ])}
+      {renderGridRow([
+        <TextField
+          fullWidth
+          label="Bank Name"
+          name="bankName"
+          value={formData.bankName}
+          onChange={handleChange}
+          required
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <BankIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+        />,
+        <div />,
+        <div />,
+      ])}
+    </Box>
+  );
+
+  const renderStep3 = () => (
+    <Box>
+      <Typography
+        variant="h5"
+        sx={{
+          color: "#2e83ff",
+          fontWeight: 800,
+          mb: 3,
+          pb: 1,
+          borderBottom: "2px solid #eef2f6",
+        }}
+      >
+        Documents & Verification
+      </Typography>
+      <Box sx={{ mb: 4 }}>
+        <Typography
+          variant="subtitle1"
+          sx={{
+            fontWeight: 700,
+            mb: 2,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            color: "#475467",
+          }}
+        >
+          <ShopIcon color="primary" /> Shop Images (Max 5)
+        </Typography>
+        <Stack direction="row" spacing={2} flexWrap="wrap">
+          {previewUrls.map((url, idx) => (
+            <Paper
+              key={idx}
+              sx={{
+                position: "relative",
+                width: 120,
+                height: 120,
+                overflow: "hidden",
+                borderRadius: 2,
+              }}
+            >
+              <img
+                src={url}
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+              <IconButton
+                size="small"
+                onClick={() => handleRemoveImage(idx)}
+                sx={{
+                  position: "absolute",
+                  top: 4,
+                  right: 4,
+                  bgcolor: "rgba(255,255,255,0.8)",
+                }}
+              >
+                <DeleteIcon color="error" fontSize="small" />
+              </IconButton>
+            </Paper>
+          ))}
+          {previewUrls.length < 5 && (
+            <Button
+              component="label"
+              variant="outlined"
+              sx={{
+                width: 120,
+                height: 120,
+                borderStyle: "dashed",
+                borderRadius: 2,
+                flexDirection: "column",
+              }}
+            >
+              <AddIcon color="disabled" sx={{ mb: 1 }} />
+              <Typography variant="caption">Add</Typography>
+              <input
+                type="file"
+                hidden
+                multiple
+                accept="image/*"
+                onChange={handleMultipleImages}
+              />
+            </Button>
+          )}
+        </Stack>
+      </Box>
+
+      {renderGridRow([
+        <Box>
+          <Typography
+            variant="caption"
+            sx={{ fontWeight: 700, mb: 1, display: "block", color: "#475467" }}
+          >
+            PAN CARD FRONT
+          </Typography>
+          {panPreview && (
+            <Paper
+              sx={{
+                mb: 1.5,
+                height: 140,
+                overflow: "hidden",
+                borderRadius: 2,
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <img
+                src={panPreview}
+                alt="PAN Preview"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            </Paper>
+          )}
+          <Button
+            fullWidth
+            component="label"
+            variant="outlined"
+            startIcon={
+              panCardFront ? <SuccessIcon color="success" /> : <UploadIcon />
+            }
+            sx={{ borderRadius: 2, py: 1 }}
+          >
+            {panCardFront ? "Regenerate" : "Upload PAN"}
+            <input
+              type="file"
+              hidden
+              accept="image/*"
+              onChange={(e) =>
+                handleFileChange(e, setPanCardFront, setPanPreview)
+              }
+            />
+          </Button>
+        </Box>,
+        <Box>
+          <Typography
+            variant="caption"
+            sx={{ fontWeight: 700, mb: 1, display: "block", color: "#475467" }}
+          >
+            AADHAR FRONT
+          </Typography>
+          {aadharFrontPreview && (
+            <Paper
+              sx={{
+                mb: 1.5,
+                height: 140,
+                overflow: "hidden",
+                borderRadius: 2,
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <img
+                src={aadharFrontPreview}
+                alt="Aadhar Front Preview"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            </Paper>
+          )}
+          <Button
+            fullWidth
+            component="label"
+            variant="outlined"
+            startIcon={
+              aadharFront ? <SuccessIcon color="success" /> : <UploadIcon />
+            }
+            sx={{ borderRadius: 2, py: 1 }}
+          >
+            {aadharFront ? "Regenerate" : "Upload Aadhar Front"}
+            <input
+              type="file"
+              hidden
+              accept="image/*"
+              onChange={(e) =>
+                handleFileChange(e, setAadharFront, setAadharFrontPreview)
+              }
+            />
+          </Button>
+        </Box>,
+        <Box>
+          <Typography
+            variant="caption"
+            sx={{ fontWeight: 700, mb: 1, display: "block", color: "#475467" }}
+          >
+            AADHAR BACK
+          </Typography>
+          {aadharBackPreview && (
+            <Paper
+              sx={{
+                mb: 1.5,
+                height: 140,
+                overflow: "hidden",
+                borderRadius: 2,
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <img
+                src={aadharBackPreview}
+                alt="Aadhar Back Preview"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            </Paper>
+          )}
+          <Button
+            fullWidth
+            component="label"
+            variant="outlined"
+            startIcon={
+              aadharBack ? <SuccessIcon color="success" /> : <UploadIcon />
+            }
+            sx={{ borderRadius: 2, py: 1 }}
+          >
+            {aadharBack ? "Regenerate" : "Upload Aadhar Back"}
+            <input
+              type="file"
+              hidden
+              accept="image/*"
+              onChange={(e) =>
+                handleFileChange(e, setAadharBack, setAadharBackPreview)
+              }
+            />
+          </Button>
+        </Box>,
+      ])}
+    </Box>
+  );
+
   return (
-    <div className="row">
-      <div className="col-sm-12">
-        <div className="card-table card p-5">
-          <div className="card-body">
-            <form className="form-horizontal" onSubmit={handleSubmit}>
-              <input name="_token" type="hidden" defaultValue="oKup3nu5kd6tUBCqoFTVEMtnOOg1p3zubico9KkM" />
+    <Paper
+      elevation={0}
+      sx={{ p: { xs: 2, md: 4 }, borderRadius: 4, border: "1px solid #eef2f6" }}
+    >
+      <Stepper activeStep={activeStep} sx={{ mb: 5 }}>
+        {steps.map((label) => (
+          <Step key={label}>
+            <StepLabel sx={{ "& .MuiStepLabel-label": { fontWeight: 600 } }}>
+              {label}
+            </StepLabel>
+          </Step>
+        ))}
+      </Stepper>
 
-              {/* Shop Details */}
-              <div className="mb-3 w-100">
-                <div className="d-flex gap-3">
-                  <div className="flex-fill input-block">
-                    <label className="form-control-label">Shop Name<em style={{ color: "red" }}>*</em></label>
-                    <input
-                      className={`form-control ${errors.shopName ? 'is-invalid' : ''}`}
-                      type="text"
-                      name="shopName"
-                      value={formData.shopName}
-                      onChange={handleChange}
-                      placeholder="Enter shop name"
-                    />
-                    {errors.shopName && <div className="invalid-feedback">{errors.shopName}</div>}
-                  </div>
-                  <div className="flex-fill input-block">
-                    <label className="form-control-label">Shop Email<em style={{ color: "red" }}>*</em></label>
-                    <input
-                      type="email"
-                      className={`form-control ${errors.email ? 'is-invalid' : ''}`}
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="Enter shop email"
-                    />
-                    {errors.email && <div className="invalid-feedback">{errors.email}</div>}
-                  </div>
-                </div>
-              </div>
+      {activeStep === 0 && renderStep0()}
+      {activeStep === 1 && renderStep1()}
+      {activeStep === 2 && renderStep2()}
+      {activeStep === 3 && renderStep3()}
 
-              <div className="mb-3 w-100">
-                <div className="d-flex gap-3">
-                  <div className="flex-fill input-block">
-                    <label className="form-control-label">Shop Contact<em style={{ color: "red" }}>*</em></label>
-                    <input
-                      type="tel"
-                      className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      placeholder="Enter shop contact details"
-                      maxLength="10"
-                    />
-                    {errors.phone && <div className="invalid-feedback">{errors.phone}</div>}
-                  </div>
-                  <div className="flex-fill input-block">
-                    <label className="form-control-label">Password<em style={{ color: "red" }}>*</em></label>
-                    <input
-                      className={`form-control ${errors.password ? 'is-invalid' : ''}`}
-                      type="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      placeholder="Enter password for shop account"
-                    />
-                    {errors.password && <div className="invalid-feedback">{errors.password}</div>}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mb-3 w-100">
-                <div className="d-flex gap-3">
-                  <div className="flex-fill input-block">
-                    <label className="form-control-label">Shop Pincode<em style={{ color: "red" }}>*</em></label>
-                    <input
-                      className={`form-control ${errors.shopPincode ? 'is-invalid' : ''}`}
-                      type="text"
-                      name="shopPincode"
-                      value={formData.shopPincode}
-                      onChange={handleChange}
-                      placeholder="Enter shop pincode"
-                      maxLength="6"
-                    />
-                    {errors.shopPincode && <div className="invalid-feedback">{errors.shopPincode}</div>}
-                  </div>
-                  <div className="flex-fill input-block">
-                    <label className="form-control-label">Owner Name<em style={{ color: "red" }}>*</em></label>
-                    <input
-                      type="text"
-                      className={`form-control ${errors.ownerName ? 'is-invalid' : ''}`}
-                      name="ownerName"
-                      value={formData.ownerName}
-                      onChange={handleChange}
-                      placeholder="Enter shop owner name"
-                    />
-                    {errors.ownerName && <div className="invalid-feedback">{errors.ownerName}</div>}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mb-3 w-100">
-                <div className="d-flex gap-3">
-                  <div className="flex-fill input-block">
-                    <label className="form-control-label">Full Address<em style={{ color: "red" }}>*</em></label>
-                    <input
-                      className={`form-control ${errors.fullAddress ? 'is-invalid' : ''}`}
-                      type="text"
-                      name="fullAddress"
-                      value={formData.fullAddress}
-                      onChange={handleChange}
-                      placeholder="Enter full address of the shop"
-                    />
-                    {errors.fullAddress && <div className="invalid-feedback">{errors.fullAddress}</div>}
-                  </div>
-                  <StateCitySelect
-                    value={formData}
-                    onChange={handleChange}
-                    stateName="state"
-                    cityName="city"
-                    errors={errors}
-                  />
-                </div>
-              </div>
-
-              <div className="mb-3 w-100">
-                <div className="d-flex gap-3">
-                  <div className="flex-fill input-block">
-                    <label className="form-control-label">Commission (%)<em style={{ color: "red" }}>*</em></label>
-                    <input
-                      className={`form-control ${errors.comission ? 'is-invalid' : ''}`}
-                      type="number"
-                      name="comission"
-                      value={formData.comission ?? ''}
-                      onChange={(e) => {
-                        const value = e.target.value === '' ? null : Number(e.target.value);
-                        setFormData(prev => ({
-                          ...prev,
-                          comission: isNaN(value) ? null : value
-                        }));
-                      }}
-                      placeholder="0-100%"
-                      step="0.01"
-                      min="0"
-                      max="100"
-                      onKeyDown={(e) => {
-                        if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                      }}
-                    />
-                    {errors.comission && <div className="invalid-feedback">{errors.comission}</div>}
-                  </div>
-                  <div className="flex-fill input-block">
-                    <label className="form-control-label">Tax (%)</label>
-                    <input
-                      type="number"
-                      className={`form-control ${errors.tax ? 'is-invalid' : ''}`}
-                      name="tax"
-                      value={formData.tax || ''}
-                      onChange={(e) => {
-                        const value = e.target.value === '' ? null : parseFloat(e.target.value);
-                        handleChange({
-                          target: {
-                            name: 'tax',
-                            value: isNaN(value) ? null : value
-                          }
-                        });
-                      }}
-                      placeholder="Enter tax percentage (0-18)"
-                      step="0.01"
-                      min="0"
-                      max="18"
-                    />
-                    {errors.tax && <div className="invalid-feedback">{errors.tax}</div>}
-                  </div>
-                </div>
-              </div>
-
-              <div className="input-block mb-3">
-                <div className="input-block mb-3">
-                  <label className="form-control-label">Latitude<em style={{ color: "red" }}>*</em></label>
-                  <input
-                    className={`form-control ${errors.latitude ? 'is-invalid' : ''}`}
-                    type="number"
-                    name="latitude"
-                    value={formData.latitude}
-                    onChange={handleChange}
-                    placeholder="Enter latitude of the shop"
-                    step="any"
-                  />
-                  {errors.latitude && <div className="invalid-feedback">{errors.latitude}</div>}
-                </div>
-                <div className="input-block mb-3">
-                  <label className="form-control-label">Longitude<em style={{ color: "red" }}>*</em></label>
-                  <input
-                    type="number"
-                    className={`form-control ${errors.longitude ? 'is-invalid' : ''}`}
-                    name="longitude"
-                    value={formData.longitude}
-                    onChange={handleChange}
-                    placeholder="Enter longitude of the shop"
-                    step="any"
-                  />
-                  {errors.longitude && <div className="invalid-feedback">{errors.longitude}</div>}
-                </div>
-              </div>
-
-              <div className="mb-3 w-100">
-                <div className="d-flex gap-3">
-                  <div className="mb-4">
-                    <label className="form-label fw-semibold">Shop Images<em style={{ color: "red" }}>*</em></label>
-                    <div className="d-flex flex-wrap gap-3">
-                      {previewUrls.map((url, idx) => (
-                        <div
-                          key={idx}
-                          className="position-relative border rounded"
-                          style={{
-                            width: "100px",
-                            height: "100px",
-                            overflow: "hidden",
-                          }}
-                        >
-                          <img
-                            src={url}
-                            alt={`Preview ${idx}`}
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                          />
-                          <button
-                            type="button"
-                            className="btn-close position-absolute top-0 end-0 m-1 bg-white"
-                            style={{ fontSize: "0.6rem" }}
-                            onClick={() => handleRemoveImage(idx)}
-                          ></button>
-                        </div>
-                      ))}
-                      {previewUrls.length < 5 && (
-                        <label
-                          htmlFor="shop-image-upload"
-                          className="d-flex align-items-center justify-content-center border rounded"
-                          style={{
-                            width: "100px",
-                            height: "100px",
-                            cursor: "pointer",
-                            backgroundColor: "#f8f9fa",
-                          }}
-                        >
-                          <i className="fas fa-plus text-muted"></i>
-                        </label>
-                      )}
-                    </div>
-                    <input
-                      id="shop-image-upload"
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      style={{ display: "none" }}
-                      onChange={handleMultipleImages}
-                    />
-                    <div className="form-text mt-2">You can upload up to 5 images</div>
-                    {errors.shopImages && <div className="text-danger small">{errors.shopImages}</div>}
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-center mt-4">
-                <h4>Personal Details</h4>
-              </div>
-              <div className="row">
-                <div className="col-md-6 input-block mb-3">
-                  <label className="form-control-label">Personal Email<em style={{ color: "red" }}>*</em></label>
-                  <input
-                    className={`form-control ${errors.personalEmail ? 'is-invalid' : ''}`}
-                    name="personalEmail"
-                    type="email"
-                    placeholder='Enter you personal email'
-                    value={formData.personalEmail}
-                    onChange={handleChange}
-                  />
-                  {errors.personalEmail && <div className="invalid-feedback">{errors.personalEmail}</div>}
-                </div>
-                <div className="col-md-3 input-block mb-3">
-                  <label className="form-control-label">Personal Phone<em style={{ color: "red" }}>*</em></label>
-                  <input
-                    className={`form-control ${errors.personalPhone ? 'is-invalid' : ''}`}
-                    name="personalPhone"
-                    type="tel"
-                    value={formData.personalPhone}
-                    onChange={handleChange}
-                    placeholder='Enter you personal contact details'
-                    maxLength="10"
-                  />
-                  {errors.personalPhone && <div className="invalid-feedback">{errors.personalPhone}</div>}
-                </div>
-                <div className="col-md-3 input-block mb-3">
-                  <label className="form-control-label">Alternate Phone<em style={{ color: "red" }}>*</em></label>
-                  <input
-                    className={`form-control ${errors.alternatePhone ? 'is-invalid' : ''}`}
-                    name="alternatePhone"
-                    type="tel"
-                    value={formData.alternatePhone}
-                    onChange={handleChange}
-                    placeholder='Enter you alternate contact details'
-                    maxLength="10"
-                  />
-                  {errors.alternatePhone && <div className="invalid-feedback">{errors.alternatePhone}</div>}
-                </div>
-                {/* </div> */}
-                <div className="input-block mb-3 col-md-6">
-                  <label className="form-control-label">Permanent Address<em style={{ color: "red" }}>*</em></label>
-                  <input
-                    className={`form-control ${errors.permanentAddress ? 'is-invalid' : ''}`}
-                    name="permanentAddress"
-                    type="text"
-                    value={formData.permanentAddress}
-                    onChange={handleChange}
-                  />
-                  {errors.permanentAddress && <div className="invalid-feedback">{errors.permanentAddress}</div>}
-                </div>
-                <div className="input-block mb-3 col-md-6">
-                  <StateCitySelect
-                    value={formData}
-                    onChange={handleChange}
-                    stateName="permanentState"
-                    cityName="permanentCity"
-                    errors={errors}
-                  />
-                </div>
-                <div className="input-block mb-3 col-md-6">
-                  <label className="form-control-label">Present Address<em style={{ color: "red" }}>*</em></label>
-                  <input
-                    className={`form-control ${errors.presentAddress ? 'is-invalid' : ''}`}
-                    name="presentAddress"
-                    type="text"
-                    value={formData.presentAddress}
-                    onChange={handleChange}
-                  />
-                  {errors.presentAddress && <div className="invalid-feedback">{errors.presentAddress}</div>}
-                  {/* Present Address Section */}
-                  <div className="input-block col-md-12">
-                    <div className="form-check">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id="sameAsPermanent"
-                        name="sameAsPermanent"
-                        checked={sameAsPermanent}
-                        onChange={handleChange}
-                      />
-                      <label className="form-check-label" htmlFor="sameAsPermanent">
-                        Present Address is same as Permanent Address
-                      </label>
-                    </div>
-                  </div>
-                </div>
-                <div className="input-block mb-3 col-md-6">
-                  <StateCitySelect
-                    value={formData}
-                    onChange={handleChange}
-                    stateName="presentState"
-                    cityName="presentCity"
-                    errors={errors}
-                    disabled={sameAsPermanent}
-                  />
-                </div>
-              </div>
-              <div className="row">
-                <div className="input-block mb-3 col-md-6">
-                  <label className="form-control-label">PIN Code<em style={{ color: "red" }}>*</em></label>
-                  <input
-                    className={`form-control ${errors.shopPinCode ? 'is-invalid' : ''}`}
-                    name="shopPinCode"
-                    type="text"
-                    value={formData.shopPinCode}
-                    onChange={handleChange}
-                    maxLength="6"
-                  />
-                  {errors.shopPinCode && <div className="invalid-feedback">{errors.shopPinCode}</div>}
-                </div>
-                <div className="col-md-6 input-block mb-3">
-                  <label className="form-control-label">PAN Card Front<em style={{ color: "red" }}>*</em></label>
-                  <input
-                    type="file"
-                    className={`form-control ${errors.panCardFront ? 'is-invalid' : ''}`}
-                    name="panCardFront"
-                    onChange={(e) => handleFileUpload(e, setPanCardFront, 'panCardFront')}
-                    accept="image/*"
-                  />
-                  {errors.panCardFront && <div className="invalid-feedback">{errors.panCardFront}</div>}
-                </div>
-              </div>
-
-              <div className="row">
-                <div className="col-md-6 input-block mb-3">
-                  <label className="form-control-label">Aadhar Front<em style={{ color: "red" }}>*</em></label>
-                  <input
-                    type="file"
-                    className={`form-control ${errors.adharCardFront ? 'is-invalid' : ''}`}
-                    name="adharCardFront"
-                    onChange={(e) => handleFileUpload(e, setAadharFront, 'adharCardFront')}
-                    accept="image/*"
-                  />
-                  {errors.adharCardFront && <div className="invalid-feedback">{errors.adharCardFront}</div>}
-                </div>
-                <div className="col-md-6">
-                  <div className="input-block mb-3">
-                    <label className="form-control-label">Aadhar Back<em style={{ color: "red" }}>*</em></label>
-                    <input
-                      type="file"
-                      className={`form-control ${errors.adharCardBack ? 'is-invalid' : ''}`}
-                      name="adharCardBack"
-                      onChange={(e) => handleFileUpload(e, setAadharBack, 'adharCardFront')}
-                      accept="image/*"
-                    />
-                    {errors.adharCardBack && <div className="invalid-feedback">{errors.adharCardBack}</div>}
-                  </div>
-                </div>
-              </div>
-
-              <div className="row">
-                <div className="col-md-6 input-block mb-3">
-                  <label className="form-control-label">Aadhar Card No.<em style={{ color: "red" }}>*</em></label>
-                  <input
-                    type="text"
-                    className={`form-control ${errors.aadharCardNo ? 'is-invalid' : ''}`}
-                    name="aadharCardNo"
-                    value={formData.aadharCardNo || ''}
-                    onChange={handleChange}
-                    placeholder="Enter 12-digit Aadhar number"
-                    maxLength="12"
-                  />
-                  {errors.aadharCardNo && <div className="invalid-feedback">{errors.aadharCardNo}</div>}
-                </div>
-                <div className="col-md-6 input-block mb-3">
-                  <label className="form-control-label">PAN Card No.<em style={{ color: "red" }}>*</em></label>
-                  <input
-                    type="text"
-                    className={`form-control ${errors.panCardNo ? 'is-invalid' : ''}`}
-                    name="panCardNo"
-                    value={formData.panCardNo || ''}
-                    onChange={handleChange}
-                    placeholder="Enter PAN number (e.g., ABCDE1234F)"
-                    maxLength="10"
-                  />
-                  {errors.panCardNo && <div className="invalid-feedback">{errors.panCardNo}</div>}
-                </div>
-              </div>
-
-              {/* Bank Details */}
-              <div className='row'>
-                <div className="text-center">
-                  <h4>Bank Information</h4>
-                </div>
-                <div className="mb-3 w-100">
-                  <div className="d-flex gap-3">
-                    <div className="flex-fill input-block">
-                      <label className="form-control-label">Account Holder Name<em style={{ color: "red" }}>*</em></label>
-                      <input
-                        className={`form-control ${errors.accountHolderName ? 'is-invalid' : ''}`}
-                        type="text"
-                        name="accountHolderName"
-                        value={formData.accountHolderName}
-                        onChange={handleChange}
-                        placeholder="Enter account holder name"
-                      />
-                      {errors.accountHolderName && <div className="invalid-feedback">{errors.accountHolderName}</div>}
-                    </div>
-                    <div className="flex-fill input-block">
-                      <label className="form-control-label">IFSC Code<em style={{ color: "red" }}>*</em></label>
-                      <input
-                        type="text"
-                        className={`form-control ${errors.ifscCode ? 'is-invalid' : ''}`}
-                        name="ifscCode"
-                        value={formData.ifscCode}
-                        onChange={handleChange}
-                        placeholder="Enter IFSC code"
-                      />
-                      {errors.ifscCode && <div className="invalid-feedback">{errors.ifscCode}</div>}
-                    </div>
-                  </div>
-                </div>
-                <div className="mb-3 w-100">
-                  <div className="d-flex gap-3">
-                    <div className="flex-fill input-block">
-                      <label className="form-control-label">Bank Name<em style={{ color: "red" }}>*</em></label>
-                      <input
-                        className={`form-control ${errors.bankName ? 'is-invalid' : ''}`}
-                        type="text"
-                        name="bankName"
-                        value={formData.bankName}
-                        onChange={handleChange}
-                        placeholder="Enter bank name"
-                      />
-                      {errors.bankName && <div className="invalid-feedback">{errors.bankName}</div>}
-                    </div>
-                    <div className="flex-fill input-block">
-                      <label className="form-control-label">Account Number<em style={{ color: "red" }}>*</em></label>
-                      <input
-                        type="text"
-                        className={`form-control ${errors.accountNumber ? 'is-invalid' : ''}`}
-                        name="accountNumber"
-                        value={formData.accountNumber}
-                        onChange={handleChange}
-                        placeholder="Enter account number"
-                      />
-                      {errors.accountNumber && <div className="invalid-feedback">{errors.accountNumber}</div>}
-                    </div>
-                  </div>
-                </div>
-                {/* <div className="mb-4">
-                  <label className="form-label fw-semibold">Passbook<em style={{ color: "red" }}>*</em></label>
-
-                  {passbookImage ? (
-                    <div className="position-relative d-inline-block">
-                      <img
-                        src={URL.createObjectURL(passbookImage)}
-                        alt="Passbook Preview"
-                        className="border rounded"
-                        style={{ width: 150, height: 150, objectFit: "cover" }}
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 px-2 py-0"
-                        onClick={() => setPassbookImage(null)}
-                      >
-                        &times;
-                      </button>
-                    </div>
-                  ) : (
-                    <label
-                      htmlFor="passbook-upload"
-                      className={`form-control d-flex align-items-center justify-content-center p-4 text-muted border rounded ${errors.passbook ? 'border-danger' : ''}`}
-                      style={{ height: 150, cursor: "pointer" }}
-                    >
-                      <i className="fas fa-upload me-2" /> Click to upload
-                    </label>
-                  )}
-
-                  <input
-                    id="passbook-upload"
-                    type="file"
-                    accept="image/*"
-                    name="passbook"
-                    className="d-none"
-                    onChange={(e) => handleFileUpload(e, setPassbookImage, 'passbook')}
-                  />
-
-                  <div className="form-text mt-2">Only one image allowed (JPG, PNG)</div>
-                  {errors.passbook && <div className="text-danger small">{errors.passbook}</div>}
-                </div> */}
-              </div>
-
-              {/* Submit Buttons */}
-              <div className="form-group col-lg-12 d-flex gap-3 mt-4 mb-5">
-                <button className="btn btn-primary" type="submit">
-                  Create
-                </button>
-                <button className="btn btn-danger" type="reset">
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
+      <Stack
+        direction="row"
+        spacing={2}
+        justifyContent="flex-end"
+        sx={{ mt: 5 }}
+      >
+        {activeStep > 0 && (
+          <Button onClick={handleBack} variant="outlined" size="large">
+            Back
+          </Button>
+        )}
+        <Button
+          variant="contained"
+          size="large"
+          disabled={isSubmitting}
+          onClick={activeStep === steps.length - 1 ? handleSubmit : handleNext}
+          sx={{ minWidth: 150 }}
+        >
+          {isSubmitting ? (
+            <CircularProgress size={24} color="inherit" />
+          ) : activeStep === steps.length - 1 ? (
+            "Submit"
+          ) : (
+            "Next"
+          )}
+        </Button>
+      </Stack>
+    </Paper>
   );
 };
 

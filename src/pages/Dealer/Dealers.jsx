@@ -1,53 +1,44 @@
 import React, { useRef, useState, useEffect } from "react";
 import UserTable from "../../components/Dealers/DealerTable";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getDealerList } from "../../api";
+import {
+  Box,
+  Typography,
+  Breadcrumbs,
+  Link as MuiLink,
+  Button,
+  Stack,
+  Container,
+} from "@mui/material";
+import {
+  Add as AddIcon,
+  FileDownload as DownloadIcon,
+  NavigateNext as NavigateNextIcon,
+} from "@mui/icons-material";
+import DealerStats from "../../components/Dealers/DealerStats";
+
 const Dealer = () => {
   const [data, setData] = useState([]);
   const [refresh, setRefresh] = useState(false);
-  const tableHeaders = [
-    "#",
-    "Dealer ID",
-    "Commission Charging (%)",
-    "Tax Charging(%)",
-    "Owner Name",
-    // "Owner Permanent Address",
-    // "Owner Present Address",
-    "Aadhar Card No.",
-    "Pan Card No.",
-    "Shop Name",
-    "Shop Email",
-    "Shop Phone",
-    "Shop Address",
-    "Shop State",
-    "Shop PinCode",
-    "Is Verified",
-    "Blocked?",
-    "Created At",
-    "Updated At",
-    "City",
-    "Beneficiary Name",
-    "Beneficiary Account No",
-    "Beneficiary IFSC",
-    "Is Profile Completed?",
-    "Is Document Added?",
-    "Status",
-    "Action",
-  ];
+  const [loading, setLoading] = useState(true);
 
   const triggerDownloadExcel = useRef(null);
   const triggerDownloadPDF = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDealers = async () => {
+      setLoading(true);
       try {
         const response = await getDealerList();
         if (response.status === 200) {
-          console.log("Response:- ", response.data);
           setData(response.data);
         }
       } catch (error) {
         console.error("Error fetching dealer list:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -61,77 +52,104 @@ const Dealer = () => {
   return (
     <div className="page-wrapper">
       <div className="content container-fluid">
-        <div className="page-header">
-          <div className="content-page-header">
-            <h5>Dealers</h5>
-            <div className="list-btn" style={{ justifySelf: "end" }}>
-              <ul className="filter-list">
-                <li>
-                  <div className="dropdown dropdown-action">
-                    <button
-                      className="btn btn-primary"
-                      data-bs-toggle="dropdown"
-                      aria-expanded="false"
-                    >
-                      <span>
-                        <i className="fe fe-download me-2" />
-                      </span>
-                      Download
-                    </button>
-                    <div className="dropdown-menu dropdown-menu-end">
-                      <ul className="d-block">
-                        <li>
-                          <button
-                            className="d-flex align-items-center download-item"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              if (triggerDownloadExcel.current) {
-                                triggerDownloadExcel.current();
-                              }
-                            }}
-                          >
-                            <i className="far fa-file-excel me-2" />
-                            EXCEL
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            className="d-flex align-items-center download-item"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              if (triggerDownloadPDF.current) {
-                                triggerDownloadPDF.current();
-                              }
-                            }}
-                          >
-                            <i className="far fa-file-pdf me-2" />
-                            PDF
-                          </button>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </li>
+        <Container maxWidth="xl">
+          {/* MUI Header */}
+          <Box sx={{ mb: 4 }}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", sm: "center" }}
+              spacing={2}
+            >
+              <Box>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontWeight: 800,
+                    color: "#1e293b",
+                    mb: 1,
+                    letterSpacing: "-0.025em",
+                  }}
+                >
+                  Dealers
+                </Typography>
+                <Breadcrumbs
+                  separator={<NavigateNextIcon fontSize="small" />}
+                  aria-label="breadcrumb"
+                >
+                  <MuiLink
+                    underline="hover"
+                    color="inherit"
+                    onClick={() => navigate("/")}
+                    sx={{
+                      cursor: "pointer",
+                      fontSize: "0.875rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Dashboard
+                  </MuiLink>
+                  <Typography
+                    color="text.primary"
+                    sx={{ fontSize: "0.875rem", fontWeight: 600 }}
+                  >
+                    Dealers List
+                  </Typography>
+                </Breadcrumbs>
+              </Box>
 
-                <li>
-                  <Link className="btn btn-primary" to="/add-dealer">
-                    <i className="fa fa-plus-circle me-2" aria-hidden="true" />
-                    Add New
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
+              <Stack direction="row" spacing={2}>
+                <Button
+                  variant="outlined"
+                  startIcon={<DownloadIcon />}
+                  onClick={() => triggerDownloadExcel.current?.()}
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: "none",
+                    fontWeight: 600,
+                    borderColor: "#e2e8f0",
+                    color: "#4a5568",
+                    "&:hover": {
+                      backgroundColor: "#f7fafc",
+                      borderColor: "#cbd5e0",
+                    },
+                  }}
+                >
+                  Export
+                </Button>
+                <Button
+                  component={Link}
+                  to="/add-dealer"
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: "none",
+                    fontWeight: 600,
+                    backgroundColor: "#2e83ff",
+                    "&:hover": { backgroundColor: "#1a6fed" },
+                    boxShadow: "0 4px 12px rgba(46, 131, 255, 0.25)",
+                  }}
+                >
+                  Add Dealer
+                </Button>
+              </Stack>
+            </Stack>
+          </Box>
 
-        <UserTable
-          datas={data}
-          triggerDownloadExcel={triggerDownloadExcel}
-          triggerDownloadPDF={triggerDownloadPDF}
-          tableHeaders={tableHeaders}
-          text={"Dealers"}
-          onDealerDeleted={handleRefresh}
-        />
+          {/* Stats Section */}
+          <DealerStats datas={data} />
+
+          {/* Table Section */}
+          <UserTable
+            datas={data}
+            loading={loading}
+            triggerDownloadExcel={triggerDownloadExcel}
+            triggerDownloadPDF={triggerDownloadPDF}
+            text={"Dealers"}
+            onDealerDeleted={handleRefresh}
+          />
+        </Container>
       </div>
     </div>
   );

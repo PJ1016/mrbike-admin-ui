@@ -1,0 +1,81 @@
+{
+    "status": 200,
+    "message": "Success",
+    "data": [
+        {
+            "_id": "6963d9d8d736440a95592381",
+            "name": "Veeru mishra",
+            "email": "admin4@gmail.com",
+            "role": "Executive",
+            "mobile": "6263146877",
+            "status": "active",
+            "ID": "MKBDSE-002",
+            "createdAt": "2026-01-11T17:11:52.795Z",
+            "updatedAt": "2026-01-11T17:11:52.795Z",
+            "__v": 0
+        },
+        {
+            "_id": "6963d9bbd736440a9559236f",
+            "name": "Veeru mishra",
+            "email": "admin3@gmail.com",
+            "role": "Executive",
+            "mobile": "6263146875",
+            "status": "active",
+            "ID": "MKBDSE-001",
+            "createdAt": "2026-01-11T17:11:23.605Z",
+            "updatedAt": "2026-01-11T17:11:23.605Z",
+            "__v": 0
+        },
+        {
+            "_id": "6963d998d736440a9559235d",
+            "name": "Prakash Mishra",
+            "email": "admin1@gmail.com",
+            "role": "Telecaller",
+            "mobile": "6263146871",
+            "status": "active",
+            "ID": "MKBDT-001",
+            "createdAt": "2026-01-11T17:10:48.688Z",
+            "updatedAt": "2026-01-11T17:10:48.688Z",
+            "__v": 0
+        },
+        {
+            "_id": "6963c481f23f48a5de96312a",
+            "name": "Veeru mishra",
+            "email": "admin@gmail.com",
+            "role": "Manager",
+            "mobile": "6263146873",
+            "status": "active",
+            "ID": "MLBDM-001",
+            "createdAt": "2026-01-11T15:40:49.837Z",
+            "updatedAt": "2026-01-11T15:40:49.837Z",
+            "__v": 0
+        },
+        {
+            "_id": "695cf94e431ecaa7542393e0",
+            "name": "KOLALNU SURESH NETHA",
+            "email": "MR.BIKEDOCTOR@GMAIL.COM",
+            "role": "Admin",
+            "mobile": "7207545464",
+            "employeeId": "ADMAHYKJ1",
+            "status": "active",
+            "createdAt": "2026-01-06T12:00:14.988Z",
+            "updatedAt": "2026-01-18T13:15:02.406Z",
+            "__v": 0,
+            "ID": "MKBDA-001"
+        },
+        {
+            "_id": "6954036e4b8fa716ce63602b",
+            "name": "Admin User",
+            "email": "admin@example.com",
+            "role": "Admin",
+            "mobile": "6263146872",
+            "image": "",
+            "status": "active",
+            "employeeId": "admin001",
+            "createdAt": "2025-12-30T16:53:02.918Z",
+            "updatedAt": "2026-01-18T13:31:37.219Z",
+            "__v": 0,
+            "ID": "MKBDA-002"
+        }
+    ]
+}

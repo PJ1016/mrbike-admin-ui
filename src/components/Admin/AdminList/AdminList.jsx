@@ -1,32 +1,140 @@
-import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
 import Swal from "sweetalert2";
 import { getAdmins, deleteAdmin } from "../../../api";
 import { useDownloadExcel } from "react-export-table-to-excel";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import {
+  Box,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TableSortLabel,
+  TablePagination,
+  TextField,
+  InputAdornment,
+  Chip,
+  IconButton,
+  Typography,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  Stack,
+  Switch,
+  Grid,
+  Avatar,
+  Tooltip,
+} from "@mui/material";
+import {
+  Search as SearchIcon,
+  MoreVert as MoreIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  CheckCircle as ActiveIcon,
+  Cancel as InactiveIcon,
+  AdminPanelSettings as AdminIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  Badge as RoleIcon,
+  Person as PersonIcon,
+  SupervisorAccount as ManagerIcon,
+} from "@mui/icons-material";
+import AdminStats from "../AdminStats";
 
 const Alladmins = ({ triggerDownloadExcel, triggerDownloadPDF }) => {
   const [admins, setAdmins] = useState([]);
+
+  const getRoleConfig = (role) => {
+    switch (role?.toLowerCase()) {
+      case "admin":
+        return { 
+          color: "#e53e3e", 
+          bgColor: "#fff5f5", 
+          icon: <AdminIcon sx={{ fontSize: 14 }} />,
+          label: "Admin"
+        };
+      case "subadmin":
+        return { 
+          color: "#805ad5", 
+          bgColor: "#faf5ff", 
+          icon: <RoleIcon sx={{ fontSize: 14 }} />,
+          label: "Subadmin"
+        };
+      case "manager":
+        return { 
+          color: "#38a169", 
+          bgColor: "#f0fff4", 
+          icon: <ManagerIcon sx={{ fontSize: 14 }} />,
+          label: "Manager"
+        };
+      case "telecaller":
+        return { 
+          color: "#d69e2e", 
+          bgColor: "#fffaf0", 
+          icon: <PhoneIcon sx={{ fontSize: 14 }} />,
+          label: "Telecaller"
+        };
+      case "executive":
+        return { 
+          color: "#3182ce", 
+          bgColor: "#ebf8ff", 
+          icon: <PersonIcon sx={{ fontSize: 14 }} />,
+          label: "Executive"
+        };
+      default:
+        return { 
+          color: "#4a5568", 
+          bgColor: "#f7fafc", 
+          icon: <PersonIcon sx={{ fontSize: 14 }} />,
+          label: role || "N/A"
+        };
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-  const tableRef = useRef(null);
 
-  // Edit modal state
-  const [showEditModal, setShowEditModal] = useState(false);
+  // Sorting State
+  const [order, setOrder] = useState("desc");
+  const [orderBy, setOrderBy] = useState("createdAt");
+
+  // Pagination State
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // Edit Dialog State
+  const [openEdit, setOpenEdit] = useState(false);
   const [editAdmin, setEditAdmin] = useState(null);
-
-  // Editable fields state
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     role: "",
     mobile: "",
-    password: "", // leave empty unless user wants to change
+    password: "",
   });
 
+  // Action Menu State
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [menuAdmin, setMenuAdmin] = useState(null);
+
+  const tableRef = useRef(null);
   const roles = ["Telecaller", "Manager", "Admin", "Subadmin", "Executive"];
 
   const { onDownload } = useDownloadExcel({
@@ -38,19 +146,11 @@ const Alladmins = ({ triggerDownloadExcel, triggerDownloadPDF }) => {
   const exportToPDF = () => {
     const doc = new jsPDF();
     doc.text("Admin List", 14, 10);
-
-    const table = tableRef.current;
-    if (!table) {
-      console.error("Table not found!");
-      return;
-    }
-
     doc.autoTable({
-      html: "#example",
+      html: "#admin-table-mui",
       startY: 20,
       theme: "striped",
     });
-
     doc.save("Admin_List.pdf");
   };
 
@@ -58,497 +158,574 @@ const Alladmins = ({ triggerDownloadExcel, triggerDownloadPDF }) => {
   triggerDownloadPDF.current = exportToPDF;
 
   useEffect(() => {
-    const fetchAdmins = async () => {
-      try {
-        const response = await getAdmins();
-        if (response.status === 200) {
-          setAdmins(response.data);
-        } else {
-          setError("Failed to fetch admins");
-        }
-      } catch (err) {
-        setError("Error fetching data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchAdmins();
   }, []);
 
-  const filteredAdmins = useMemo(() => {
-    if (!searchTerm) return admins;
-    const lowerTerm = searchTerm.toLowerCase();
-    return admins.filter(
-      (admin) =>
-        admin.name.toLowerCase().includes(lowerTerm) ||
-        admin.email.toLowerCase().includes(lowerTerm) ||
-        admin.role.toLowerCase().includes(lowerTerm) ||
-        (admin.mobile && admin.mobile.includes(lowerTerm))
-    );
-  }, [admins, searchTerm]);
-
-  const paginatedAdmins = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredAdmins.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredAdmins, currentPage]);
-
-  const totalPages = Math.ceil(filteredAdmins.length / itemsPerPage);
-
-  const handlePageChange = (pageNum) => {
-    setCurrentPage(pageNum);
-  };
-
-  const handleDelete = useCallback(
-    async (adminId) => {
-      Swal.fire({
-        title: "Are you sure?",
-        text: "You won't be able to revert this!",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "Yes, delete it!",
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          try {
-            const response = await deleteAdmin(adminId);
-            if (response.status === 200) {
-              setAdmins((prevAdmins) =>
-                prevAdmins.filter((admin) => admin._id !== adminId)
-              );
-              Swal.fire(
-                "Deleted!",
-                response.message || "The admin has been removed.",
-                "success"
-              );
-            } else {
-              Swal.fire(
-                "Error!",
-                response.message || "Failed to delete admin.",
-                "error"
-              );
-            }
-          } catch (error) {
-            Swal.fire(
-              "Error!",
-              "Something went wrong while deleting the admin.",
-              "error"
-            );
-          }
-        }
-      });
-    },
-    [admins, setAdmins]
-  );
-
-  const handleStatusToggle = async ({ id }, currentStatus) => {
-    const newStatus = currentStatus === "active" ? "inactive" : "active";
-
-    const response = await fetch(
-      // `https://api.mrbikedoctor.cloud/bikedoctor/adminauth/update-status/${id}`,
-      `https://api.mrbikedoctor.cloud/bikedoctor/adminauth/update-status/${id}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: newStatus }),
+  const fetchAdmins = async () => {
+    setLoading(true);
+    try {
+      const response = await getAdmins();
+      if (response.status === 200) {
+        setAdmins(response.data);
+      } else {
+        setError("Failed to fetch admins");
       }
-    );
-
-    const data = await response.json();
-
-    if (response.ok) {
-      setAdmins((prevAdmins) =>
-        prevAdmins.map((admin) =>
-          admin._id === id ? { ...admin, status: newStatus } : admin
-        )
-      );
-      Swal.fire("Success", data.message || "Status updated", "success");
-    } else {
-      Swal.fire("Error", data.message || "Failed to update status", "error");
+    } catch (err) {
+      setError("Error fetching data");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // OPEN EDIT MODAL AND SET FORM DATA
-  const handleEdit = (admin) => {
+  // ✅ Search & Sort Logic
+  const filteredData = useMemo(() => {
+    let result = admins;
+
+    // Filter by search term
+    if (searchTerm) {
+      const lowerTerm = searchTerm.toLowerCase();
+      result = result.filter(
+        (a) =>
+          a.name?.toLowerCase().includes(lowerTerm) ||
+          a.email?.toLowerCase().includes(lowerTerm) ||
+          a.mobile?.includes(lowerTerm) ||
+          a.ID?.toLowerCase().includes(lowerTerm) ||
+          a.role?.toLowerCase().includes(lowerTerm),
+      );
+    }
+
+    // Sort
+    return [...result].sort((a, b) => {
+      let valueA = a[orderBy] || "";
+      let valueB = b[orderBy] || "";
+
+      if (orderBy === "createdAt") {
+        valueA = new Date(a.createdAt).getTime();
+        valueB = new Date(b.createdAt).getTime();
+      } else {
+        valueA = String(valueA).toLowerCase();
+        valueB = String(valueB).toLowerCase();
+      }
+
+      const multiplier = order === "asc" ? 1 : -1;
+      return valueA < valueB
+        ? -1 * multiplier
+        : valueA > valueB
+          ? 1 * multiplier
+          : 0;
+    });
+  }, [admins, searchTerm, order, orderBy]);
+
+  const currentData = filteredData.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage,
+  );
+
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  };
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const handleMenuOpen = (event, admin) => {
+    setAnchorEl(event.currentTarget);
+    setMenuAdmin(admin);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setMenuAdmin(null);
+  };
+
+  const handleDelete = async (adminId) => {
+    handleMenuClose();
+    Swal.fire({
+      title: "Delete Admin?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, Delete",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const response = await deleteAdmin(adminId);
+          if (response.status === 200) {
+            setAdmins((prev) => prev.filter((a) => a._id !== adminId));
+            Swal.fire("Deleted!", "Admin removed successfully.", "success");
+          }
+        } catch (error) {
+          Swal.fire("Error", "Failed to delete admin.", "error");
+        }
+      }
+    });
+  };
+
+  const handleStatusToggle = async (admin) => {
+    const newStatus = admin.status === "active" ? "inactive" : "active";
+    try {
+      const response = await fetch(
+        `https://api.mrbikedoctor.cloud/bikedoctor/adminauth/update-status/${admin._id}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatus }),
+        },
+      );
+
+      if (response.ok) {
+        setAdmins((prev) =>
+          prev.map((a) =>
+            a._id === admin._id ? { ...a, status: newStatus } : a,
+          ),
+        );
+      } else {
+        Swal.fire("Error", "Failed to update status", "error");
+      }
+    } catch (err) {
+      Swal.fire("Error", "Server error", "error");
+    }
+  };
+
+  const handleEditClick = (admin) => {
+    handleMenuClose();
     setEditAdmin(admin);
     setFormData({
       name: admin.name || "",
       email: admin.email || "",
       role: admin.role || "",
       mobile: admin.mobile || "",
-      password: "", // leave blank on edit
+      password: "",
     });
-    setShowEditModal(true);
+    setOpenEdit(true);
   };
 
-  // HANDLE FORM INPUT CHANGE
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  // HANDLE FORM SUBMIT TO UPDATE ADMIN
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    console.log("Submitting form data:", editAdmin._id, formData);
-
-    if (!formData.name || !formData.email || !formData.role || !formData.mobile) {
-      Swal.fire("Error", "Please fill all required fields", "error");
+  const handleEditSubmit = async () => {
+    if (
+      !formData.name ||
+      !formData.email ||
+      !formData.role ||
+      !formData.mobile
+    ) {
+      Swal.fire("Error", "All fields are required", "error");
       return;
     }
 
     try {
       const response = await fetch(
-        // `https://dr-bike-backend.onrender.com/bikedoctor/adminauth/admin/${editAdmin._id}`,
         `https://api.mrbikedoctor.cloud/bikedoctor/adminauth/admin/${editAdmin._id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
-        }
+        },
       );
 
-      const data = await response.json();
-
       if (response.ok) {
-        // Update admin in local state
-        setAdmins((prevAdmins) =>
-          prevAdmins.map((admin) =>
-            admin._id === editAdmin._id ? { ...admin, ...formData } : admin
-          )
+        setAdmins((prev) =>
+          prev.map((a) =>
+            a._id === editAdmin._id ? { ...a, ...formData } : a,
+          ),
         );
-        setShowEditModal(false);
-        Swal.fire("Success", data.message || "Admin updated successfully", "success");
-      } else {
-        Swal.fire("Error", data.message || "Failed to update admin", "error");
+        setOpenEdit(false);
+        Swal.fire("Success", "Admin updated successfully", "success");
       }
-    } catch (error) {
-      Swal.fire("Error", "Something went wrong", "error");
+    } catch (err) {
+      Swal.fire("Error", "Failed to update admin", "error");
     }
   };
 
-  const memoizedAdminList = useMemo(() => {
-    return paginatedAdmins?.map((admin, index) => (
-      <tr key={admin._id}>
-        <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
-        <td>{admin.name}</td>
-        <td>{admin.email}</td>
-        <td>{admin.mobile || "N/A"}</td>
-        <td>{admin.role}</td>
-        <td>{admin.ID || "Not Assigned"}</td>
-        <td>
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={admin.status === "active"}
-              onChange={() =>
-                handleStatusToggle({ id: admin._id, userId: admin.userId }, admin.status)
-              }
-            />
-            <span className="slider"></span>
-          </label>
-        </td>
-        <td className="d-flex align-items-center">
-          <div className="dropdown">
-            <a href="#" className="btn-action-icon" data-bs-toggle="dropdown">
-              <i className="fas fa-ellipsis-v" />
-            </a>
-            <ul className="dropdown-menu dropdown-menu-end">
-              <li>
-                <button
-                  className="dropdown-item"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleDelete(admin._id);
-                  }}
-                >
-                  <i className="far fa-trash-alt me-2" /> View
-                </button>
-              </li>
-              <li>
-                <button
-                  className="dropdown-item"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleEdit(admin);
-                  }}
-                >
-                  <i className="far fa-edit me-2" /> Edit
-                </button>
-              </li>
-            </ul>
-          </div>
-        </td>
-      </tr>
-    ));
-  }, [paginatedAdmins, currentPage, handleDelete]);
+  const headers = [
+    { id: "id", label: "#", sortable: false },
+    { id: "name", label: "Admin Name", sortable: true },
+    { id: "contact", label: "Contact Info", sortable: false },
+    { id: "role", label: "Role", sortable: true },
+    { id: "ID", label: "Employee ID", sortable: true },
+    { id: "status", label: "Status", sortable: true },
+    { id: "actions", label: "Actions", sortable: false },
+  ];
 
   return (
-    <>
-      {/* Your existing table UI */}
-      <div className="row">
-        <div className="col-sm-12">
-          <div className="card-table card p-2">
-            <div className="card-body">
-              <div className="table-responsive">
-                <div className="mb-3">
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Search by name, email or phone"
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                  />
-                </div>
+    <Box sx={{ width: "100%" }}>
+      <AdminStats admins={admins} />
 
-                <table
-                  ref={tableRef}
-                  id="example"
-                  className="table table-striped"
+      <Box
+        sx={{
+          mb: 3,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <TextField
+          variant="outlined"
+          size="small"
+          placeholder="Search by Name, Email, ID..."
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setPage(0);
+          }}
+          sx={{ width: { xs: "100%", sm: 350 }, backgroundColor: "white" }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Box>
+
+      <TableContainer
+        component={Paper}
+        elevation={3}
+        sx={{
+          borderRadius: 3,
+          overflow: "hidden",
+          border: "1px solid #edf2f7",
+        }}
+      >
+        <Table id="admin-table-mui" ref={tableRef} sx={{ minWidth: 1000 }}>
+          <TableHead sx={{ backgroundColor: "#2e83ff" }}>
+            <TableRow>
+              {headers.map((header) => (
+                <TableCell
+                  key={header.id}
+                  sx={{ color: "white", fontWeight: "bold", py: 2 }}
+                  sortDirection={orderBy === header.id ? order : false}
                 >
-                  <thead
-                    className="thead-light"
-                    style={{ backgroundColor: "#2e83ff" }}
+                  {header.sortable ? (
+                    <TableSortLabel
+                      active={orderBy === header.id}
+                      direction={orderBy === header.id ? order : "asc"}
+                      onClick={() => handleRequestSort(header.id)}
+                      sx={{
+                        color: "white !important",
+                        "&.MuiTableSortLabel-active": {
+                          color: "white !important",
+                        },
+                        "& .MuiTableSortLabel-icon": {
+                          color: "white !important",
+                        },
+                      }}
+                    >
+                      {header.label}
+                    </TableSortLabel>
+                  ) : (
+                    header.label
+                  )}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
+                  <Typography variant="body1">Loading admins...</Typography>
+                </TableCell>
+              </TableRow>
+            ) : filteredData.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} align="center" sx={{ py: 10 }}>
+                  <Typography
+                    variant="body1"
+                    sx={{ color: "text.secondary", fontStyle: "italic" }}
                   >
-                    <tr>
-                      <th># S.No</th>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Phone</th>
-                      <th>Role</th>
-                      <th>Employe_Id</th>
-                      <th>Status</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="list">
-                    {loading ? (
-                      <tr>
-                        <td
-                          colSpan="8"
-                          style={{
-                            textAlign: "center",
-                            padding: "20px",
-                            height: "30vh",
-                          }}
-                        >
-                          <div
-                            className="spinner-border text-primary"
-                            role="status"
-                            style={{
-                              width: "3rem",
-                              height: "3rem",
-                              margin: "auto",
-                            }}
-                          >
-                            <span className="visually-hidden">
-                              Loading...
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : error ? (
-                      <tr>
-                        <td
-                          colSpan="8"
-                          style={{
-                            textAlign: "center",
-                            color: "red",
-                            padding: "20px",
-                            fontWeight: "bold",
-                          }}
-                        >
-                          {error}
-                        </td>
-                      </tr>
-                    ) : admins.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan="8"
-                          style={{
-                            textAlign: "center",
-                            padding: "20px",
-                            fontStyle: "italic",
-                            color: "#555",
-                          }}
-                        >
-                          No admins found.
-                        </td>
-                      </tr>
-                    ) : (
-                      memoizedAdminList
-                    )}
-                  </tbody>
-                </table>
-                <div className="d-flex justify-content-between align-items-center mt-4 p-3 bg-light rounded shadow-sm">
-                  <div
-                    className="text-muted"
-                    style={{ fontWeight: "500", fontSize: "0.9rem" }}
-                  >
-                    Total Records:{" "}
-                    <span className="text-primary fw-bold">
-                      {filteredAdmins.length}
-                    </span>
-                  </div>
-
-                  <nav aria-label="Page navigation example">
-                    <ul className="pagination pagination-sm mb-0">
-                      <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
-                        <button
-                          className="page-link"
-                          onClick={() => setCurrentPage(currentPage - 1)}
-                          aria-label="Previous"
-                        >
-                          &laquo;
-                        </button>
-                      </li>
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                        (page) => (
-                          <li
-                            key={page}
-                            className={`page-item ${page === currentPage ? "active" : ""
-                              }`}
-                          >
-                            <button
-                              className="page-link"
-                              onClick={() => handlePageChange(page)}
-                            >
-                              {page}
-                            </button>
-                          </li>
-                        )
-                      )}
-                      <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
-                        <button
-                          className="page-link"
-                          onClick={() => setCurrentPage(currentPage + 1)}
-                          aria-label="Next"
-                        >
-                          &raquo;
-                        </button>
-                      </li>
-                    </ul>
-                  </nav>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Edit Modal */}
-      {showEditModal && (
-        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-dialog-centered modal-lg">
-            <form onSubmit={handleEditSubmit} className="w-100">
-              <div className="modal-content shadow-lg border-0 rounded-3">
-                <div className="modal-header bg-primary text-white">
-                  <h5 className="modal-title">Edit Admin Details</h5>
-                  <button
-                    type="button"
-                    className="btn-close btn-close-white"
-                    onClick={() => setShowEditModal(false)}
-                  ></button>
-                </div>
-
-                <div className="modal-body p-4">
-                  <div className="row g-3">
-                    <div className="col-md-6">
-                      <label className="form-label">Name</label>
-                      <input
-                        type="text"
-                        name="name"
-                        className="form-control"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-
-                    <div className="col-md-6">
-                      <label className="form-label">Email</label>
-                      <input
-                        type="email"
-                        name="email"
-                        className="form-control"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-
-                    <div className="col-md-6">
-                      <label className="form-label">Mobile</label>
-                      <input
-                        type="text"
-                        name="mobile"
-                        className="form-control"
-                        value={formData.mobile}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-
-                    <div className="col-md-6">
-                      <label className="form-label">Role</label>
-                      <select
-                        name="role"
-                        className="form-select"
-                        value={formData.role}
-                        onChange={handleInputChange}
-                        required
+                    No admins found matching your criteria.
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              currentData.map((admin, index) => (
+                <TableRow
+                  key={admin._id}
+                  hover
+                  sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+                >
+                  <TableCell>{page * rowsPerPage + index + 1}</TableCell>
+                  <TableCell>
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      <Avatar
+                        sx={{
+                          bgcolor: "#eef5ff",
+                          color: "#2e83ff",
+                          mr: 2,
+                          fontWeight: "bold",
+                        }}
                       >
-                        <option value="" disabled>Select Role</option>
-                        {roles.map((roleOption) => (
-                          <option key={roleOption} value={roleOption}>
-                            {roleOption}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="col-12">
-                      <label className="form-label">Password <small className="text-muted">(leave blank to keep current)</small></label>
-                      <input
-                        type="password"
-                        name="password"
-                        className="form-control"
-                        value={formData.password}
-                        onChange={handleInputChange}
+                        {admin.name?.charAt(0)}
+                      </Avatar>
+                      <Box>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ fontWeight: "bold" }}
+                        >
+                          {admin.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Joined:{" "}
+                          {new Date(admin.createdAt).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Stack spacing={0.5}>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        <EmailIcon fontSize="inherit" color="action" />
+                        <Typography variant="caption">{admin.email}</Typography>
+                      </Box>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        <PhoneIcon fontSize="inherit" color="action" />
+                        <Typography variant="caption">
+                          {admin.mobile || "N/A"}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const config = getRoleConfig(admin.role);
+                      return (
+                        <Chip
+                          icon={config.icon}
+                          label={config.label}
+                          size="small"
+                          sx={{ 
+                            fontWeight: 700, 
+                            color: config.color,
+                            backgroundColor: config.bgColor,
+                            border: `1px solid ${config.color}33`,
+                            borderRadius: 1.5,
+                            textTransform: "uppercase",
+                            fontSize: "10px",
+                            letterSpacing: "0.5px"
+                          }}
+                        />
+                      );
+                    })()}
+                  </TableCell>
+                  <TableCell>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: "bold", color: "#2e83ff" }}
+                    >
+                      {admin.ID || "N/A"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      <Tooltip
+                        title={
+                          admin.status === "active" ? "Deactivate" : "Activate"
+                        }
+                      >
+                        <Switch
+                          size="small"
+                          checked={admin.status === "active"}
+                          onChange={() => handleStatusToggle(admin)}
+                          color="success"
+                        />
+                      </Tooltip>
+                      <Chip
+                        label={admin.status}
+                        size="small"
+                        color={
+                          admin.status === "active" ? "success" : "default"
+                        }
+                        variant="tonal"
+                        sx={{
+                          ml: 1,
+                          textTransform: "capitalize",
+                          fontWeight: "bold",
+                          borderRadius: 1,
+                        }}
                       />
-                    </div>
-                  </div>
-                </div>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => handleMenuOpen(e, admin)}
+                    >
+                      <MoreIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={filteredData.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          sx={{ borderTop: "1px solid #edf2f7" }}
+        />
+      </TableContainer>
 
-                <div className="modal-footer bg-light border-top-0">
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={() => setShowEditModal(false)}
+      {/* Action Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem onClick={() => handleEditClick(menuAdmin)}>
+          <EditIcon sx={{ mr: 1, color: "primary.main" }} fontSize="small" />{" "}
+          Edit
+        </MenuItem>
+        <MenuItem onClick={() => handleDelete(menuAdmin?._id)}>
+          <DeleteIcon sx={{ mr: 1, color: "error.main" }} fontSize="small" />{" "}
+          Delete
+        </MenuItem>
+      </Menu>
+
+      {/* Edit Dialog */}
+      <Dialog
+        open={openEdit}
+        onClose={() => setOpenEdit(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle
+          sx={{ fontWeight: "bold", backgroundColor: "#f8f9fa", pb: 2 }}
+        >
+          Edit Admin Profile
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <Stack spacing={3} sx={{ pt: 1 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Full Name"
+                  name="name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  variant="outlined"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Email Address"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Mobile Number"
+                  name="mobile"
+                  value={formData.mobile}
+                  onChange={(e) =>
+                    setFormData({ ...formData, mobile: e.target.value })
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel sx={{ fontWeight: 600, fontSize: "1rem" }}>
+                    Role
+                  </InputLabel>
+                  <Select
+                    value={formData.role}
+                    label="Role"
+                    onChange={(e) =>
+                      setFormData({ ...formData, role: e.target.value })
+                    }
+                    sx={{
+                      borderRadius: 2,
+                      backgroundColor: "white",
+                      "& .MuiSelect-select": {
+                        py: 2,
+                        fontSize: "1.1rem",
+                        fontWeight: 500,
+                        display: "flex",
+                        alignItems: "center",
+                      },
+                      height: 60,
+                    }}
+                    startAdornment={
+                      <InputAdornment position="start" sx={{ ml: 1 }}>
+                        <RoleIcon color="primary" />
+                      </InputAdornment>
+                    }
                   >
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    Save Changes
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </>
+                    {roles.map((r) => (
+                      <MenuItem
+                        key={r}
+                        value={r}
+                        sx={{ py: 2, fontWeight: 500, fontSize: "1rem" }}
+                      >
+                        {r}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="New Password"
+                  type="password"
+                  placeholder="Leave blank to keep current"
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                />
+              </Grid>
+            </Grid>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, backgroundColor: "#f8f9fa" }}>
+          <Button
+            onClick={() => setOpenEdit(false)}
+            color="inherit"
+            sx={{ fontWeight: "bold" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleEditSubmit}
+            variant="contained"
+            disableElevation
+            sx={{ fontWeight: "bold", backgroundColor: "#2e83ff" }}
+          >
+            Save Improvements
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
-}
+};
+
 export default Alladmins;
