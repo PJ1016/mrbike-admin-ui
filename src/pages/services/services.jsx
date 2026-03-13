@@ -112,7 +112,7 @@ const Services = () => {
                 </Button>
                 <Button
                   component={Link}
-                  to="/addServices"
+                  to="/create-service"
                   variant="contained"
                   color="primary"
                   startIcon={<AddCircleOutlineIcon />}

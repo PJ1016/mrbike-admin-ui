@@ -2,66 +2,149 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import Modal from "react-bootstrap/Modal"
-import "bootstrap/dist/css/bootstrap.min.css"
-import Swal from "sweetalert2"
+import {
+  Box,
+  Typography,
+  Button,
+  Grid,
+  Card,
+  CardContent,
+  Tabs,
+  Tab,
+  Divider,
+  Chip,
+  Avatar,
+  IconButton,
+  Tooltip,
+  Modal,
+  CircularProgress,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Stack,
+  Breadcrumbs,
+  Alert,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+} from "@mui/material"
 import {
   FaUser,
   FaEnvelope,
   FaPhone,
   FaMapMarkerAlt,
   FaFileAlt,
-  FaArrowLeft,
-  FaImage,
   FaUniversity,
   FaTools,
-  FaDownload,
+  FaCheckCircle,
+  FaTimesCircle,
 } from "react-icons/fa"
-import { getAServiceList } from "../../api"
+import DownloadIcon from "@mui/icons-material/Download"
+import ArrowBackIcon from "@mui/icons-material/ArrowBack"
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline"
+import VerifiedIcon from "@mui/icons-material/Verified"
+import StorefrontIcon from "@mui/icons-material/Storefront"
+import { getServiceList } from "../../api"
+import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary"
+import BusinessIcon from "@mui/icons-material/Business"
+import AccountBalanceIcon from "@mui/icons-material/AccountBalance"
+import SettingsIcon from "@mui/icons-material/Settings"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
+import "bootstrap/dist/css/bootstrap.min.css"
+import Swal from "sweetalert2"
 import React from "react"
 import jsPDF from "jspdf"
 import "jspdf-autotable"
 
+// Helper to form image URLs correctly
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return "";
+  if (imagePath.startsWith("http")) return imagePath;
+  const baseUrl = process.env.REACT_APP_IMAGE_BASE_URL || "";
+  return `${baseUrl}${imagePath}`;
+};
+
+// Tab Panel Helper
+function CustomTabPanel(props) {
+  const { children, value, index, ...other } = props
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`dealer-tabpanel-${index}`}
+      aria-labelledby={`dealer-tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+    </div>
+  )
+}
+
 const ImagePreview = ({ src, label }) => {
-  const [show, setShow] = useState(false)
-
-  // ONE base URL (CRA)
+  const [open, setOpen] = useState(false)
   const BASE_URL = process.env.REACT_APP_IMAGE_BASE_URL || ""
-
-  // Build correct image URL
   const imageUrl = src ? (src.startsWith("http") ? src : `${BASE_URL}${src}`) : null
 
   return (
-    <div className="mb-3">
-      <p>
-        <strong>{label}:</strong>
-      </p>
+    <Box sx={{ mb: 2 }}>
+      <Typography variant="subtitle2" fontWeight="bold" gutterBottom color="text.secondary">
+        {label}
+      </Typography>
 
       {src ? (
         <>
-          <img
+          <Box
+            component="img"
             src={imageUrl || "/placeholder.svg"}
             alt={label}
-            onClick={() => setShow(true)}
-            style={{
-              width: "100px",
-              height: "auto",
+            onClick={() => setOpen(true)}
+            sx={{
+              width: "100%",
+              maxWidth: 240,
+              height: 140,
+              objectFit: "cover",
               cursor: "pointer",
-              borderRadius: "4px",
-              border: "1px solid #ccc",
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: "divider",
+              transition: "all 0.2s ease-in-out",
+              "&:hover": { 
+                transform: "translateY(-4px)",
+                boxShadow: 4,
+                borderColor: "primary.main"
+              },
             }}
           />
 
-          <Modal show={show} onHide={() => setShow(false)} size="lg" centered>
-            <Modal.Body className="text-center">
-              <img src={imageUrl || "/placeholder.svg"} alt="Preview" style={{ maxWidth: "100%", maxHeight: "80vh" }} />
-            </Modal.Body>
+          <Modal
+            open={open}
+            onClose={() => setOpen(false)}
+            sx={{ display: "flex", alignItems: "center", justifyContent: "center", p: 4 }}
+          >
+            <Box
+              component="img"
+              src={imageUrl || "/placeholder.svg"}
+              sx={{
+                maxWidth: "90vw",
+                maxHeight: "90vh",
+                m: "auto",
+                outline: "none",
+                borderRadius: 2,
+                boxShadow: 24,
+                bgcolor: 'background.paper'
+              }}
+            />
           </Modal>
         </>
       ) : (
-        <span className="badge bg-secondary">Not Uploaded</span>
+        <Chip label="Not Uploaded" size="small" variant="outlined" color="default" sx={{ borderRadius: 1 }} />
       )}
-    </div>
+    </Box>
   )
 }
 
@@ -71,43 +154,34 @@ const VendorDealerDetails = () => {
   const [dealer, setDealer] = useState(null)
   const [dealerServices, setDealersServices] = useState([])
   const [loading, setLoading] = useState(true)
+  const [tabIndex, setTabIndex] = useState(0)
   const token = localStorage.getItem("token")
+
+  const handleTabChange = (event, newValue) => {
+    setTabIndex(newValue)
+  }
 
   const downloadDealerPDF = async () => {
     const doc = new jsPDF()
 
     const convertImageToBase64 = async (url) => {
-      console.log("[v0] Attempting to convert image:", url)
       try {
-        // Use a cache-busting parameter to avoid stale cached responses without CORS headers
         const fetchUrl = `${url}${url.includes("?") ? "&" : "?"}cache_bust=${Date.now()}`
         const res = await fetch(fetchUrl, {
           mode: "cors",
-          credentials: "omit", // Often helps with CORS on static assets
+          credentials: "omit",
         })
 
-        if (!res.ok) {
-          console.warn(`[v0] Fetch failed for ${url}: ${res.status} ${res.statusText}`)
-          return null
-        }
-
+        if (!res.ok) return null
         const blob = await res.blob()
-        console.log("[v0] Blob retrieved successfully for:", url)
 
         return new Promise((resolve, reject) => {
           const reader = new FileReader()
-          reader.onloadend = () => {
-            console.log("[v0] Base64 conversion complete for:", url)
-            resolve(reader.result)
-          }
-          reader.onerror = (e) => {
-            console.error("[v0] FileReader error for:", url, e)
-            reject(e)
-          }
+          reader.onloadend = () => resolve(reader.result)
+          reader.onerror = (e) => reject(e)
           reader.readAsDataURL(blob)
         })
       } catch (error) {
-        console.error("[v0] Critical error in convertImageToBase64 for:", url, error)
         return null
       }
     }
@@ -168,22 +242,16 @@ const VendorDealerDetails = () => {
       const imgHeight = 30
       let xOffset = 15
 
-      // Only take the first 4 images to avoid overflowing the page
       for (let i = 0; i < Math.min(dealer.shopImages.length, 4); i++) {
         const imgUrl = `${process.env.REACT_APP_IMAGE_BASE_URL}${dealer.shopImages[i]}`
         const base64Img = await convertImageToBase64(imgUrl)
 
         if (base64Img) {
           try {
-            // Check if the base64 string is a valid image format
             const format = base64Img.split(";")[0].split("/")[1].toUpperCase()
             doc.addImage(base64Img, format === "JPEG" ? "JPEG" : "PNG", xOffset, yPos, imgWidth, imgHeight)
             xOffset += imgWidth + 5
-          } catch (e) {
-            console.error("[v0] jsPDF addImage error:", e)
-          }
-        } else {
-          console.warn("[v0] Skipping image due to conversion failure:", imgUrl)
+          } catch (e) {}
         }
       }
       yPos += imgHeight + 10
@@ -217,9 +285,7 @@ const VendorDealerDetails = () => {
             doc.text(docItem.label, docXOffset, yPos)
             doc.addImage(base64Img, format === "JPEG" ? "JPEG" : "PNG", docXOffset, yPos + 2, 40, 30)
             docXOffset += 45
-          } catch (e) {
-            console.error("[v0] jsPDF doc image error:", e)
-          }
+          } catch (e) {}
         }
       }
     }
@@ -293,9 +359,9 @@ const VendorDealerDetails = () => {
   useEffect(() => {
     const fetchDealer = async () => {
       try {
+        setLoading(true)
         const res = await fetch(`https://api.mrbikedoctor.cloud/bikedoctor/dealer/view/${id}`)
         const data = await res.json()
-        console.log("Data", data)
         if (!res.ok) throw new Error(data.message || "Failed to load dealer")
         setDealer(data)
       } catch (err) {
@@ -308,241 +374,495 @@ const VendorDealerDetails = () => {
 
     const fetchServices = async () => {
       try {
-        console.log("[v0] Fetching dealer services for dealer_id:", id)
-
-        const response = await fetch(`https://api.mrbikedoctor.cloud/service/dealer/${id}`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            token: token || "",
-          },
-        })
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch services: ${response.statusText}`)
-        }
-
-        const data = await response.json()
-        console.log("[v0] Dealer Services Response:", data)
-
-        if (data.status === 200 && Array.isArray(data.data)) {
-          console.log("[v0] Services fetched successfully:", data.data.length, "services found")
-          setDealersServices(data.data)
+        const response = await getServiceList()
+        if (response && response.status === true && Array.isArray(response.data)) {
+          // Filter services that belong to this dealer
+          const dealerAssignedServices = response.data.filter(service => {
+            const serviceDealerId = service.dealer_id?._id || service.dealer_id || service.dealer?._id || service.dealer
+            return serviceDealerId === id
+          })
+          setDealersServices(dealerAssignedServices)
         } else {
-          console.warn("[v0] No services found in response")
           setDealersServices([])
         }
       } catch (error) {
-        console.error("[v0] Error fetching dealer services:", error)
+        console.error("Error fetching services:", error)
         setDealersServices([])
       }
     }
 
     fetchServices()
     fetchDealer()
-  }, [id, navigate])
+  }, [id, navigate, token])
+  
+  // Group services by base_service_id
+  const groupedServices = React.useMemo(() => {
+    const groups = {}
+    dealerServices.forEach(service => {
+      const baseId = service.base_service_id?._id || service.base_service_id || 'unknown'
+      if (!groups[baseId]) {
+        groups[baseId] = {
+          details: service.base_service_id || { name: service.name || 'Unknown Service' },
+          instances: []
+        }
+      }
+      groups[baseId].instances.push(service)
+    })
+    return Object.values(groups)
+  }, [dealerServices])
 
   if (loading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
-        <div className="flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-gray-600 text-lg font-medium">Loading...</p>
-        </div>
-      </div>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <CircularProgress size={60} thickness={4} />
+        <Typography sx={{ mt: 2, fontWeight: 500 }} color="text.secondary">Loading Dealer Profile...</Typography>
+      </Box>
     )
   }
-  if (!dealer) return <div className="alert alert-danger mt-4">Dealer not found.</div>
+
+  if (!dealer) return <Alert severity="error">Dealer not found.</Alert>
 
   return (
-    <div className="page-wrapper">
-      <div className="content container-fluid">
-        <div className="row">
-          <div className="col-sm-12">
-            <div className="card-table card">
-              <div className="card-body form-horizontal">
-                <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                  <h4 className="mb-0">
-                    <FaUser className="me-2" /> {dealer.shopName}
-                  </h4>
-                  <div className="d-flex gap-2">
-                    <button className="btn btn-light btn-sm" onClick={downloadDealerPDF}>
-                      <FaDownload className="me-2" /> Download PDF
-                    </button>
-                    <button className="btn btn-light btn-sm" onClick={() => navigate(-1)}>
-                      <FaArrowLeft className="me-2" /> Back
-                    </button>
-                  </div>
-                </div>
+    <Box sx={{ p: { xs: 2, sm: 4 }, bgcolor: "#f8f9fa", minHeight: "100vh" }}>
+      {/* Page Header */}
+      <Box sx={{ mb: 4 }}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          justifyContent="space-between"
+          alignItems={{ xs: "flex-start", sm: "center" }}
+          spacing={2}
+        >
+          <Box>
+            <Stack direction="row" alignItems="center" spacing={2}>
+              <Avatar
+                sx={{ 
+                  bgcolor: 'primary.main', 
+                  width: 64, 
+                  height: 64,
+                  boxShadow: '0 4px 12px rgba(46, 131, 255, 0.2)'
+                }}
+              >
+                <StorefrontIcon fontSize="large" />
+              </Avatar>
+              <Box>
+                <Typography variant="h4" fontWeight="800" color="text.primary" sx={{ letterSpacing: -0.5 }}>
+                  {dealer.shopName}
+                </Typography>
+                <Breadcrumbs aria-label="breadcrumb">
+                  <Typography color="text.secondary" variant="body2">Operations</Typography>
+                  <Typography color="text.secondary" variant="body2">Dealers</Typography>
+                  <Typography color="text.primary" variant="body2" fontWeight="600">Profile</Typography>
+                </Breadcrumbs>
+              </Box>
+              <Chip
+                label={dealer.isActive ? "ACTIVE" : "INACTIVE"}
+                color={dealer.isActive ? "success" : "error"}
+                size="small"
+                sx={{ ml: 1, fontWeight: '800', height: 24, fontSize: '0.65rem' }}
+              />
+            </Stack>
+          </Box>
 
-                <div className="viewdealers p-3">
-                  <h5 className="text-primary mb-3">
-                    <FaImage className="me-2" />
-                    Shop Details
-                  </h5>
-                  <p>
-                    <strong>Shop Email:</strong> {dealer.email || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Shop Contact:</strong> {dealer.phone || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Shop Address:</strong> {dealer.fullAddress || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Commission:</strong> {dealer.commission} % | <strong>Tax:</strong>: {dealer.tax} %
-                  </p>
-                  <p>
-                    <strong>Shop Images: &nbsp;</strong>
-                    {Array.isArray(dealer.shopImages) && dealer.shopImages.length > 0 ? (
-                      dealer.shopImages.map((img, i) => (
-                        <ImagePreview key={i} src={img || "/placeholder.svg"} label={`Shop Image ${i + 1}`} />
-                      ))
-                    ) : (
-                      <span className="badge bg-secondary p-2">No Shop Images Uploaded</span>
-                    )}
-                  </p>
+          <Stack direction="row" spacing={2}>
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<DownloadIcon />}
+              onClick={downloadDealerPDF}
+              sx={{ fontWeight: '700', borderRadius: 2, px: 3 }}
+            >
+              Export
+            </Button>
+            <Button
+              variant="contained"
+              color="inherit"
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate(-1)}
+              sx={{ 
+                fontWeight: '700', 
+                bgcolor: 'white', 
+                color: 'text.primary',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                px: 3,
+                '&:hover': { bgcolor: 'grey.50' } 
+              }}
+            >
+              Back
+            </Button>
+          </Stack>
+        </Stack>
+      </Box>
 
-                  {/* Personal Info */}
-                  <hr />
-                  <h5 className="text-primary mb-3">
-                    <FaUser className="me-2" /> Personal Information
-                  </h5>
-                  <p>
-                    <strong>Name:</strong> {dealer.ownerName}
-                  </p>
-                  <p>
-                    <FaEnvelope className="me-2" />
-                    <strong>Email:</strong> {dealer.email}
-                  </p>
-                  <p>
-                    <FaPhone className="me-2" />
-                    <strong>Phone:</strong> {dealer.phone}
-                  </p>
-                  <p>
-                    <strong>Alternate Phone:</strong> {dealer.alternatePhone || "N/A"}
-                  </p>
+      {/* Main Content Card */}
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 4, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
+        <Box sx={{ borderBottom: 1, borderColor: "divider", px: 2, bgcolor: "white" }}>
+          <Tabs
+            value={tabIndex}
+            onChange={handleTabChange}
+            aria-label="dealer profile tabs"
+            sx={{
+              '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' },
+              '& .MuiTab-root': {
+                fontWeight: '700',
+                minWidth: 120,
+                py: 3,
+                fontSize: '0.9rem',
+                color: 'text.secondary',
+                '&.Mui-selected': { color: 'primary.main' }
+              }
+            }}
+          >
+            <Tab icon={<StorefrontIcon sx={{ fontSize: 20 }} />} iconPosition="start" label="Overview" />
+            <Tab icon={<BusinessIcon sx={{ fontSize: 20 }} />} iconPosition="start" label="KYC & Docs" />
+            <Tab icon={<SettingsIcon sx={{ fontSize: 20 }} />} iconPosition="start" label="Services" />
+            <Tab icon={<AccountBalanceIcon sx={{ fontSize: 20 }} />} iconPosition="start" label="Banking" />
+          </Tabs>
+        </Box>
 
-                  {/* Address */}
-                  <hr />
-                  <h5 className="text-primary mb-3">
-                    <FaMapMarkerAlt className="me-2" /> Address Details
-                  </h5>
-                  <p>
-                    <strong>Full Address:</strong> {dealer.fullAddress}
-                  </p>
-                  <p>
-                    <strong>City:</strong> {dealer.city} | <strong>State:</strong> {dealer.state} |{" "}
-                    <strong>Pincode:</strong> {dealer.shopPincode}
-                  </p>
+        <Box sx={{ bgcolor: "white" }}>
+          <CardContent sx={{ p: 0 }}>
+            {/* TAB 1: OVERVIEW */}
+            <CustomTabPanel value={tabIndex} index={0}>
+              <Box sx={{ px: 4, pb: 5 }}>
+                <Grid container spacing={5}>
+                  <Grid item xs={12} md={7}>
+                    <Box sx={{ mb: 4 }}>
+                      <Typography variant="subtitle1" fontWeight="800" gutterBottom sx={{ display: 'flex', alignItems: 'center', color: 'primary.main' }}>
+                        <StorefrontIcon sx={{ mr: 1, fontSize: 20 }} /> SHOP DETAILS
+                      </Typography>
+                      <Divider sx={{ mb: 3 }} />
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>EMAIL ADDRESS</Typography>
+                          <Typography variant="body1" fontWeight="600">{dealer.email || "N/A"}</Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>CONTACT NUMBER</Typography>
+                          <Typography variant="body1" fontWeight="600">{dealer.phone || "N/A"}</Typography>
+                        </Grid>
+                        <Grid item xs={12}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>SHOP ADDRESS</Typography>
+                          <Typography variant="body1" fontWeight="600">{dealer.fullAddress || "N/A"}</Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>CITY / STATE</Typography>
+                          <Typography variant="body1" fontWeight="600">{dealer.city} / {dealer.state}</Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>COMMISSION RATE</Typography>
+                          <Chip label={`${dealer.commission}%`} size="small" sx={{ fontWeight: 800, bgcolor: 'primary.50', color: 'primary.main' }} />
+                        </Grid>
+                      </Grid>
+                    </Box>
 
-                  {/* Bank Info */}
-                  <hr />
-                  <h5 className="text-primary mb-3">
-                    <FaUniversity className="me-2" /> Banking Information
-                  </h5>
-                  <p>
-                    <strong>Account Holder:</strong> {dealer?.bankDetails?.accountHolderName || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Bank Name:</strong> {dealer?.bankDetails?.bankName || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Account No.:</strong> {dealer?.bankDetails?.accountNumber || "N/A"}
-                  </p>
-                  <p>
-                    <strong>IFSC Code:</strong> {dealer?.bankDetails?.ifscCode || "N/A"}
-                  </p>
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="800" gutterBottom sx={{ display: 'flex', alignItems: 'center', color: 'primary.main' }}>
+                        <PhotoLibraryIcon sx={{ mr: 1, fontSize: 20 }} /> SHOP GALLERY
+                      </Typography>
+                      <Divider sx={{ mb: 3 }} />
+                      <Grid container spacing={2}>
+                        {Array.isArray(dealer.shopImages) && dealer.shopImages.length > 0 ? (
+                          dealer.shopImages.slice(0, 6).map((img, i) => (
+                            <Grid item xs={6} sm={4} key={i}>
+                              <ImagePreview src={img} label={`Image ${i + 1}`} />
+                            </Grid>
+                          ))
+                        ) : (
+                          <Grid item xs={12}>
+                            <Paper variant="outlined" sx={{ p: 4, textAlign: 'center', borderStyle: 'dashed', bgcolor: 'grey.50' }}>
+                              <Typography color="text.secondary" variant="body2">No shop images have been uploaded yet.</Typography>
+                            </Paper>
+                          </Grid>
+                        )}
+                      </Grid>
+                    </Box>
+                  </Grid>
 
-                  {/* Documents */}
-                  <hr />
-                  <h5 className="text-primary mb-3">
-                    <FaFileAlt className="me-2" /> Uploaded Documents
-                  </h5>
-                  <div className="row">
-                    <div className="col-md-4">
-                      <ImagePreview src={dealer.documents?.aadharFront || "/placeholder.svg"} label="Aadhar Front" />
+                  <Grid item xs={12} md={5}>
+                    <Box sx={{ mb: 4, p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: '#fafafa' }}>
+                      <Typography variant="subtitle1" fontWeight="800" gutterBottom sx={{ display: 'flex', alignItems: 'center', color: 'primary.main' }}>
+                        <FaUser style={{ marginRight: 8 }} /> OWNER INFO
+                      </Typography>
+                      <Divider sx={{ mb: 3 }} />
+                      <Stack spacing={2.5}>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>FULL NAME</Typography>
+                          <Typography variant="body1" fontWeight="700">{dealer.ownerName}</Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>AADHAR CARD NO.</Typography>
+                          <Typography variant="body1" fontWeight="600">{dealer.aadharCardNo}</Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>PAN CARD NO.</Typography>
+                          <Typography variant="body1" fontWeight="600" sx={{ textTransform: 'uppercase' }}>{dealer.panCardNo}</Typography>
+                        </Box>
+                      </Stack>
+                    </Box>
 
-                      <ImagePreview src={dealer.documents?.aadharBack || "/placeholder.svg"} label="Aadhar Back" />
-                    </div>
-                    <div className="col-md-4">
-                      <ImagePreview src={dealer.documents?.panCardFront || "/placeholder.svg"} label="PAN Card" />
-                    </div>
-                  </div>
+                    <Card elevation={0} sx={{ p: 3, bgcolor: 'primary.50', borderRadius: 3, border: '1px solid', borderColor: 'primary.100' }}>
+                      <Typography variant="subtitle2" fontWeight="800" color="primary.main" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+                        <VerifiedIcon sx={{ mr: 1, fontSize: 18 }} /> VERIFICATION STATUS
+                      </Typography>
+                      <Stack spacing={1.5}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Typography variant="body2" fontWeight="600">Merchant Identity</Typography>
+                          {dealer.isVerify ? (
+                            <Chip icon={<FaCheckCircle style={{ color: 'white' }} />} label="VERIFIED" color="success" size="small" sx={{ fontWeight: 800, fontSize: '0.6rem' }} />
+                          ) : (
+                            <Chip label="PENDING" color="warning" size="small" sx={{ fontWeight: 800, fontSize: '0.6rem' }} />
+                          )}
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Typography variant="body2" fontWeight="600">Onboarding Docs</Typography>
+                          {dealer.isDoc ? (
+                            <Chip icon={<FaCheckCircle style={{ color: 'white' }} />} label="APPROVED" color="success" size="small" sx={{ fontWeight: 800, fontSize: '0.6rem' }} />
+                          ) : (
+                            <Chip label="INCOMPLETE" color="error" size="small" sx={{ fontWeight: 800, fontSize: '0.6rem' }} />
+                          )}
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Typography variant="body2" fontWeight="600">Bank Verification</Typography>
+                          <Chip label="UNVERIFIED" variant="outlined" color="error" size="small" sx={{ fontWeight: 800, fontSize: '0.6rem', bgcolor: 'white' }} />
+                        </Box>
+                      </Stack>
+                    </Card>
+                  </Grid>
+                </Grid>
+              </Box>
+            </CustomTabPanel>
 
-                  {/* Service Info */}
-                  <hr />
-                  <h5 className="text-primary mb-3">
-                    <FaTools className="me-2" /> Service Information
-                  </h5>
-                  {dealerServices.length > 0 ? (
-                    <div className="table-responsive">
-                      <table className="table table-bordered table-hover table-sm">
-                        <thead className="thead-dark">
-                          <tr>
-                            <th>Service ID</th>
-                            <th>Service Name</th>
-                            <th>Bike Model</th>
-                            <th>Company</th>
-                            <th>CC</th>
-                            <th>Price (₹)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {dealerServices.map((service) => (
-                            <React.Fragment key={service._id}>
-                              {service.bikes && service.bikes.length > 0 ? (
-                                service.bikes.map((bike, bikeIndex) => (
-                                  <tr key={`${service._id}-${bikeIndex}`}>
-                                    {bikeIndex === 0 && (
-                                      <td rowSpan={service.bikes.length} className="font-weight-bold">
-                                        {service.serviceId || "N/A"}
-                                      </td>
-                                    )}
-                                    {bikeIndex === 0 && (
-                                      <td rowSpan={service.bikes.length}>{service.name}</td>
-                                    )}
-                                    <td>{bike.model_id?.model_name || "N/A"}</td>
-                                    <td>
-                                      {service.companies && service.companies.length > 0
-                                        ? service.companies.map((c) => c.name).join(", ")
-                                        : "N/A"}
-                                    </td>
-                                    <td>{bike.cc}</td>
-                                    <td>₹{bike.price}</td>
-                                  </tr>
-                                ))
-                              ) : (
-                                <tr key={`${service._id}-no-bikes`}>
-                                  <td className="font-weight-bold">{service.serviceId || "N/A"}</td>
-                                  <td>{service.name}</td>
-                                  <td colSpan="4" className="text-center text-muted">
-                                    No bike data available
-                                  </td>
-                                </tr>
-                              )}
-                            </React.Fragment>
+            {/* TAB 2: DOCUMENTS */}
+            <CustomTabPanel value={tabIndex} index={1}>
+              <Box sx={{ px: 4, pb: 5 }}>
+                <Typography variant="h6" fontWeight="800" gutterBottom color="primary.main">AADHAR & PAN DOCUMENTS</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>Verified identity documents for this merchant outlet.</Typography>
+                <Grid container spacing={4}>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <ImagePreview src={dealer.documents?.aadharFront} label="Aadhar Card (Front)" />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <ImagePreview src={dealer.documents?.aadharBack} label="Aadhar Card (Back)" />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <ImagePreview src={dealer.documents?.panCardFront} label="PAN Card (Front)" />
+                  </Grid>
+                </Grid>
+              </Box>
+            </CustomTabPanel>
+
+            {/* TAB 3: SERVICES */}
+            <CustomTabPanel value={tabIndex} index={2}>
+              <Box sx={{ px: 4, pb: 5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+                  <Box>
+                    <Typography variant="h6" fontWeight="800" color="primary.main">ACTIVE SERVICES</Typography>
+                    <Typography variant="body2" color="text.secondary">Services this dealer is currently eligible to provide.</Typography>
+                  </Box>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddCircleOutlineIcon />}
+                    onClick={() => navigate(`/create-service?dealerId=${dealer._id}`)}
+                    sx={{ fontWeight: '800', borderRadius: 2, px: 3 }}
+                  >
+                    Set New Service
+                  </Button>
+                </Box>
+
+                {groupedServices.length > 0 ? (
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {groupedServices.map((group, gIdx) => (
+                      <Accordion 
+                        key={gIdx} 
+                        elevation={0} 
+                        sx={{ 
+                          border: '1px solid', 
+                          borderColor: 'divider', 
+                          borderRadius: '12px !important',
+                          '&:before': { display: 'none' },
+                          overflow: 'hidden'
+                        }}
+                      >
+                        <AccordionSummary
+                          expandIcon={<ExpandMoreIcon />}
+                          sx={{ 
+                            bgcolor: '#f8fafc',
+                            px: 3,
+                            py: 1,
+                            '& .MuiAccordionSummary-content': { alignItems: 'center' }
+                          }}
+                        >
+                          <Avatar 
+                            src={getImageUrl(group.details.image)} 
+                            variant="rounded" 
+                            sx={{ width: 48, height: 48, mr: 2, border: '1px solid #e2e8f0' }} 
+                          />
+                          <Box sx={{ flexGrow: 1 }}>
+                            <Typography variant="subtitle1" fontWeight="800">
+                              {group.details.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {group.instances.reduce((acc, inst) => acc + (inst.bikes?.length || 0), 0)} Configurations across {group.instances.length} assignment(s)
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
+                            {/* Summarize CC price ranges if possible */}
+                            {(() => {
+                              const allPrices = group.instances.flatMap(i => i.bikes || [])
+                              const minP = Math.min(...allPrices.map(b => b.price))
+                              const maxP = Math.max(...allPrices.map(b => b.price))
+                              return allPrices.length > 0 ? (
+                                <Chip 
+                                  label={minP === maxP ? `₹${minP}` : `₹${minP} - ₹${maxP}`} 
+                                  size="small" 
+                                  sx={{ fontWeight: 800, bgcolor: 'primary.50', color: 'primary.main' }} 
+                                />
+                              ) : null
+                            })()}
+                          </Box>
+                        </AccordionSummary>
+                        <AccordionDetails sx={{ p: 0, borderTop: '1px solid', borderColor: 'divider' }}>
+                          {group.instances.map((instance, iIdx) => (
+                            <Box key={iIdx} sx={{ p: 3, borderBottom: iIdx < group.instances.length - 1 ? '1px dashed' : 'none', borderColor: 'divider' }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                                <Box>
+                                  <Typography variant="body2" fontWeight="700" color="text.primary">
+                                    Assignment ID: {instance.serviceId || instance._id.slice(-6).toUpperCase()}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    Configured on {new Date(instance.createdAt).toLocaleDateString()}
+                                  </Typography>
+                                </Box>
+                                <IconButton 
+                                  color="primary" 
+                                  size="small" 
+                                  sx={{ bgcolor: 'primary.50' }}
+                                  onClick={() => navigate(`/edit-services/${instance._id}`)}
+                                >
+                                  <SettingsIcon fontSize="small" />
+                                </IconButton>
+                              </Box>
+                              
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontStyle: 'italic' }}>
+                                "{instance.description || 'No description provided.'}"
+                              </Typography>
+
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                {(() => {
+                                  const brandGroups = {}
+                                  instance.bikes?.forEach(bike => {
+                                    const brand = bike.model_id?.brand_id?.name || bike.company_name || 'Generic'
+                                    if (!brandGroups[brand]) brandGroups[brand] = []
+                                    brandGroups[brand].push(bike)
+                                  })
+                                  
+                                  return Object.entries(brandGroups).map(([brand, brandBikes]) => (
+                                    <Box key={brand}>
+                                      <Typography variant="caption" fontWeight="900" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>
+                                        <VerifiedIcon sx={{ fontSize: 14, mr: 0.5, color: 'primary.light' }} /> {brand}
+                                      </Typography>
+                                      <Grid container spacing={1.5}>
+                                        {brandBikes.map((bike, bKey) => (
+                                          <Grid item xs={12} sm={6} md={4} key={bKey}>
+                                            <Paper 
+                                              variant="outlined" 
+                                              sx={{ 
+                                                p: 1.5, 
+                                                borderRadius: 2.5, 
+                                                display: 'flex', 
+                                                justifyContent: 'space-between', 
+                                                alignItems: 'center',
+                                                bgcolor: '#fff',
+                                                transition: 'all 0.2s',
+                                                '&:hover': { bgcolor: '#f1f5f9', transform: 'translateY(-1px)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }
+                                              }}
+                                            >
+                                              <Box>
+                                                <Typography variant="body2" fontWeight="800" display="block">
+                                                  {bike.model_id?.model_name || "General"}
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary" fontWeight="600">
+                                                  {bike.cc} CC Engine
+                                                </Typography>
+                                              </Box>
+                                              <Typography variant="body2" fontWeight="900" color="primary.main">
+                                                ₹{bike.price}
+                                              </Typography>
+                                            </Paper>
+                                          </Grid>
+                                        ))}
+                                      </Grid>
+                                    </Box>
+                                  ))
+                                })()}
+                                {(!instance.bikes || instance.bikes.length === 0) && (
+                                  <Alert severity="info" sx={{ py: 0 }}>No specific bike prices configured for this assignment.</Alert>
+                                )}
+                              </Box>
+                            </Box>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="alert alert-info">No services available for this dealer</div>
-                  )}
+                        </AccordionDetails>
+                      </Accordion>
+                    ))}
+                  </Box>
+                ) : (
+                  <Paper variant="outlined" sx={{ textAlign: 'center', py: 10, bgcolor: '#fafafa', borderStyle: 'dashed', borderRadius: 4 }}>
+                    <FaTools size={48} style={{ color: '#cbd5e1', marginBottom: 20 }} />
+                    <Typography variant="h6" fontWeight="700" color="text.secondary">No Marketplace Exposure</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>This dealer is not providing any services yet. They won't appear in user searches.</Typography>
+                    <Button
+                      variant="contained"
+                      sx={{ fontWeight: '800', borderRadius: 2, px:4 }}
+                      startIcon={<AddCircleOutlineIcon />}
+                      onClick={() => navigate(`/create-service?dealerId=${dealer._id}`)}
+                    >
+                      Onboard First Service
+                    </Button>
+                  </Paper>
+                )}
+              </Box>
+            </CustomTabPanel>
 
-                  <p>
-                    <strong>Status:</strong>{" "}
-                    <span className={`badge p-2 ${dealer.isActive ? "bg-success" : "bg-danger"}`}>
-                      {dealer.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            {/* TAB 4: BANKING */}
+            <CustomTabPanel value={tabIndex} index={3}>
+              <Box sx={{ px: 4, pb: 5 }}>
+                <Typography variant="h6" fontWeight="800" gutterBottom color="primary.main">SETTLEMENT ACCOUNT</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>Primary bank account for automated payouts and refunds.</Typography>
+                
+                <Paper variant="outlined" sx={{ p: 4, borderRadius: 4, border: '1px solid', borderColor: 'divider', maxWidth: 640 }}>
+                  <Grid container spacing={4}>
+                    <Grid item xs={12} sm={6}>
+                      <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 1 }}>ACCOUNT HOLDER NAME</Typography>
+                      <Typography variant="h6" fontWeight="700">{dealer?.bankDetails?.accountHolderName || "UNSPECIFIED"}</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 1 }}>BANK NAME</Typography>
+                      <Typography variant="body1" fontWeight="700">{dealer?.bankDetails?.bankName || "UNSPECIFIED"}</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 1 }}>ACCOUNT NUMBER</Typography>
+                      <Typography variant="body1" fontWeight="800" sx={{ letterSpacing: 1.5, color: 'text.primary' }}>{dealer?.bankDetails?.accountNumber || "UNSPECIFIED"}</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 1 }}>IFSC CODE</Typography>
+                      <Chip label={dealer?.bankDetails?.ifscCode || "N/A"} sx={{ fontWeight: 800, bgcolor: 'grey.100', px: 1 }} />
+                    </Grid>
+                  </Grid>
+
+                  <Alert severity="info" variant="outlined" icon={<AccountBalanceIcon />} sx={{ mt: 5, borderRadius: 2, borderStyle: 'dashed' }}>
+                    <Typography variant="caption" fontWeight="700" sx={{ display: 'block' }}>AUDIT NOTE</Typography>
+                    <Typography variant="caption">Ensure the account name matches the identity documents provided in the KYC tab.</Typography>
+                  </Alert>
+                </Paper>
+              </Box>
+            </CustomTabPanel>
+          </CardContent>
+        </Box>
+      </Card>
+    </Box>
   )
 }
 

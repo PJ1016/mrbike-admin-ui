@@ -121,10 +121,6 @@ const NewTicket = () => {
         return () => clearInterval(interval);
     }, [ticketId, ticket?.status]);
 
-    const isMine = (m) => {
-        const senderId = typeof m?.sender_id === "object" ? m?.sender_id?._id : m?.sender_id;
-        return senderId?.toString() === myId?.toString();
-    };
 
     const showErrorAlert = (message) => {
         Swal.fire({ icon: "error", title: "Error", text: message, confirmButtonColor: "#3085d6" });

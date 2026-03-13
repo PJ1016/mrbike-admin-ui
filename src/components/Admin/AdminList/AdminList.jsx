@@ -3,7 +3,6 @@ import React, {
   useState,
   useMemo,
   useRef,
-  useCallback,
 } from "react";
 import Swal from "sweetalert2";
 import { getAdmins, deleteAdmin } from "../../../api";
@@ -47,8 +46,6 @@ import {
   MoreVert as MoreIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  CheckCircle as ActiveIcon,
-  Cancel as InactiveIcon,
   AdminPanelSettings as AdminIcon,
   Email as EmailIcon,
   Phone as PhoneIcon,

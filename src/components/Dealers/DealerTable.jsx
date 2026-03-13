@@ -4,7 +4,7 @@ import { useDownloadExcel } from "react-export-table-to-excel";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
-import { deleteDealer } from "../../api";
+import { deleteDealer, getAllBookings } from "../../api";
 import {
   Table,
   TableBody,
@@ -51,6 +51,7 @@ import {
   PendingActions as PendingIcon,
   Cancel as CancelIcon,
   Person as PersonIcon,
+  Analytics as AnalyticsIcon,
 } from "@mui/icons-material";
 
 const UserTable = ({
@@ -71,6 +72,47 @@ const UserTable = ({
   const [selectedDealer, setSelectedDealer] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuDealer, setMenuDealer] = useState(null);
+  const [allBookings, setAllBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(true);
+
+  // Fetch bookings to calculate cancellation rates
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setLoadingBookings(true);
+        const response = await getAllBookings();
+        if (response.status === 200) {
+          setAllBookings(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching bookings for dealer table:", error);
+      } finally {
+        setLoadingBookings(false);
+      }
+    };
+    fetchBookings();
+  }, []);
+
+  const dealerCancellationRates = useMemo(() => {
+    if (!allBookings.length) return {};
+    const stats = {};
+    allBookings.forEach(b => {
+      if (b.dealer_id?._id) {
+        const dId = b.dealer_id._id;
+        if (!stats[dId]) stats[dId] = { total: 0, cancelled: 0 };
+        stats[dId].total++;
+        if (b.status?.toLowerCase().includes("cancel")) {
+          stats[dId].cancelled++;
+        }
+      }
+    });
+
+    const rates = {};
+    Object.keys(stats).forEach(id => {
+      rates[id] = ((stats[id].cancelled / stats[id].total) * 100).toFixed(1);
+    });
+    return rates;
+  }, [allBookings]);
 
   const { onDownload } = useDownloadExcel({
     currentTableRef: tableRef.current,
@@ -113,7 +155,10 @@ const UserTable = ({
 
     return [...result].sort((a, b) => {
       let valueA, valueB;
-      if (orderBy === "createdAt" || orderBy === "updatedAt") {
+      if (orderBy === "cancelRate") {
+        valueA = parseFloat(dealerCancellationRates[a._id] || 0);
+        valueB = parseFloat(dealerCancellationRates[b._id] || 0);
+      } else if (orderBy === "createdAt" || orderBy === "updatedAt") {
         valueA = new Date(a[orderBy] || 0).getTime();
         valueB = new Date(b[orderBy] || 0).getTime();
       } else {
@@ -127,7 +172,7 @@ const UserTable = ({
         return valueB < valueA ? -1 : valueB > valueA ? 1 : 0;
       }
     });
-  }, [datas, searchTerm, order, orderBy]);
+  }, [datas, searchTerm, order, orderBy, dealerCancellationRates]);
 
   const currentData = useMemo(() => {
     const start = page * rowsPerPage;
@@ -207,6 +252,7 @@ const UserTable = ({
     { id: "ownerName", label: "Owner Name", sortable: true },
     { id: "contact", label: "Contact Info", sortable: false },
     { id: "location", label: "Location", sortable: true },
+    { id: "cancelRate", label: "Perf. (Cancel Rate)", sortable: true },
     { id: "status", label: "Reg. Status", sortable: true },
     { id: "active", label: "Active", sortable: false },
     { id: "actions", label: "Actions", sortable: false },
@@ -276,14 +322,14 @@ const UserTable = ({
           <TableBody>
             {parentLoading ? (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
+                <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
                   <CircularProgress size={40} sx={{ mb: 2 }} />
-                  <Typography variant="body1" color="text.secondary">Modernizing dealer view...</Typography>
+                  <Typography variant="body1" color="text.secondary">Loading dealer analytics...</Typography>
                 </TableCell>
               </TableRow>
             ) : filteredData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
+                <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
                   <Typography variant="body1" sx={{ color: "text.secondary", fontStyle: "italic" }}>
                     No dealers found matching your criteria.
                   </Typography>
@@ -292,6 +338,9 @@ const UserTable = ({
             ) : (
               currentData.map((dealer, index) => {
                 const regStatus = getStatusConfig(dealer.registrationStatus);
+                const cancelRate = dealerCancellationRates[dealer._id] || "0.0";
+                const isHighCancel = parseFloat(cancelRate) > 15;
+
                 return (
                   <TableRow key={dealer._id} hover>
                     <TableCell>{page * rowsPerPage + index + 1}</TableCell>
@@ -305,7 +354,7 @@ const UserTable = ({
                           <Button 
                             variant="text" 
                             size="small" 
-                            onClick={() => setSelectedDealer(dealer)}
+                            onClick={() => navigate(`/view-dealer/${dealer._id}`)}
                             sx={{ 
                               p: 0, 
                               textTransform: "none", 
@@ -323,7 +372,7 @@ const UserTable = ({
                             display="block" 
                             color="primary" 
                             sx={{ fontWeight: 600, mt: 0.5, cursor: "pointer" }}
-                            onClick={() => setSelectedDealer(dealer)}
+                            onClick={() => navigate(`/view-dealer/${dealer._id}`)}
                           >
                             {dealer.dealerId}
                           </Typography>
@@ -353,6 +402,23 @@ const UserTable = ({
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{dealer.city || "N/A"}</Typography>
                         <Typography variant="caption" color="text.secondary">{dealer.state || "N/A"}</Typography>
                       </Stack>
+                    </TableCell>
+
+                    <TableCell>
+                      {loadingBookings ? (
+                        <CircularProgress size={16} />
+                      ) : (
+                        <Tooltip title={isHighCancel ? "High cancellation rate detected!" : "Dealer performance"}>
+                          <Chip
+                            label={`${cancelRate}%`}
+                            size="small"
+                            color={isHighCancel ? "error" : "success"}
+                            variant="outlined"
+                            icon={<AnalyticsIcon />}
+                            sx={{ fontWeight: 700 }}
+                          />
+                        </Tooltip>
+                      )}
                     </TableCell>
 
                     <TableCell>
@@ -420,8 +486,8 @@ const UserTable = ({
 
       {/* Action Menu */}
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-        <MenuItem onClick={() => { handleMenuClose(); setSelectedDealer(menuDealer); }}>
-          <VisibilityIcon sx={{ mr: 1.5, color: "info.main", fontSize: 18 }} /> View Profile
+        <MenuItem onClick={() => { handleMenuClose(); navigate(`/view-dealer/${menuDealer._id}`); }}>
+          <VisibilityIcon sx={{ mr: 1.5, color: "info.main", fontSize: 18 }} /> View Detailed Profile
         </MenuItem>
         <MenuItem onClick={() => { handleMenuClose(); navigate(`/updateDealer/${menuDealer._id}`); }}>
           <EditIcon sx={{ mr: 1.5, color: "primary.main", fontSize: 18 }} /> Edit Dealer

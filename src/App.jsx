@@ -6,9 +6,15 @@ import {
   Outlet,
   Navigate,
 } from "react-router-dom";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { useDispatch } from "react-redux";
-import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
+import {
+  ThemeProvider,
+  createTheme,
+  CssBaseline,
+  useMediaQuery,
+  Box,
+} from "@mui/material";
 import { fetchGlobalSearchData } from "./redux/slices/searchSlice";
 import "./App.css";
 import AddAdmin from "./pages/admin/AddAdmin";
@@ -20,7 +26,6 @@ import AddDealer from "./pages/Dealer/Createdealer";
 import Addservices from "./pages/services/CreateService";
 import Addaddservices from "./pages/additionalServices/CreateService";
 import Admins from "./pages/admin/admin";
-import BookingTrack from "./pages/bookings/BookingTrack";
 import Bookings from "./pages/bookings/bookings";
 import Customers from "./pages/customer/customer";
 import Services from "./pages/services/services";
@@ -111,6 +116,12 @@ function App() {
 const AppContent = () => {
   const dispatch = useDispatch();
   const location = useLocation();
+  const [mobileOpen, setMobileOpen] = React.useState(false);
+
+  const handleToggleDrawer = () => {
+    setMobileOpen(!mobileOpen);
+  };
+
   const hideNavbar = location.pathname.toLowerCase() === "/login";
 
   useEffect(() => {
@@ -119,13 +130,16 @@ const AppContent = () => {
 
   return (
     <>
-      {!hideNavbar && <Navbar />}
+      {!hideNavbar && <Navbar handleToggleDrawer={handleToggleDrawer} />}
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route
           element={
             <ProtectedRoutes>
-              <SidebarLayout />
+              <SidebarLayout
+                mobileOpen={mobileOpen}
+                handleToggleDrawer={handleToggleDrawer}
+              />
             </ProtectedRoutes>
           }
         >
@@ -147,7 +161,6 @@ const AppContent = () => {
             element={<UpdateDealerVerify />}
           />
           <Route path="/admins" element={<Admins />} />
-          <Route path="/bookingTrack" element={<BookingTrack />} />
           <Route path="/bookings" element={<Bookings />} />
           <Route path="/customers" element={<Customers />} />
           <Route path="/base-services" element={<BaseServices />} />
@@ -173,7 +186,10 @@ const AppContent = () => {
           />
           <Route path="/services" element={<Services />} />
           <Route path="/view-customer/:id" element={<ViewUserDetails />} />
-          <Route path="/view-service/:id" element={<ViewAdminServiceDetails />} />
+          <Route
+            path="/view-service/:id"
+            element={<ViewAdminServiceDetails />}
+          />
           <Route path="/dealer-services" element={<DealerServices />} />
           <Route path="/edit-services/:id" element={<EditService />} />
           <Route path="/additionalservices" element={<AServices />} />
@@ -195,7 +211,7 @@ const AppContent = () => {
           <Route path="/booking" element={<Bookings />} />
           <Route path="/addBikeCompany" element={<AddBikeCompany />} />
           <Route path="/bikes" element={<Bikes />} />
-          <Route path="/addServices" element={<Addservices />} />
+          <Route path="/create-service" element={<Addservices />} />
           <Route path="/createaddServices" element={<Addaddservices />} />
           <Route path="/banners" element={<CreateBanner />} />
           <Route path="/bannerList" element={<Banners />} />
@@ -215,11 +231,31 @@ const AppContent = () => {
   );
 };
 
-const SidebarLayout = () => (
-  <>
-    <Sidebar />
-    <Outlet />
-  </>
-);
+const SidebarLayout = ({ mobileOpen, handleToggleDrawer }) => {
+  const isMobile = useMediaQuery("(max-width:1200px)");
+  const drawerWidth = 280;
+
+  return (
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f8f9fa" }}>
+      <Sidebar
+        mobileOpen={mobileOpen}
+        handleToggleDrawer={handleToggleDrawer}
+        isMobile={isMobile}
+      />
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          width: { lg: `calc(100% - ${drawerWidth}px)` },
+          ml: { lg: `${drawerWidth}px` }, // Offset for permanent drawer
+          transition: "margin 0.3s",
+          pt: "70px", // Header offset
+        }}
+      >
+        <Outlet />
+      </Box>
+    </Box>
+  );
+};
 
 export default App;

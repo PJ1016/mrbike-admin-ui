@@ -7,7 +7,7 @@ import img2 from "../../assets2/img/logos/logo-small.png"
 import img3 from "../../assets/img/profiles/avatar-07.jpg"
 import GlobalSearch from "./GlobalSearch"
 
-const Navbar = () => {
+const Navbar = ({ handleToggleDrawer }) => {
   const navigate = useNavigate()
   const [anchorEl, setAnchorEl] = useState(null)
   
@@ -17,13 +17,6 @@ const Navbar = () => {
 
   const handleCloseUserMenu = () => {
     setAnchorEl(null);
-  };
-
-  const toggleSidebar = () => {
-    const sidebar = document.getElementById("sidebar");
-    if (sidebar) {
-      sidebar.classList.toggle("open-sidebar");
-    }
   };
 
   function handleLogout() {
@@ -65,7 +58,7 @@ const Navbar = () => {
           </Link>
         </div>
       </div>
-      <Link href="#" id="toggle_btn">
+      <Link href="#" id="toggle_btn" onClick={(e) => { e.preventDefault(); handleToggleDrawer(); }}>
         <span className="toggle-bars">
           <span className="bar-icons" />
           <span className="bar-icons" />
@@ -73,7 +66,7 @@ const Navbar = () => {
           <span className="bar-icons" />
         </span>
       </Link>
-      <Link className="mobile_btn" id="mobile_btn" onClick={toggleSidebar}>
+      <Link className="mobile_btn" id="mobile_btn" onClick={(e) => { e.preventDefault(); handleToggleDrawer(); }}>
         <i className="fas fa-bars" />
       </Link>
 

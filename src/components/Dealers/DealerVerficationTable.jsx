@@ -27,6 +27,7 @@ import {
   Grid,
   CircularProgress,
   Alert,
+  Tooltip,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -328,13 +329,30 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                       </Box>
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        label={isDocsComplete ? "DOCS ADDED" : "NO DOCS"}
-                        size="small"
-                        color={isDocsComplete ? "success" : "error"}
-                        variant="outlined"
-                        sx={{ fontWeight: "bold", borderRadius: "6px" }}
-                      />
+                      <Box sx={{ display: "flex", gap: 0.5 }}>
+                        {[
+                          { label: "A", status: dealer.documentVerification?.aadhar, tip: "Aadhar Card" },
+                          { label: "P", status: dealer.documentVerification?.pan, tip: "PAN Card" },
+                          { label: "S", status: dealer.documentVerification?.shop, tip: "Shop Certificate" },
+                          { label: "B", status: dealer.documentVerification?.bank, tip: "Bank Details" },
+                        ].map((doc, i) => (
+                          <Tooltip key={i} title={`${doc.tip}: ${doc.status ? "Verified" : (dealer.documents?.[doc.label.toLowerCase()] ? "Uploaded" : "Missing")}`}>
+                            <Avatar
+                              sx={{ 
+                                width: 24, 
+                                height: 24, 
+                                fontSize: "0.65rem", 
+                                fontWeight: 800,
+                                bgcolor: doc.status ? "#22c55e" : (dealer.isDoc ? "#94a3b8" : "#f1f5f9"),
+                                color: doc.status ? "white" : "#475569",
+                                border: "1px solid #e2e8f0"
+                              }}
+                            >
+                              {doc.label}
+                            </Avatar>
+                          </Tooltip>
+                        ))}
+                      </Box>
                     </TableCell>
                     <TableCell>
                       <Chip

@@ -1,42 +1,31 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import DealerVerficationTable from "../../components/Dealers/DealerVerficationTable";
-import { Link } from "react-router-dom";
-import { getBannerList, getDealersVerify } from "../../api";
-import { Typography } from "@mui/material";
+import { getDealersVerify } from "../../api";
+import { 
+  Typography, 
+  Box, 
+  Stack, 
+  Paper, 
+  Grid, 
+  Avatar, 
+  CircularProgress,
+  Divider,
+  Breadcrumbs,
+  Link as MuiLink
+} from "@mui/material";
+import {
+  PendingActions,
+  AssignmentLate,
+  HowToReg,
+  NavigateNext
+} from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 
 const DealerVerify = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [refresh, setRefresh] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  const tableHeaders = [
-    "#",
-    "Dealer ID",
-    "Commission Charging (%)",
-    "Tax Charging(%)",
-    "Owner Name",
-    "Owner Permanent Address",
-    "Owner Present Address",
-    "Aadhar Card No.",
-    "Pan Card No.",
-    "Shop Name",
-    "Shop Email",
-    "Shop Phone",
-    "Shop Address",
-    "Shop State",
-    "Shop PinCode",
-    "Is Verified",
-    "Blocked?",
-    "Created At",
-    "Updated At",
-    "City",
-    "Beneficiary Name",
-    "Beneficiary Account No",
-    "Beneficiary IFSC",
-    "Is Profile Completed?",
-    "Is Document Added?",
-    "Action",
-  ];
 
   useEffect(() => {
     const fetchDealers = async () => {
@@ -44,11 +33,10 @@ const DealerVerify = () => {
       try {
         const response = await getDealersVerify();
         if (response.success) {
-          console.log("Response", response);
-          setData(response.vendors);
+          setData(response.vendors || []);
         }
       } catch (error) {
-        console.error("Error fetching banners:", error);
+        console.error("Error fetching dealers:", error);
       } finally {
         setLoading(false);
       }
@@ -61,23 +49,83 @@ const DealerVerify = () => {
     setRefresh((prev) => !prev);
   };
 
+  const queueStats = useMemo(() => {
+    const pending = data.filter(d => d.registrationStatus?.toLowerCase() === 'pending').length;
+    const missingDocs = data.filter(d => !d.isDoc).length;
+    const unverified = data.filter(d => !d.isVerify).length;
+    
+    return [
+      { label: "Pending Approval", value: pending, icon: <PendingActions />, color: "#f59e0b" },
+      { label: "Missing Documents", value: missingDocs, icon: <AssignmentLate />, color: "#ef4444" },
+      { label: "Awaiting Verification", value: unverified, icon: <HowToReg />, color: "#3b82f6" },
+    ];
+  }, [data]);
+
   return (
     <div className="page-wrapper">
       <div className="content container-fluid">
-        <div className="page-header">
-          <div className="content-page-header">
-            <h5>Dealer Verification Requests</h5>
-            <Typography variant="body2" color="text.secondary">
-              Review and approve dealer registration documents and profiles.
-            </Typography>
-          </div>
-        </div>
+        <Box sx={{ p: 4 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 800, color: "#1e293b", letterSpacing: "-0.025em" }}>
+                Verification Queue
+              </Typography>
+              <Breadcrumbs separator={<NavigateNext fontSize="small" />} aria-label="breadcrumb" sx={{ mt: 1 }}>
+                <MuiLink underline="hover" color="inherit" onClick={() => navigate("/")} sx={{ cursor: "pointer", fontSize: "0.875rem" }}>
+                  Dashboard
+                </MuiLink>
+                <Typography color="text.primary" sx={{ fontSize: "0.875rem", fontWeight: 600 }}>
+                  Verification Requests
+                </Typography>
+              </Breadcrumbs>
+            </Box>
+          </Stack>
 
-        <DealerVerficationTable
-          datas={data}
-          loading={loading}
-          onRefresh={handleRefresh}
-        />
+          {/* Queue Priority Highlights */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            {queueStats.map((stat, idx) => (
+              <Grid item xs={12} md={4} key={idx}>
+                <Paper 
+                  elevation={0} 
+                  sx={{ 
+                    p: 3, 
+                    borderRadius: 4, 
+                    border: "1px solid #e2e8f0",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
+                    transition: "all 0.2s",
+                    "&:hover": { boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }
+                  }}
+                >
+                  <Avatar sx={{ bgcolor: `${stat.color}15`, color: stat.color, width: 48, height: 48 }}>
+                    {stat.icon}
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" sx={{ fontWeight: 800 }}>{stat.value}</Typography>
+                    <Typography variant="body2" color="text.secondary">{stat.label}</Typography>
+                  </Box>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+
+          <Paper elevation={0} sx={{ p: 0, borderRadius: 4, border: "1px solid #e2e8f0", overflow: "hidden" }}>
+            <Box sx={{ p: 3, borderBottom: "1px solid #e2e8f0", bgcolor: "#f8fafc" }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                Recent Requests
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Process dealers in order of submission or priority.
+              </Typography>
+            </Box>
+            <DealerVerficationTable
+              datas={data}
+              loading={loading}
+              onRefresh={handleRefresh}
+            />
+          </Paper>
+        </Box>
       </div>
     </div>
   );

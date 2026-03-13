@@ -148,8 +148,6 @@ const AllTicket = () => {
     // filters + search
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState("all");
-    const [dateFrom, setDateFrom] = useState("");
-    const [dateTo, setDateTo] = useState("");
 
     // pagination
     const [page, setPage] = useState(1);
@@ -197,17 +195,9 @@ const AllTicket = () => {
         }
         if (status !== "all") rows = rows.filter(r => r.status === status);
 
-        if (dateFrom) {
-            const from = new Date(dateFrom).getTime();
-            rows = rows.filter(r => new Date(r.created_at).getTime() >= from);
-        }
-        if (dateTo) {
-            const to = new Date(dateTo).getTime();
-            rows = rows.filter(r => new Date(r.created_at).getTime() <= to);
-        }
 
         return rows;
-    }, [tickets, search, status, dateFrom, dateTo]);
+    }, [tickets, search, status]);
 
     // pagination slice
     const total = filtered.length;
@@ -242,7 +232,7 @@ const AllTicket = () => {
     triggerDownloadPDF.current = () => window.print();
 
     // reset to first page on filter changes
-    useEffect(() => { setPage(1); }, [search, status, dateFrom, dateTo]);
+    useEffect(() => { setPage(1); }, [search, status]);
 
     return (
         <div className="page-wrapper">

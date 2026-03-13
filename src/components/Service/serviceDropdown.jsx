@@ -11,7 +11,7 @@ const ServiceDropdown = ({ activeItem, handleMenuClick }) => {
   };
 
   const isServiceActive = [
-    "/addServices",
+    "/create-service",
     "/additionalservices",
     "/createaddServices",
     "/services",

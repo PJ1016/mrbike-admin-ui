@@ -1,7 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import ServiceTable from "../../components/reward/rewardTable"; // Reused table
 import { getAllRewards } from "../../api"; // You must define this function in your API
-import { Link } from "react-router-dom";
 
 const RewardList = () => {
   const [data, setData] = useState([]);
