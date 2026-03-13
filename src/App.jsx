@@ -53,6 +53,8 @@ import BaseServiceForm from "./components/Service/BaseServiceForm";
 import BaseAdditionalServices from "./pages/services/BaseAdditionalServices";
 import BaseAdditionalServiceForm from "./components/Additional/BaseAdditionalServiceForm";
 import DealerServices from "./pages/Dealer/DealerServices";
+import ViewUserDetails from "./pages/customer/ViewUserDetails";
+import ViewAdminServiceDetails from "./components/Service/ViewAdminServiceDetails";
 const theme = createTheme({
   palette: {
     primary: {
@@ -170,6 +172,8 @@ const AppContent = () => {
             element={<BaseAdditionalServiceForm isEdit={true} />}
           />
           <Route path="/services" element={<Services />} />
+          <Route path="/view-customer/:id" element={<ViewUserDetails />} />
+          <Route path="/view-service/:id" element={<ViewAdminServiceDetails />} />
           <Route path="/dealer-services" element={<DealerServices />} />
           <Route path="/edit-services/:id" element={<EditService />} />
           <Route path="/additionalservices" element={<AServices />} />

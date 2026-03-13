@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Link } from "react-router-dom"
+import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const ServiceDropdown = ({ activeItem, handleMenuClick }) => {
-  const [openDropdown, setOpenDropdown] = useState(null)
+  const [openDropdown, setOpenDropdown] = useState(null);
 
   const toggleDropdown = () => {
-    setOpenDropdown(openDropdown === "Services" ? null : "Services")
-  }
+    setOpenDropdown(openDropdown === "Services" ? null : "Services");
+  };
 
   const isServiceActive = [
     "/addServices",
@@ -21,7 +21,7 @@ const ServiceDropdown = ({ activeItem, handleMenuClick }) => {
     "/base-additional-services",
     "/create-base-additional-service",
     "/edit-base-additional-service",
-  ].includes(activeItem)
+  ].includes(activeItem);
 
   return (
     <li className={`submenu ${isServiceActive ? "active" : ""}`}>
@@ -36,11 +36,15 @@ const ServiceDropdown = ({ activeItem, handleMenuClick }) => {
             to="/base-services"
             style={{ textDecoration: "none" }}
           >
-            Admin Services
+            Major Services
           </Link>
         </li>
         <li className={activeItem === "/services" ? "active" : ""}>
-          <Link onClick={() => handleMenuClick("/services")} to="/services" style={{ textDecoration: "none" }}>
+          <Link
+            onClick={() => handleMenuClick("/services")}
+            to="/services"
+            style={{ textDecoration: "none" }}
+          >
             Dealer Services
           </Link>
         </li>
@@ -53,7 +57,9 @@ const ServiceDropdown = ({ activeItem, handleMenuClick }) => {
             Additional Service
           </Link>
         </li>
-        <li className={activeItem === "/base-additional-services" ? "active" : ""}>
+        <li
+          className={activeItem === "/base-additional-services" ? "active" : ""}
+        >
           <Link
             onClick={() => handleMenuClick("/base-additional-services")}
             to="/base-additional-services"
@@ -64,7 +70,7 @@ const ServiceDropdown = ({ activeItem, handleMenuClick }) => {
         </li>
       </ul>
     </li>
-  )
-}
+  );
+};
 
-export default ServiceDropdown
+export default ServiceDropdown;

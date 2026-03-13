@@ -203,6 +203,9 @@ export const updateDealerDocStatus = async (dealerId) => {
 export const getCustomerList = () =>
   apiRequest("GET", "/customers/customerlist", {}, false);
 
+export const getCustomerById = (id) =>
+  apiRequest("GET", `/customers/view/${id}`, {}, false);
+
 export const getAllBookings = () =>
   apiRequest("GET", "/bookings/getallbookings", {}, false);
 

@@ -1,4 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { Box, Stack, Avatar, Typography, Menu, MenuItem, IconButton, Tooltip } from "@mui/material"
+import { Logout as LogoutIcon, Person as PersonIcon } from "@mui/icons-material"
+import React, { useState } from "react"
 import img1 from "../../assets2/img/logos/logo.png"
 import img2 from "../../assets2/img/logos/logo-small.png"
 import img3 from "../../assets/img/profiles/avatar-07.jpg"
@@ -6,6 +9,16 @@ import GlobalSearch from "./GlobalSearch"
 
 const Navbar = () => {
   const navigate = useNavigate()
+  const [anchorEl, setAnchorEl] = useState(null)
+  
+  const handleOpenUserMenu = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseUserMenu = () => {
+    setAnchorEl(null);
+  };
+
   const toggleSidebar = () => {
     const sidebar = document.getElementById("sidebar");
     if (sidebar) {
@@ -14,11 +27,13 @@ const Navbar = () => {
   };
 
   function handleLogout() {
+    handleCloseUserMenu();
     localStorage.removeItem("adminToken")
     navigate("/login")
   }
+
   return (
-    <div className="header header-one">
+    <div className="header header-one d-flex align-items-center">
       <Link
         to={"/"}
         className="d-inline-flex d-sm-inline-flex align-items-center d-md-inline-flex d-lg-none align-items-center device-logo"
@@ -62,44 +77,56 @@ const Navbar = () => {
         <i className="fas fa-bars" />
       </Link>
 
-      <div className="d-flex align-items-center ms-4 flex-grow-1 justify-content-center">
-        <GlobalSearch />
-      </div>
-      <ul className="nav nav-tabs user-menu">
-        <li className="nav-item dropdown">
-          <Link
-            href="#"
-            className="user-link  nav-link"
-            data-bs-toggle="dropdown"
-          >
-            <span className="user-img">
-              <img
-                src={img3}
-                alt="img"
-                className="profilesidebar"
-              />
-              <span className="animate-circle" />
-            </span>
-            <span className="user-content">
-              <span className="user-details">Admin</span>
-              <span className="user-name">John Smith</span>
-            </span>
-          </Link>
-          <div className="dropdown-menu menu-drop-user">
-            <div className="profilemenu">
-              <div className="subscription-logout">
-                <ul>
-                  <li className="pb-0">
-                    <button onClick={handleLogout} className="dropdown-item">
-                      Log Out
-                    </button>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
+      <Stack 
+        direction="row" 
+        spacing={2} 
+        alignItems="center" 
+        sx={{ ml: 'auto', px: 3, flexGrow: 1, justifyContent: 'flex-end' }}
+      >
+        <Box sx={{ display: { xs: 'none', sm: 'block' }, maxWidth: 450, width: '100%' }}>
+          <GlobalSearch />
+        </Box>
+
+        <Tooltip title="Open settings">
+          <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ cursor: 'pointer' }}>
+              <Box sx={{ display: { xs: 'none', lg: 'block' }, textAlign: 'right' }}>
+                <Typography variant="caption" display="block" color="text.secondary" sx={{ lineHeight: 1, fontWeight: 500 }}>
+                  Admin
+                </Typography>
+                <Typography variant="body2" fontWeight="700">
+                  John Smith
+                </Typography>
+              </Box>
+              <Avatar alt="Admin User" src={img3} sx={{ width: 40, height: 40, border: '2px solid #fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
+            </Stack>
+          </IconButton>
+        </Tooltip>
+
+        <Menu
+          sx={{ mt: '45px' }}
+          id="menu-appbar"
+          anchorEl={anchorEl}
+          anchorOrigin={{
+            vertical: 'top',
+            horizontal: 'right',
+          }}
+          keepMounted
+          transformOrigin={{
+            vertical: 'top',
+            horizontal: 'right',
+          }}
+          open={Boolean(anchorEl)}
+          onClose={handleCloseUserMenu}
+        >
+          <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/profile'); }}>
+            <PersonIcon sx={{ mr: 1, fontSize: 20 }} /> Profile
+          </MenuItem>
+          <MenuItem onClick={handleLogout}>
+            <LogoutIcon sx={{ mr: 1, fontSize: 20 }} /> Log Out
+          </MenuItem>
+        </Menu>
+      </Stack>
     </div>
   )
 }

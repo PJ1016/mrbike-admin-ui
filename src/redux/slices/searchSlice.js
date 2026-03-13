@@ -14,18 +14,21 @@ export const fetchGlobalSearchData = createAsyncThunk(
 
       return {
         users: (customersRes?.data || []).map(u => ({
+          ...u,
           id: u.customerId || u.id,
           name: `${u.first_name} ${u.last_name}`.trim(),
           type: 'User',
           targetId: u._id
         })),
         dealers: (dealersRes?.data || []).map(d => ({
+          ...d,
           id: d.dealerId || d.id,
           name: d.shopName || d.ownerName,
           type: 'Dealer',
           targetId: d._id
         })),
         services: (servicesRes?.data || []).map(s => ({
+          ...s,
           id: s.serviceId || s.id,
           name: s.base_service_id?.name || 'Unknown Service',
           type: 'Service',
@@ -86,5 +89,11 @@ export const selectAllSearchOptions = (state) => [
   ...state.search.dealers,
   ...state.search.services
 ];
+
+export const selectUserById = (state, id) => 
+  state.search.users.find(u => u.targetId === id || u._id === id || u.customerId === id);
+
+export const selectServiceById = (state, id) => 
+  state.search.services.find(s => s.targetId === id || s._id === id);
 
 export default searchSlice.reducer;

@@ -38,13 +38,13 @@ const GlobalSearch = () => {
     // Redirection Logic based on Entity Type
     switch (value.type) {
       case "User":
-        navigate(`/customers`); 
+        navigate(`/view-customer/${value.targetId}`); 
         break;
       case "Dealer":
         navigate(`/view-dealer/${value.targetId}`);
         break;
       case "Service":
-        navigate(`/edit-services/${value.targetId}`);
+        navigate(`/view-service/${value.targetId}`);
         break;
       default:
         console.warn("Unknown entity type:", value.type);
@@ -74,13 +74,22 @@ const GlobalSearch = () => {
           placeholder="Search ID, Dealer, or Service..."
           size="small"
           sx={{
-            width: { xs: 200, sm: 300, md: 400 },
+            width: { xs: 200, sm: 300, md: 450 },
             "& .MuiOutlinedInput-root": {
-              borderRadius: "20px",
-              backgroundColor: "rgba(255, 255, 255, 0.15)",
-              color: "inherit",
+              borderRadius: "50px",
+              backgroundColor: "#fff",
+              color: "#333",
+              border: "1px solid #e0e0e0",
+              boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
+              transition: "all 0.3s ease",
+              paddingLeft: "15px",
               "&:hover": {
-                backgroundColor: "rgba(255, 255, 255, 0.25)",
+                borderColor: "#2e83ff",
+                boxShadow: "0 2px 8px rgba(46, 131, 255, 0.15)",
+              },
+              "&.Mui-focused": {
+                borderColor: "#2e83ff",
+                boxShadow: "0 3px 12px rgba(46, 131, 255, 0.2)",
               },
               "& fieldset": { border: "none" },
             },
