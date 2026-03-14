@@ -46,7 +46,7 @@ import {
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import { updateDealerVerification, deleteDealer } from "../../api";
+import { approveDealer, deleteDealer } from "../../api";
 
 const API_BASE_URL = "https://api.mrbikedoctor.cloud";
 
@@ -174,13 +174,16 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
     setActionError(null);
     try {
       if (confirmAction === "approve") {
-        await updateDealerVerification(selectedDealer._id);
+        await approveDealer(selectedDealer._id);
+        setConfirmAction(null);
+        setReviewDialogOpen(false);
+        navigate("/dealers");
       } else if (confirmAction === "reject") {
         await deleteDealer(selectedDealer._id);
+        setConfirmAction(null);
+        setReviewDialogOpen(false);
+        if (onRefresh) onRefresh();
       }
-      setConfirmAction(null);
-      setReviewDialogOpen(false);
-      if (onRefresh) onRefresh();
     } catch (error) {
       console.error("Action failed:", error);
       const msg = error?.response?.data?.message || "Something went wrong. Please try again.";

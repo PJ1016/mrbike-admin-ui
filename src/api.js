@@ -1,8 +1,8 @@
 import axios from "axios";
 import Swal from "sweetalert2";
 
-const API_BASE_URL = "https://api.mrbikedoctor.cloud/bikedoctor";
-// const API_BASE_URL = "http://localhost:8001";
+// const API_BASE_URL = "https://api.mrbikedoctor.cloud/bikedoctor";
+const API_BASE_URL = "http://localhost:8001/bikedoctor";
 
 // test
 
@@ -739,6 +739,9 @@ export const updateOffer = editOffer;
 
 export const getDealersVerify = () =>
   apiRequest("GET", "/dealerAuth/pending-registrations", {}, false);
+
+export const approveDealer = (dealerId) =>
+  apiRequest("PUT", `/dealerAuth/approve/${dealerId}`, {});
 
 export const getAdminServiceById = (serviceId) =>
   apiRequest("GET", `/service/admin/services/${serviceId}`, {}, false);
