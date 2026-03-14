@@ -275,7 +275,7 @@ const VendorDealerDetails = () => {
     let docXOffset = 15
     for (const docItem of docItems) {
       if (docItem.key) {
-        const imgUrl = `https://api.mrbikedoctor.cloud/${docItem.key}`
+        const imgUrl = getImageUrl(docItem.key)
         const base64Img = await convertImageToBase64(imgUrl)
 
         if (base64Img) {
@@ -360,7 +360,7 @@ const VendorDealerDetails = () => {
     const fetchDealer = async () => {
       try {
         setLoading(true)
-        const res = await fetch(`https://api.mrbikedoctor.cloud/bikedoctor/dealer/view/${id}`)
+        const res = await fetch(`${process.env.REACT_APP_API_BASE_URL || "https://api.mrbikedoctor.cloud/bikedoctor"}/dealer/view/${id}`)
         const data = await res.json()
         if (!res.ok) throw new Error(data.message || "Failed to load dealer")
         setDealer(data)
