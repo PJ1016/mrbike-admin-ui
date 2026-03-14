@@ -1,8 +1,7 @@
 import axios from "axios";
 import Swal from "sweetalert2";
 
-const API_BASE_URL = "https://api.mrbikedoctor.cloud/bikedoctor";
-// const API_BASE_URL = "http://localhost:8001/bikedoctor";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://api.mrbikedoctor.cloud/bikedoctor";
 
 // test
 
@@ -28,6 +27,7 @@ const apiRequest = async (
       url: `${API_BASE_URL}${endpoint}`,
       data,
       headers,
+      withCredentials: true,
     });
     return response.data;
   } catch (error) {
