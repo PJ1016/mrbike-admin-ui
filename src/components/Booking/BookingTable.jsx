@@ -36,6 +36,8 @@ import {
   Pending as PendingIcon,
   Cancel as CancelIcon,
   Info as InfoIcon,
+  TwoWheeler as TwoWheelerIcon,
+  Storefront as StorefrontIcon,
 } from "@mui/icons-material";
 
 const BookingTable = ({
@@ -64,6 +66,22 @@ const BookingTable = ({
       month: "short",
       year: "numeric",
     });
+  };
+
+  // ✅ Relative Date Formatter (Today, Yesterday, etc.)
+  const formatRelativeDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = now.setHours(0, 0, 0, 0) - new Date(date).setHours(0, 0, 0, 0);
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays === -1) return "Tomorrow";
+    if (diffDays > 1 && diffDays < 7) return `${diffDays} days ago`;
+
+    return formatDate(dateString);
   };
 
   // ✅ Helper to calculate estimated price based on bike CC and services
@@ -98,7 +116,9 @@ const BookingTable = ({
           item.bookingId?.toLowerCase().includes(term) ||
           item.dealer_id?.shopName?.toLowerCase().includes(term) ||
           item.user_id?.customerId?.toLowerCase().includes(term) || // ✅ Added Search by Customer ID
-          item.dealer_id?.dealerId?.toLowerCase().includes(term), // ✅ Added Search by Dealer ID
+          item.dealer_id?.dealerId?.toLowerCase().includes(term) || // ✅ Added Search by Dealer ID
+          item.userBike_id?.name?.toLowerCase().includes(term) || // ✅ Added Search by Bike Brand
+          item.userBike_id?.model?.toLowerCase().includes(term), // ✅ Added Search by Bike Model
       );
     }
 
@@ -176,10 +196,11 @@ const BookingTable = ({
   const headers = [
     { id: "id", label: "#", sortable: false },
     { id: "bookingId", label: "Booking ID", sortable: true },
-    { id: "customer", label: "Customer Name", sortable: true },
-    { id: "dealer", label: "Dealer Name", sortable: false },
-    { id: "service", label: "Service Type", sortable: false },
-    { id: "mode", label: "Service Mode", sortable: false },
+    { id: "customer", label: "Customer", sortable: true },
+    { id: "dealer", label: "Dealer", sortable: false },
+    { id: "bike", label: "Bike", sortable: false },
+    { id: "service", label: "Services", sortable: false },
+    { id: "mode", label: "Mode", sortable: false },
     { id: "amount", label: "Amount", sortable: true },
     { id: "pickupDate", label: "Date", sortable: true },
     { id: "status", label: "Status", sortable: true },
@@ -292,16 +313,19 @@ const BookingTable = ({
             ) : (
               currentData.map((booking, index) => {
                 const amount = calculateEstimatedPrice(booking);
-                const serviceNames =
-                  booking.services
-                    ?.map(
-                      (s) =>
-                        s.description?.substring(0, 20) || s.serviceId || "N/A",
-                    )
-                    .join(", ") || "N/A";
+                const services = booking.services || [];
+                const firstService = services[0]?.description || services[0]?.serviceId || "N/A";
+                const displayServices = services.length > 1 
+                  ? `${firstService.substring(0, 15)}... +${services.length - 1}` 
+                  : firstService.substring(0, 20);
 
                 return (
-                  <TableRow key={booking._id} hover>
+                  <TableRow 
+                    key={booking._id} 
+                    hover 
+                    onClick={() => setSelectedBooking(booking)}
+                    sx={{ cursor: "pointer" }}
+                  >
                     <TableCell>{page * rowsPerPage + index + 1}</TableCell>
                     <TableCell
                       sx={{
@@ -362,18 +386,41 @@ const BookingTable = ({
                         </Typography>
                       </Box>
                     </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {booking.userBike_id?.name || "N/A"}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {booking.userBike_id?.model || "N/A"}
+                      </Typography>
+                    </TableCell>
                     <TableCell
                       sx={{
-                        maxWidth: 200,
+                        maxWidth: 180,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {serviceNames}
+                      <Chip 
+                        label={displayServices} 
+                        size="small" 
+                        variant="soft" 
+                        color="secondary"
+                        sx={{ fontSize: '0.7rem', height: 20 }}
+                      />
                     </TableCell>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      {booking.pickupAndDropId ? "Pickup" : "Self Visit"}
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                        {booking.pickupAndDropId ? (
+                          <TwoWheelerIcon fontSize="small" color="primary" />
+                        ) : (
+                          <StorefrontIcon fontSize="small" color="info" />
+                        )}
+                        <Typography variant="body2">
+                          {booking.pickupAndDropId ? "Pickup" : "Visit"}
+                        </Typography>
+                      </Box>
                     </TableCell>
                     <TableCell
                       sx={{
@@ -385,7 +432,12 @@ const BookingTable = ({
                       ₹{amount.toLocaleString()}
                     </TableCell>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      {formatDate(booking.pickupDate)}
+                      <Typography variant="body2" sx={{ 
+                        fontWeight: formatRelativeDate(booking.pickupDate) === "Today" ? "bold" : "normal",
+                        color: formatRelativeDate(booking.pickupDate) === "Today" ? "primary.main" : "text.primary"
+                      }}>
+                        {formatRelativeDate(booking.pickupDate)}
+                      </Typography>
                     </TableCell>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
                       {(() => {
@@ -408,19 +460,15 @@ const BookingTable = ({
                         );
                       })()}
                     </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="contained"
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <IconButton
                         size="small"
+                        color="primary"
                         onClick={() => setSelectedBooking(booking)}
-                        sx={{
-                          textTransform: "none",
-                          fontSize: "0.75rem",
-                          borderRadius: "15px",
-                        }}
+                        title="View Details"
                       >
-                        View Details
-                      </Button>
+                        <VisibilityIcon fontSize="small" />
+                      </IconButton>
                     </TableCell>
                   </TableRow>
                 );
