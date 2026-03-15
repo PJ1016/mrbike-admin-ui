@@ -26,8 +26,8 @@ const DealerUpdate = () => {
         const fetchDealer = async () => {
             try {
                 const res = await getDealerById(id)
-                if (res.status === 200) {
-                    setDealerData(res.data)
+                if (res) {
+                    setDealerData(res)
                 } else {
                     Swal.fire("Error", "Failed to fetch dealer data", "error")
                 }

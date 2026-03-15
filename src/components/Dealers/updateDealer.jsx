@@ -34,27 +34,24 @@ import Swal from "sweetalert2";
 import { addDealer, updateDealer } from "../../api";
 import { useNavigate } from "react-router-dom";
 
-const API_BASE_URL = "https://api.mrbikedoctor.cloud/";
+const IMAGE_BASE_URL = process.env.REACT_APP_IMAGE_BASE_URL || "";
+const getImageUrl = (path) => !path ? null : path.startsWith("http") ? path : `${IMAGE_BASE_URL}${path}`;
 
 const DealerForm = ({ dealerData, dealerId, isEdit }) => {
   const navigate = useNavigate();
   const [shopImages, setShopImages] = useState([]);
-  const [existingShopImages, setExistingShopImages] = useState(
-    isEdit && dealerData?.shopImages?.length > 0
-      ? dealerData.shopImages.map((img) => `${API_BASE_URL}/${img}`)
-      : [],
-  );
+  const [existingShopImages, setExistingShopImages] = useState([]);
   const [existingImages, setExistingImages] = useState({
-    panCardFront: isEdit && dealerData?.panCardFront ? `${API_BASE_URL}/${dealerData.panCardFront}` : null,
-    aadharFront: isEdit && dealerData?.aadharFront ? `${API_BASE_URL}/${dealerData.aadharFront}` : null,
-    aadharBack: isEdit && dealerData?.aadharBack ? `${API_BASE_URL}/${dealerData.aadharBack}` : null,
+    panCardFront: null,
+    aadharFront: null,
+    aadharBack: null,
   });
 
   const initializeFormData = () => {
     if (isEdit && dealerData) {
       return {
         shopName: dealerData.shopName || "",
-        email: dealerData.shopEmail || "",
+        email: dealerData.shopEmail || dealerData.email || "",
         phone: dealerData.phone || "",
         shopPincode: dealerData.shopPincode || "",
         ownerName: dealerData.ownerName || "",
@@ -131,6 +128,16 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
   useEffect(() => {
     if (isEdit && dealerData) {
       setFormData(initializeFormData());
+      setExistingShopImages(
+        dealerData.shopImages?.length > 0
+          ? dealerData.shopImages.map((img) => getImageUrl(img))
+          : []
+      );
+      setExistingImages({
+        panCardFront: getImageUrl(dealerData.documents?.panCardFront || dealerData.panCardFront),
+        aadharFront: getImageUrl(dealerData.documents?.aadharFront || dealerData.aadharFront),
+        aadharBack: getImageUrl(dealerData.documents?.aadharBack || dealerData.aadharBack),
+      });
       setSameAsPermanent(
         dealerData.presentAddress?.address === dealerData.permanentAddress?.address &&
         dealerData.presentAddress?.state === dealerData.permanentAddress?.state &&
@@ -167,6 +174,11 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
 
   const handleMultipleImages = (e) => {
     const files = Array.from(e.target.files);
+    const totalImages = existingShopImages.length + shopImages.length + files.length;
+    if (totalImages > 5) {
+      Swal.fire("Limit Exceeded", "You can upload a maximum of 5 shop images.", "warning");
+      return;
+    }
     const newPreviewUrls = files.map((file) => URL.createObjectURL(file));
     setPreviewUrls((prev) => [...prev, ...newPreviewUrls]);
     setShopImages((prev) => [...prev, ...files]);
@@ -194,9 +206,8 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
     if (panCardFront) form.append("panCardFront", panCardFront);
     if (aadharFront) form.append("aadharFront", aadharFront);
     if (aadharBack) form.append("aadharBack", aadharBack);
-    if (shopImages.length > 0) {
-      shopImages.forEach((file) => form.append("shopImages", file));
-    }
+    existingShopImages.forEach((url) => form.append("existingShopImages", url));
+    shopImages.forEach((file) => form.append("shopImages", file));
 
     try {
       const response = isEdit ? await updateDealer(form) : await addDealer(form);

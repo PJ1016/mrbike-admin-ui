@@ -773,8 +773,10 @@ export const updateAdminService = async (serviceId, serviceData) => {
   }
 };
 
-export const getDealerById = (id) =>
-  apiRequest("GET", `/dealer/dealer/${id}`, {}, false);
+export const getDealerById = async (id) => {
+  const res = await apiRequest("GET", `/dealer/dealer/${id}`, {}, false);
+  return res?.data || res;
+};
 
 export const getDealerServices = () =>
   apiRequest("GET", "/service/dealer/services", {}, false);
