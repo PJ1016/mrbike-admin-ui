@@ -9,11 +9,15 @@ import {
   Stack,
   Avatar,
   CircularProgress,
+  Chip,
   Divider,
-  Alert,
-  AlertTitle,
   Tooltip,
   IconButton,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  LinearProgress,
 } from "@mui/material";
 import {
   TrendingUp,
@@ -22,26 +26,112 @@ import {
   Build,
   TwoWheeler,
   Redeem,
-  SupervisorAccount,
   People,
   Storefront,
   Description,
   Refresh,
   Warning,
+  CheckCircle,
+  Cancel,
+  LocalShipping,
+  DirectionsBike,
+  AttachMoney,
+  EventNote,
+  ArrowForwardIos,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { AgCharts } from "ag-charts-react";
 import { getAllBookings, getDealerList } from "../../api";
 import moment from "moment";
 
+// ─── helpers ────────────────────────────────────────────────────────────────
+const STATUS_META = {
+  confirmed:    { label: "Confirmed",    color: "#6366f1", bg: "#eef2ff", icon: <CheckCircle fontSize="small" /> },
+  pickedup:     { label: "Picked Up",    color: "#f59e0b", bg: "#fffbeb", icon: <LocalShipping fontSize="small" /> },
+  arrived:      { label: "Arrived",      color: "#0ea5e9", bg: "#e0f2fe", icon: <EventNote fontSize="small" /> },
+  completed:    { label: "Completed",    color: "#10b981", bg: "#ecfdf5", icon: <CheckCircle fontSize="small" /> },
+  user_cancelled: { label: "Cancelled", color: "#ef4444", bg: "#fef2f2", icon: <Cancel fontSize="small" /> },
+  rejected:     { label: "Rejected",    color: "#ef4444", bg: "#fef2f2", icon: <Cancel fontSize="small" /> },
+};
+
+const fmt = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
+
+// ─── Stat Card ───────────────────────────────────────────────────────────────
+const StatCard = ({ title, value, subtitle, icon, color, bg, onClick }) => (
+  <Card
+    elevation={0}
+    onClick={onClick}
+    sx={{
+      borderRadius: 3,
+      border: "1px solid #e8ecf0",
+      cursor: onClick ? "pointer" : "default",
+      transition: "all 0.2s",
+      "&:hover": onClick ? { transform: "translateY(-3px)", boxShadow: "0 8px 24px rgba(0,0,0,0.08)" } : {},
+      height: "100%",
+    }}
+  >
+    <CardContent sx={{ p: 3 }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+        <Box flex={1} pr={1}>
+          <Typography variant="caption" sx={{ fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            {title}
+          </Typography>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: "#0f172a", mt: 0.5, lineHeight: 1.2, wordBreak: "break-word" }}>
+            {value}
+          </Typography>
+          {subtitle && (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+              {subtitle}
+            </Typography>
+          )}
+        </Box>
+        <Avatar sx={{ bgcolor: bg || `${color}18`, color, width: 52, height: 52, flexShrink: 0 }}>
+          {icon}
+        </Avatar>
+      </Stack>
+    </CardContent>
+  </Card>
+);
+
+// ─── Status Pill ─────────────────────────────────────────────────────────────
+const StatusPill = ({ statusKey, count, total }) => {
+  const meta = STATUS_META[statusKey] || { label: statusKey, color: "#64748b", bg: "#f1f5f9" };
+  const pct = total ? Math.round((count / total) * 100) : 0;
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        p: 1.5,
+        borderRadius: 2,
+        bgcolor: meta.bg,
+        mb: 1,
+      }}
+    >
+      <Stack direction="row" alignItems="center" spacing={1}>
+        <Box sx={{ color: meta.color, display: "flex" }}>{meta.icon}</Box>
+        <Typography variant="body2" sx={{ fontWeight: 600, color: meta.color }}>
+          {meta.label}
+        </Typography>
+      </Stack>
+      <Stack direction="row" alignItems="center" spacing={1}>
+        <Typography variant="body2" sx={{ fontWeight: 800, color: meta.color }}>
+          {count}
+        </Typography>
+        <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+          ({pct}%)
+        </Typography>
+      </Stack>
+    </Box>
+  );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 const Dashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({
-    bookings: [],
-    dealers: [],
-    counts: {},
-  });
+  const [data, setData] = useState({ bookings: [], dealers: [] });
 
   const fetchData = async () => {
     try {
@@ -50,16 +140,9 @@ const Dashboard = () => {
         getAllBookings(),
         getDealerList(),
       ]);
-
       setData({
         bookings: bookingsRes.data || [],
         dealers: dealersRes.data || [],
-        counts: {
-          totalBookings: bookingsRes.data?.length || 0,
-          totalDealers: dealersRes.data?.length || 0,
-          // Other counts can still come from the counts API if needed,
-          // but we prioritize calculating trends from bookings.
-        },
       });
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -72,429 +155,488 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  // Calculate Metrics
+  // ── computed analytics ────────────────────────────────────────────────────
   const analytics = useMemo(() => {
     const { bookings } = data;
     if (!bookings.length) return null;
 
-    // Monthly Trends
-    const monthlyData = {};
-    const cancellationTrend = {};
+    const today = moment().startOf("day");
 
-    // Last 6 months labels
+    // 6-month labels
     const labels = [];
+    const monthlyBookings = {};
+    const monthlyCancelled = {};
     for (let i = 5; i >= 0; i--) {
-      const month = moment().subtract(i, "months").format("MMM");
-      labels.push(month);
-      monthlyData[month] = 0;
-      cancellationTrend[month] = 0;
+      const m = moment().subtract(i, "months").format("MMM");
+      labels.push(m);
+      monthlyBookings[m] = 0;
+      monthlyCancelled[m] = 0;
     }
 
     let totalRevenue = 0;
-    let cancelledCount = 0;
     let todayBookings = 0;
     let todayRevenue = 0;
-    let activeBookings = 0;
-    const serviceCounts = {};
-
-    const today = moment().startOf('day');
+    const statusCounts = {};
+    const recentBookings = [];
 
     bookings.forEach((b) => {
       const month = moment(b.createdAt).format("MMM");
-      const createdAt = moment(b.createdAt);
-      const isToday = createdAt.isSame(today, 'day');
-      const status = b.status?.toLowerCase() || "";
+      const status = (b.status || "").toLowerCase();
       const isCancelled = status.includes("cancel") || status.includes("reject");
-      const isActive = ["confirmed", "pickedup", "arrived"].includes(status);
 
-      if (monthlyData[month] !== undefined) {
-        monthlyData[month]++;
-        if (isCancelled) {
-          cancellationTrend[month]++;
-        }
+      if (monthlyBookings[month] !== undefined) {
+        monthlyBookings[month]++;
+        if (isCancelled) monthlyCancelled[month]++;
       }
 
-      let rev = b.totalBill || 0;
-      if (rev === 0 && b.services?.length > 0) {
-        const bikeCC = parseInt(b.userBike_id?.bike_cc || 0);
-        rev = b.services.reduce((total, svc) => {
-          const matchingBike = svc.bikes?.find(bk => bk.cc === bikeCC);
-          return total + (matchingBike?.price || 0);
-        }, 0);
-      }
-      
+      const rev = b.totalBill || 0;
       if (!isCancelled) {
         totalRevenue += rev;
-        if (isToday) todayRevenue += rev;
-      } else {
-        cancelledCount++;
+        if (moment(b.createdAt).isSame(today, "day")) todayRevenue += rev;
       }
+      if (moment(b.createdAt).isSame(today, "day")) todayBookings++;
 
-      if (isToday) todayBookings++;
-      if (isActive) activeBookings++;
-
-      // Most Booked Service
-      b.services?.forEach(s => {
-        const name = s.description?.split('\n')?.[0]?.replace('✔ ', '') || "General Service";
-        serviceCounts[name] = (serviceCounts[name] || 0) + 1;
-      });
+      // Status bucket
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
     });
 
-    const mostBookedService = Object.entries(serviceCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "N/A";
+    // Recent 5 bookings sorted newest first
+    const sorted = [...bookings].sort((a, b) =>
+      moment(b.createdAt).valueOf() - moment(a.createdAt).valueOf()
+    );
+    recentBookings.push(...sorted.slice(0, 5));
 
-    const overallCancelRate = (
-      (cancelledCount / bookings.length) *
-      100
-    ).toFixed(1);
+    const completedCount = statusCounts["completed"] || 0;
+    const cancelledCount =
+      (statusCounts["user_cancelled"] || 0) + (statusCounts["rejected"] || 0);
+    const activeCount =
+      (statusCounts["confirmed"] || 0) +
+      (statusCounts["pickedup"] || 0) +
+      (statusCounts["arrived"] || 0);
 
     return {
       totalRevenue,
-      overallCancelRate,
       todayBookings,
       todayRevenue,
-      activeBookings,
-      mostBookedService,
-      bookingTrend: labels.map((l) => ({ month: l, count: monthlyData[l] })),
-      cancellationTrend: labels.map((l) => ({
+      totalBookings: bookings.length,
+      completedCount,
+      cancelledCount,
+      activeCount,
+      statusCounts,
+      recentBookings,
+      bookingTrend: labels.map((l) => ({
         month: l,
-        count: cancellationTrend[l],
+        bookings: monthlyBookings[l],
+        cancelled: monthlyCancelled[l],
       })),
+      cancelRate: bookings.length
+        ? ((cancelledCount / bookings.length) * 100).toFixed(1)
+        : 0,
     };
   }, [data.bookings]);
 
-  // Top Dealers with High Cancellations
+  // ── dealer alerts ─────────────────────────────────────────────────────────
   const highCancellationDealers = useMemo(() => {
     const { bookings, dealers } = data;
     if (!bookings.length || !dealers.length) return [];
 
-    const dealerStats = {};
+    const stats = {};
     bookings.forEach((b) => {
-      if (b.dealer_id?._id) {
-        const dId = b.dealer_id._id;
-        if (!dealerStats[dId]) dealerStats[dId] = { total: 0, cancelled: 0 };
-        dealerStats[dId].total++;
-        if (b.status?.toLowerCase().includes("cancel")) {
-          dealerStats[dId].cancelled++;
-        }
-      }
+      if (!b.dealer_id?._id) return;
+      const id = b.dealer_id._id;
+      if (!stats[id]) stats[id] = { total: 0, cancelled: 0 };
+      stats[id].total++;
+      if ((b.status || "").toLowerCase().includes("cancel")) stats[id].cancelled++;
     });
 
-    return Object.keys(dealerStats)
+    return Object.keys(stats)
       .map((id) => {
         const dealer = dealers.find((d) => d._id === id);
-        const stats = dealerStats[id];
-        const rate = (stats.cancelled / stats.total) * 100;
+        const s = stats[id];
         return {
-          name: dealer?.shopName || "Unknown Dealer",
-          rate: rate.toFixed(1),
-          total: stats.total,
+          name: dealer?.shopName || "Unknown Shop",
+          rate: ((s.cancelled / s.total) * 100).toFixed(1),
+          total: s.total,
+          cancelled: s.cancelled,
         };
       })
-      .filter((d) => d.rate > 15 && d.total > 5) // Threshold: >15% rate and at least 5 bookings
+      .filter((d) => d.rate > 15 && d.total > 5)
       .sort((a, b) => b.rate - a.rate)
       .slice(0, 3);
   }, [data]);
 
-  const statsCards = [
-    {
-      title: "Today's Bookings",
-      value: analytics?.todayBookings || 0,
-      icon: <ShoppingCart />,
-      color: "#f59e0b",
-      route: "/booking",
-    },
-    {
-      title: "Today's Revenue",
-      value: `₹${analytics?.todayRevenue.toLocaleString() || 0}`,
-      icon: <TrendingUp />,
-      color: "#10b981",
-      route: "/booking",
-    },
-    {
-      title: "Active Bookings",
-      value: analytics?.activeBookings || 0,
-      icon: <Build />,
-      color: "#6366f1",
-      route: "/booking",
-    },
-    {
-      title: "Most Booked",
-      value: analytics?.mostBookedService || "N/A",
-      icon: <TwoWheeler />,
-      color: "#ec4899",
-      route: "/services",
-    },
-    {
-      title: "Total Bookings",
-      value: data.counts.totalBookings,
-      icon: <People />,
-      color: "#8b5cf6",
-      route: "/booking",
-    },
-    {
-      title: "Est. Revenue",
-      value: `₹${analytics?.totalRevenue.toLocaleString() || 0}`,
-      icon: <TrendingUp />,
-      color: "#10b981",
-      route: "/booking",
-    },
-  ];
-
+  // ─── Loading State ─────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "80vh",
-        }}
-      >
-        <CircularProgress />
+      <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "80vh", gap: 2 }}>
+        <CircularProgress size={48} thickness={3} />
+        <Typography variant="body2" color="text.secondary">Loading dashboard…</Typography>
       </Box>
     );
   }
 
+  const today = moment().format("dddd, D MMMM YYYY");
+  const statusOrder = ["confirmed", "pickedup", "arrived", "completed", "user_cancelled", "rejected"];
+
   return (
-    <div className="page-wrapper">
-      <div className="content container-fluid">
-        <Box sx={{ p: 4 }}>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            sx={{ mb: 4 }}
-          >
-            <Box>
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: 800,
-                  color: "#1e293b",
-                  letterSpacing: "-0.025em",
-                }}
-              >
-                Operational Dashboard
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Real-time insights and business performance metrics.
-              </Typography>
-            </Box>
-            <Tooltip title="Refresh Data">
-              <IconButton
-                onClick={fetchData}
-                sx={{ bgcolor: "white", boxShadow: 1 }}
-              >
-                <Refresh />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            {statsCards.map((card, idx) => (
-              <Grid item xs={12} sm={6} md={3} key={idx}>
-                <Card
-                  elevation={0}
-                  sx={{
-                    borderRadius: 4,
-                    border: "1px solid #e2e8f0",
-                    cursor: "pointer",
-                    transition: "transform 0.2s",
-                    "&:hover": {
-                      transform: "translateY(-4px)",
-                      boxShadow: "0 12px 24px -10px rgba(0,0,0,0.1)",
-                    },
-                  }}
-                  onClick={() => navigate(card.route)}
-                >
-                  <CardContent sx={{ p: 3 }}>
-                    <Stack
-                      direction="row"
-                      justifyContent="space-between"
-                      alignItems="center"
-                    >
-                      <Box>
-                        <Typography
-                          variant="overline"
-                          sx={{ fontWeight: 700, color: "text.secondary" }}
-                        >
-                          {card.title}
-                        </Typography>
-                        <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5 }}>
-                          {card.value}
-                        </Typography>
-                      </Box>
-                      <Avatar
-                        sx={{
-                          bgcolor: `${card.color}15`,
-                          color: card.color,
-                          width: 56,
-                          height: 56,
-                        }}
-                      >
-                        {card.icon}
-                      </Avatar>
-                    </Stack>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-
-          <Grid container spacing={3}>
-            {/* Booking & Cancellation Trends */}
-            <Grid item xs={12} lg={8}>
-              <Paper
-                elevation={0}
-                sx={{ p: 3, borderRadius: 4, border: "1px solid #e2e8f0" }}
-              >
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
-                  Volume & Cancellation Analysis
-                </Typography>
-                <AgCharts
-                  options={{
-                    data: analytics?.bookingTrend,
-                    series: [
-                      {
-                        type: "area",
-                        xKey: "month",
-                        yKey: "count",
-                        yName: "Total Bookings",
-                        fill: "#6366f133",
-                        stroke: "#6366f1",
-                      },
-                      {
-                        type: "line",
-                        xKey: "month",
-                        yKey: "count",
-                        data: analytics?.cancellationTrend,
-                        yName: "Cancellations",
-                        stroke: "#f43f5e",
-                        marker: { fill: "#f43f5e" },
-                      },
-                    ],
-                    axes: [
-                      { type: "category", position: "bottom" },
-                      { type: "number", position: "left" },
-                    ],
-                    legend: { position: "top" },
-                  }}
-                />
-              </Paper>
-            </Grid>
-
-            {/* Actionable Alerts & Insights */}
-            <Grid item xs={12} lg={4}>
-              <Stack spacing={3}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 3,
-                    borderRadius: 4,
-                    border: "1px solid #e2e8f0",
-                    bgcolor: "#fff5f5",
-                  }}
-                >
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    alignItems="center"
-                    sx={{ mb: 2 }}
-                  >
-                    <Warning color="error" />
-                    <Typography
-                      variant="h6"
-                      sx={{ fontWeight: 700, color: "#991b1b" }}
-                    >
-                      Critical Alerts
-                    </Typography>
-                  </Stack>
-                  <Divider sx={{ mb: 2, opacity: 0.1, bgcolor: "#991b1b" }} />
-
-                  {highCancellationDealers.length > 0 ? (
-                    <Stack spacing={2}>
-                      {highCancellationDealers.map((d, i) => (
-                        <Alert
-                          icon={false}
-                          severity="error"
-                          key={i}
-                          sx={{ border: "1px solid #fecaca", borderRadius: 2 }}
-                        >
-                          <AlertTitle sx={{ fontWeight: 700 }}>
-                            High Cancellation: {d.name}
-                          </AlertTitle>
-                          Rate: <strong>{d.rate}%</strong> over {d.total} bookings.
-                        </Alert>
-                      ))}
-                    </Stack>
-                  ) : (
-                    <Typography variant="body2" color="textSecondary">
-                      No critical dealer performance issues detected.
-                    </Typography>
-                  )}
-                </Paper>
-
-                <Paper
-                  elevation={0}
-                  sx={{ p: 3, borderRadius: 4, border: "1px solid #e2e8f0" }}
-                >
-                  <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-                    Quick Actions
-                  </Typography>
-                  <Stack spacing={1}>
-                    {[
-                      {
-                        label: "Verify New Dealers",
-                        icon: <Storefront fontSize="small" />,
-                        route: "/dealerVerify",
-                      },
-                      {
-                        label: "Manage Services",
-                        icon: <Build fontSize="small" />,
-                        route: "/services",
-                      },
-                      {
-                        label: "Check Recent Offers",
-                        icon: <Redeem fontSize="small" />,
-                        route: "/offers",
-                      },
-                    ].map((action, i) => (
-                      <Box
-                        key={i}
-                        onClick={() => navigate(action.route)}
-                        sx={{
-                          p: 1.5,
-                          borderRadius: 2,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 2,
-                          cursor: "pointer",
-                          "&:hover": { bgcolor: "#f1f5f9" },
-                        }}
-                      >
-                        <Avatar
-                          sx={{
-                            width: 32,
-                            height: 32,
-                            bgcolor: "#e2e8f0",
-                            color: "#475569",
-                          }}
-                        >
-                          {action.icon}
-                        </Avatar>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {action.label}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Stack>
-                </Paper>
-              </Stack>
-            </Grid>
-          </Grid>
+    <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: "#f7f8fc", minHeight: "100vh" }}>
+      {/* ── Header ── */}
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: "#0f172a" }}>
+            👋 Hello, Admin!
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {today} — Here's what's happening with BikeDoctor today.
+          </Typography>
         </Box>
-      </div>
-    </div>
+        <Tooltip title="Refresh Data">
+          <IconButton onClick={fetchData} sx={{ bgcolor: "white", boxShadow: 1 }}>
+            <Refresh />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+
+      {/* ── Row 1: KPI Cards ── */}
+      <Grid container spacing={2.5} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Total Bookings"
+            value={analytics?.totalBookings ?? 0}
+            subtitle="All time service requests"
+            icon={<ShoppingCart />}
+            color="#6366f1"
+            onClick={() => navigate("/booking")}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Jobs in Progress"
+            value={analytics?.activeCount ?? 0}
+            subtitle="Confirmed + Picked Up + Arrived"
+            icon={<Build />}
+            color="#f59e0b"
+            onClick={() => navigate("/booking")}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Completed Services"
+            value={analytics?.completedCount ?? 0}
+            subtitle="Successfully done"
+            icon={<CheckCircle />}
+            color="#10b981"
+            onClick={() => navigate("/booking")}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Cancellations"
+            value={analytics?.cancelledCount ?? 0}
+            subtitle={`${analytics?.cancelRate ?? 0}% of all bookings`}
+            icon={<Cancel />}
+            color="#ef4444"
+            onClick={() => navigate("/booking")}
+          />
+        </Grid>
+      </Grid>
+
+      {/* ── Row 2: Revenue Cards ── */}
+      <Grid container spacing={2.5} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={4}>
+          <StatCard
+            title="Today's New Bookings"
+            value={analytics?.todayBookings ?? 0}
+            subtitle="Booked today"
+            icon={<EventNote />}
+            color="#8b5cf6"
+            onClick={() => navigate("/booking")}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={4}>
+          <StatCard
+            title="Today's Earnings"
+            value={fmt(analytics?.todayRevenue)}
+            subtitle="Revenue collected today"
+            icon={<TrendingUp />}
+            color="#10b981"
+            onClick={() => navigate("/booking")}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={4}>
+          <StatCard
+            title="Total Revenue Earned"
+            value={fmt(analytics?.totalRevenue)}
+            subtitle="All time estimated revenue"
+            icon={<AttachMoney />}
+            color="#0ea5e9"
+            onClick={() => navigate("/booking")}
+          />
+        </Grid>
+      </Grid>
+
+      {/* ── Row 3: Chart + Status Breakdown + Quick Actions ── */}
+      <Grid container spacing={2.5} sx={{ mb: 3 }}>
+        {/* Trend Chart */}
+        <Grid item xs={12} lg={7}>
+          <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid #e8ecf0", height: "100%" }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: "#0f172a" }}>
+                  📊 Monthly Bookings
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  How many bikes came in each month vs cancellations
+                </Typography>
+              </Box>
+            </Stack>
+            <AgCharts
+              options={{
+                height: 260,
+                data: analytics?.bookingTrend,
+                series: [
+                  {
+                    type: "bar",
+                    xKey: "month",
+                    yKey: "bookings",
+                    yName: "Total Bookings",
+                    fill: "#6366f1",
+                    cornerRadiusBbox: { topLeft: 4, topRight: 4 },
+                  },
+                  {
+                    type: "line",
+                    xKey: "month",
+                    yKey: "cancelled",
+                    yName: "Cancellations",
+                    stroke: "#ef4444",
+                    marker: { fill: "#ef4444", size: 6 },
+                  },
+                ],
+                axes: [
+                  { type: "category", position: "bottom" },
+                  { type: "number", position: "left", label: { formatter: (p) => `${p.value}` } },
+                ],
+                legend: { position: "bottom" },
+                background: { fill: "transparent" },
+              }}
+            />
+          </Paper>
+        </Grid>
+
+        {/* Status Breakdown */}
+        <Grid item xs={12} sm={6} lg={3}>
+          <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid #e8ecf0", height: "100%" }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: "#0f172a", mb: 0.5 }}>
+              📋 Booking Status
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+              What's the status of all bookings?
+            </Typography>
+            {statusOrder.map((key) =>
+              analytics?.statusCounts?.[key] ? (
+                <StatusPill
+                  key={key}
+                  statusKey={key}
+                  count={analytics.statusCounts[key]}
+                  total={analytics.totalBookings}
+                />
+              ) : null
+            )}
+          </Paper>
+        </Grid>
+
+        {/* Quick Actions */}
+        <Grid item xs={12} sm={6} lg={2}>
+          <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid #e8ecf0", height: "100%" }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: "#0f172a", mb: 0.5 }}>
+              ⚡ Quick Actions
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+              Jump to important sections
+            </Typography>
+            <Stack spacing={1}>
+              {[
+                { label: "View All Bookings", icon: <ShoppingCart fontSize="small" />, route: "/booking", color: "#6366f1" },
+                { label: "Approve Dealers", icon: <Storefront fontSize="small" />, route: "/dealers-verify", color: "#f59e0b" },
+                { label: "Manage Services", icon: <Build fontSize="small" />, route: "/services", color: "#10b981" },
+                { label: "View Customers", icon: <People fontSize="small" />, route: "/customers", color: "#8b5cf6" },
+                { label: "Check Offers", icon: <Redeem fontSize="small" />, route: "/offers", color: "#ec4899" },
+              ].map((a, i) => (
+                <Box
+                  key={i}
+                  onClick={() => navigate(a.route)}
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1.5,
+                    cursor: "pointer",
+                    border: "1px solid #e8ecf0",
+                    transition: "all 0.15s",
+                    "&:hover": { bgcolor: `${a.color}10`, borderColor: a.color },
+                  }}
+                >
+                  <Box sx={{ color: a.color, display: "flex" }}>{a.icon}</Box>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: "#334155", flex: 1 }}>
+                    {a.label}
+                  </Typography>
+                  <ArrowForwardIos sx={{ fontSize: 10, color: "#94a3b8" }} />
+                </Box>
+              ))}
+            </Stack>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* ── Row 4: Recent Bookings + Dealer Alerts ── */}
+      <Grid container spacing={2.5}>
+        {/* Recent Bookings */}
+        <Grid item xs={12} md={7}>
+          <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid #e8ecf0" }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: "#0f172a" }}>
+                  🕐 Recent Bookings
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  The 5 most recently placed bookings
+                </Typography>
+              </Box>
+              <Chip
+                label="See All"
+                size="small"
+                onClick={() => navigate("/booking")}
+                sx={{ cursor: "pointer", fontWeight: 600 }}
+              />
+            </Stack>
+            <List disablePadding>
+              {analytics?.recentBookings?.map((b, i) => {
+                const status = (b.status || "").toLowerCase();
+                const meta = STATUS_META[status] || { label: status, color: "#64748b", bg: "#f1f5f9" };
+                const dealer = b.dealer_id?.shopName || b.dealer_id?.name || "Unknown Dealer";
+                const ago = moment(b.createdAt).fromNow();
+                return (
+                  <React.Fragment key={b._id}>
+                    <ListItem sx={{ px: 0, py: 1.5 }}>
+                      <ListItemAvatar>
+                        <Avatar sx={{ bgcolor: meta.bg, color: meta.color, width: 40, height: 40 }}>
+                          <DirectionsBike fontSize="small" />
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: "#0f172a" }}>
+                              Booking #{b.id || i + 1}
+                            </Typography>
+                            <Chip
+                              label={meta.label}
+                              size="small"
+                              sx={{
+                                bgcolor: meta.bg,
+                                color: meta.color,
+                                fontWeight: 700,
+                                fontSize: "0.68rem",
+                                height: 20,
+                              }}
+                            />
+                          </Stack>
+                        }
+                        secondary={
+                          <Typography variant="caption" color="text.secondary">
+                            {dealer} · {ago}
+                          </Typography>
+                        }
+                      />
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: "#0f172a" }}>
+                        {fmt(b.totalBill)}
+                      </Typography>
+                    </ListItem>
+                    {i < (analytics.recentBookings.length - 1) && <Divider />}
+                  </React.Fragment>
+                );
+              })}
+            </List>
+          </Paper>
+        </Grid>
+
+        {/* Dealer Alerts */}
+        <Grid item xs={12} md={5}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              border: "1px solid #fecaca",
+              bgcolor: "#fff8f8",
+              height: "100%",
+            }}
+          >
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+              <Warning sx={{ color: "#ef4444" }} />
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: "#7f1d1d" }}>
+                  ⚠️ Dealer Alerts
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#b91c1c" }}>
+                  Dealers with too many cancellations
+                </Typography>
+              </Box>
+            </Stack>
+            <Divider sx={{ mb: 2, borderColor: "#fecaca" }} />
+            {highCancellationDealers.length > 0 ? (
+              <Stack spacing={2}>
+                {highCancellationDealers.map((d, i) => (
+                  <Box
+                    key={i}
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      border: "1px solid #fca5a5",
+                      bgcolor: "white",
+                    }}
+                  >
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: "#0f172a" }}>
+                        {d.name}
+                      </Typography>
+                      <Chip
+                        label={`${d.rate}% cancelled`}
+                        size="small"
+                        sx={{ bgcolor: "#fef2f2", color: "#ef4444", fontWeight: 700 }}
+                      />
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                      Out of {d.total} bookings, {d.cancelled} were cancelled
+                    </Typography>
+                    <LinearProgress
+                      variant="determinate"
+                      value={parseFloat(d.rate)}
+                      sx={{
+                        borderRadius: 2,
+                        bgcolor: "#fecaca",
+                        "& .MuiLinearProgress-bar": { bgcolor: "#ef4444" },
+                      }}
+                    />
+                  </Box>
+                ))}
+              </Stack>
+            ) : (
+              <Box sx={{ textAlign: "center", py: 4 }}>
+                <CheckCircle sx={{ color: "#10b981", fontSize: 40, mb: 1 }} />
+                <Typography variant="body2" sx={{ fontWeight: 600, color: "#065f46" }}>
+                  All dealers are performing well! 🎉
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  No high cancellation rates detected.
+                </Typography>
+              </Box>
+            )}
+          </Paper>
+        </Grid>
+      </Grid>
+    </Box>
   );
 };
 
