@@ -92,23 +92,55 @@ const Dashboard = () => {
 
     let totalRevenue = 0;
     let cancelledCount = 0;
+    let todayBookings = 0;
+    let todayRevenue = 0;
+    let activeBookings = 0;
+    const serviceCounts = {};
+
+    const today = moment().startOf('day');
 
     bookings.forEach((b) => {
       const month = moment(b.createdAt).format("MMM");
+      const createdAt = moment(b.createdAt);
+      const isToday = createdAt.isSame(today, 'day');
+      const status = b.status?.toLowerCase() || "";
+      const isCancelled = status.includes("cancel") || status.includes("reject");
+      const isActive = ["confirmed", "pickedup", "arrived"].includes(status);
+
       if (monthlyData[month] !== undefined) {
         monthlyData[month]++;
-        if (b.status?.toLowerCase().includes("cancel")) {
+        if (isCancelled) {
           cancellationTrend[month]++;
         }
       }
 
-      const rev = b.est_price || 0;
-      if (!b.status?.toLowerCase().includes("cancel")) {
+      let rev = b.totalBill || 0;
+      if (rev === 0 && b.services?.length > 0) {
+        const bikeCC = parseInt(b.userBike_id?.bike_cc || 0);
+        rev = b.services.reduce((total, svc) => {
+          const matchingBike = svc.bikes?.find(bk => bk.cc === bikeCC);
+          return total + (matchingBike?.price || 0);
+        }, 0);
+      }
+      
+      if (!isCancelled) {
         totalRevenue += rev;
+        if (isToday) todayRevenue += rev;
       } else {
         cancelledCount++;
       }
+
+      if (isToday) todayBookings++;
+      if (isActive) activeBookings++;
+
+      // Most Booked Service
+      b.services?.forEach(s => {
+        const name = s.description?.split('\n')?.[0]?.replace('✔ ', '') || "General Service";
+        serviceCounts[name] = (serviceCounts[name] || 0) + 1;
+      });
     });
+
+    const mostBookedService = Object.entries(serviceCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "N/A";
 
     const overallCancelRate = (
       (cancelledCount / bookings.length) *
@@ -118,6 +150,10 @@ const Dashboard = () => {
     return {
       totalRevenue,
       overallCancelRate,
+      todayBookings,
+      todayRevenue,
+      activeBookings,
+      mostBookedService,
       bookingTrend: labels.map((l) => ({ month: l, count: monthlyData[l] })),
       cancellationTrend: labels.map((l) => ({
         month: l,
@@ -161,31 +197,45 @@ const Dashboard = () => {
 
   const statsCards = [
     {
-      title: "Total Bookings",
-      value: data.counts.totalBookings,
+      title: "Today's Bookings",
+      value: analytics?.todayBookings || 0,
       icon: <ShoppingCart />,
+      color: "#f59e0b",
+      route: "/booking",
+    },
+    {
+      title: "Today's Revenue",
+      value: `₹${analytics?.todayRevenue.toLocaleString() || 0}`,
+      icon: <TrendingUp />,
+      color: "#10b981",
+      route: "/booking",
+    },
+    {
+      title: "Active Bookings",
+      value: analytics?.activeBookings || 0,
+      icon: <Build />,
       color: "#6366f1",
       route: "/booking",
     },
     {
-      title: "Active Dealers",
-      value: data.counts.totalDealers,
-      icon: <Storefront />,
+      title: "Most Booked",
+      value: analytics?.mostBookedService || "N/A",
+      icon: <TwoWheeler />,
       color: "#ec4899",
-      route: "/dealers",
+      route: "/services",
+    },
+    {
+      title: "Total Bookings",
+      value: data.counts.totalBookings,
+      icon: <People />,
+      color: "#8b5cf6",
+      route: "/booking",
     },
     {
       title: "Est. Revenue",
       value: `₹${analytics?.totalRevenue.toLocaleString() || 0}`,
       icon: <TrendingUp />,
       color: "#10b981",
-      route: "/booking",
-    },
-    {
-      title: "Cancellation Rate",
-      value: `${analytics?.overallCancelRate || 0}%`,
-      icon: <TrendingDown />,
-      color: "#f43f5e",
       route: "/booking",
     },
   ];

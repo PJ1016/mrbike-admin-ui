@@ -24,6 +24,9 @@ import {
   TextField,
   InputAdornment,
   TableSortLabel,
+  Grid,
+  Stack,
+  Divider,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -48,6 +51,7 @@ const BookingTable = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedDealer, setSelectedDealer] = useState(null);
+  const [selectedBooking, setSelectedBooking] = useState(null);
   const [order, setOrder] = useState("desc");
   const [orderBy, setOrderBy] = useState("pickupDate");
 
@@ -60,6 +64,20 @@ const BookingTable = ({
       month: "short",
       year: "numeric",
     });
+  };
+
+  // ✅ Helper to calculate estimated price based on bike CC and services
+  const calculateEstimatedPrice = (booking) => {
+    if (booking.totalBill && booking.totalBill > 0) return booking.totalBill;
+    if (!booking.services || booking.services.length === 0) return 0;
+
+    const bikeCC = parseInt(booking.userBike_id?.bike_cc || 0);
+    return booking.services.reduce((total, service) => {
+      // Handle both cases where service might be an ID or a populated object
+      const bikes = service.bikes || [];
+      const matchingBike = bikes.find((b) => b.cc === bikeCC);
+      return total + (matchingBike?.price || 0);
+    }, 0);
   };
 
   const handleRequestSort = (property) => {
@@ -80,20 +98,20 @@ const BookingTable = ({
           item.bookingId?.toLowerCase().includes(term) ||
           item.dealer_id?.shopName?.toLowerCase().includes(term) ||
           item.user_id?.customerId?.toLowerCase().includes(term) || // ✅ Added Search by Customer ID
-          item.dealer_id?.dealerId?.toLowerCase().includes(term)   // ✅ Added Search by Dealer ID
+          item.dealer_id?.dealerId?.toLowerCase().includes(term), // ✅ Added Search by Dealer ID
       );
     }
 
     // ✅ Robust Sorting Logic (Non-mutative)
     return [...result].sort((a, b) => {
       let valueA, valueB;
-      
+
       if (orderBy === "customer") {
         valueA = (a.user_id?.first_name || "").toLowerCase();
         valueB = (b.user_id?.first_name || "").toLowerCase();
       } else if (orderBy === "amount") {
-        valueA = a.totalBill || a.services?.[0]?.bikes?.[0]?.price || 0;
-        valueB = b.totalBill || b.services?.[0]?.bikes?.[0]?.price || 0;
+        valueA = calculateEstimatedPrice(a);
+        valueB = calculateEstimatedPrice(b);
       } else if (orderBy === "pickupDate") {
         valueA = new Date(a.pickupDate || 0).getTime();
         valueB = new Date(b.pickupDate || 0).getTime();
@@ -140,10 +158,13 @@ const BookingTable = ({
 
   const getStatusConfig = (status) => {
     const s = status?.toLowerCase() || "";
-    if (["confirmed", "completed", "pickedup", "arrived"].includes(s)) {
+    if (["confirmed", "pickedup", "arrived"].includes(s)) {
       return { color: "success", icon: <CheckCircleIcon fontSize="small" /> };
     }
-    if (s.includes("cancel")) {
+    if (s === "completed") {
+      return { color: "primary", icon: <CheckCircleIcon fontSize="small" /> };
+    }
+    if (s.includes("cancel") || s.includes("reject")) {
       return { color: "error", icon: <CancelIcon fontSize="small" /> };
     }
     if (["pending", "waiting"].includes(s)) {
@@ -155,17 +176,26 @@ const BookingTable = ({
   const headers = [
     { id: "id", label: "#", sortable: false },
     { id: "bookingId", label: "Booking ID", sortable: true },
-    { id: "customer", label: "Customer (ID)", sortable: true },
-    { id: "dealer", label: "Dealer (ID)", sortable: false },
-    { id: "service", label: "Services", sortable: false },
+    { id: "customer", label: "Customer Name", sortable: true },
+    { id: "dealer", label: "Dealer Name", sortable: false },
+    { id: "service", label: "Service Type", sortable: false },
+    { id: "mode", label: "Service Mode", sortable: false },
     { id: "amount", label: "Amount", sortable: true },
     { id: "pickupDate", label: "Date", sortable: true },
     { id: "status", label: "Status", sortable: true },
+    { id: "action", label: "Action", sortable: false },
   ];
 
   return (
     <Box sx={{ width: "100%", mt: 2 }}>
-      <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <Box
+        sx={{
+          mb: 3,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <TextField
           variant="outlined"
           size="small"
@@ -193,7 +223,10 @@ const BookingTable = ({
           borderRadius: 2,
           overflowX: "auto",
           "&::-webkit-scrollbar": { height: "8px" },
-          "&::-webkit-scrollbar-thumb": { backgroundColor: "#ccc", borderRadius: "10px" },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "#ccc",
+            borderRadius: "10px",
+          },
         }}
       >
         <Table id="booking-table-mui" ref={tableRef} sx={{ minWidth: 1200 }}>
@@ -202,7 +235,11 @@ const BookingTable = ({
               {headers.map((header) => (
                 <TableCell
                   key={header.id}
-                  sx={{ color: "white", fontWeight: "bold", whiteSpace: "nowrap" }}
+                  sx={{
+                    color: "white",
+                    fontWeight: "bold",
+                    whiteSpace: "nowrap",
+                  }}
                   sortDirection={orderBy === header.id ? order : false}
                 >
                   {header.sortable ? (
@@ -212,8 +249,12 @@ const BookingTable = ({
                       onClick={() => handleRequestSort(header.id)}
                       sx={{
                         color: "white !important",
-                        "&.MuiTableSortLabel-active": { color: "white !important" },
-                        "& .MuiTableSortLabel-icon": { color: "white !important" },
+                        "&.MuiTableSortLabel-active": {
+                          color: "white !important",
+                        },
+                        "& .MuiTableSortLabel-icon": {
+                          color: "white !important",
+                        },
                       }}
                     >
                       {header.label}
@@ -250,15 +291,25 @@ const BookingTable = ({
               </TableRow>
             ) : (
               currentData.map((booking, index) => {
-                const amount = booking.totalBill || booking.services[0]?.bikes[0]?.price || 0;
-                const serviceNames = booking.services
-                  ?.map((s) => s.description?.substring(0, 20) || s.serviceId || "N/A")
-                  .join(", ") || "N/A";
+                const amount = calculateEstimatedPrice(booking);
+                const serviceNames =
+                  booking.services
+                    ?.map(
+                      (s) =>
+                        s.description?.substring(0, 20) || s.serviceId || "N/A",
+                    )
+                    .join(", ") || "N/A";
 
                 return (
                   <TableRow key={booking._id} hover>
                     <TableCell>{page * rowsPerPage + index + 1}</TableCell>
-                    <TableCell sx={{ fontWeight: "bold", color: "text.primary", whiteSpace: "nowrap" }}>
+                    <TableCell
+                      sx={{
+                        fontWeight: "bold",
+                        color: "text.primary",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {booking.bookingId || "N/A"}
                     </TableCell>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
@@ -267,11 +318,21 @@ const BookingTable = ({
                           variant="text"
                           size="small"
                           onClick={() => setSelectedUser(booking.user_id)}
-                          sx={{ textTransform: "none", fontWeight: "bold", p: 0, justifyContent: "flex-start" }}
+                          sx={{
+                            textTransform: "none",
+                            fontWeight: "bold",
+                            p: 0,
+                            justifyContent: "flex-start",
+                          }}
                         >
-                          {booking.user_id?.first_name} {booking.user_id?.last_name}
+                          {booking.user_id?.first_name}{" "}
+                          {booking.user_id?.last_name}
                         </Button>
-                        <Typography variant="caption" display="block" color="text.secondary">
+                        <Typography
+                          variant="caption"
+                          display="block"
+                          color="text.secondary"
+                        >
                           {booking.user_id?.customerId || "ID: N/A"}
                         </Typography>
                       </Box>
@@ -283,22 +344,49 @@ const BookingTable = ({
                           size="small"
                           color="info"
                           onClick={() => setSelectedDealer(booking.dealer_id)}
-                          sx={{ textTransform: "none", fontWeight: "bold", p: 0, justifyContent: "flex-start" }}
+                          sx={{
+                            textTransform: "none",
+                            fontWeight: "bold",
+                            p: 0,
+                            justifyContent: "flex-start",
+                          }}
                         >
                           {booking.dealer_id?.shopName || "N/A"}
                         </Button>
-                        <Typography variant="caption" display="block" color="text.secondary">
+                        <Typography
+                          variant="caption"
+                          display="block"
+                          color="text.secondary"
+                        >
                           {booking.dealer_id?.dealerId || "ID: N/A"}
                         </Typography>
                       </Box>
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <TableCell
+                      sx={{
+                        maxWidth: 200,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {serviceNames}
                     </TableCell>
-                    <TableCell sx={{ fontWeight: "bold", color: "#2e7d32", whiteSpace: "nowrap" }}>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      {booking.pickupAndDropId ? "Pickup" : "Self Visit"}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontWeight: "bold",
+                        color: "#2e7d32",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       ₹{amount.toLocaleString()}
                     </TableCell>
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>{formatDate(booking.pickupDate)}</TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      {formatDate(booking.pickupDate)}
+                    </TableCell>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
                       {(() => {
                         const { color, icon } = getStatusConfig(booking.status);
@@ -309,16 +397,30 @@ const BookingTable = ({
                             icon={icon}
                             size="small"
                             variant="outlined"
-                            sx={{ 
-                              fontWeight: "bold", 
+                            sx={{
+                              fontWeight: "bold",
                               textTransform: "capitalize",
                               borderRadius: "6px",
                               px: 0.5,
-                              "& .MuiChip-icon": { marginLeft: "4px" }
+                              "& .MuiChip-icon": { marginLeft: "4px" },
                             }}
                           />
                         );
                       })()}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={() => setSelectedBooking(booking)}
+                        sx={{
+                          textTransform: "none",
+                          fontSize: "0.75rem",
+                          borderRadius: "15px",
+                        }}
+                      >
+                        View Details
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
@@ -338,41 +440,90 @@ const BookingTable = ({
       </TableContainer>
 
       {/* ✅ User Details Dialog */}
-      <Dialog open={Boolean(selectedUser)} onClose={() => setSelectedUser(null)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={Boolean(selectedUser)}
+        onClose={() => setSelectedUser(null)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle sx={{ bgcolor: "primary.main", color: "white", mb: 2 }}>
           Customer Dashboard
         </DialogTitle>
         <DialogContent>
           {selectedUser && (
-            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, pt: 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 2,
+                pt: 2,
+              }}
+            >
               <Avatar
                 src={selectedUser.image}
-                sx={{ width: 100, height: 100, mb: 1, border: "4px solid #f8f9fa" }}
+                sx={{
+                  width: 100,
+                  height: 100,
+                  mb: 1,
+                  border: "4px solid #f8f9fa",
+                }}
               >
                 {selectedUser.first_name?.[0]}
               </Avatar>
               <Box sx={{ width: "100%" }}>
-                <Typography variant="h6" align="center" sx={{ fontWeight: "bold" }}>
+                <Typography
+                  variant="h6"
+                  align="center"
+                  sx={{ fontWeight: "bold" }}
+                >
                   {selectedUser.first_name} {selectedUser.last_name}
                 </Typography>
-                <Typography variant="subtitle2" color="text.secondary" align="center" gutterBottom>
-                  {selectedUser.customerId || "No ID"} • {selectedUser.reward_points || 0} Reward Points
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  align="center"
+                  gutterBottom
+                >
+                  {selectedUser.customerId || "No ID"} •{" "}
+                  {selectedUser.reward_points || 0} Reward Points
                 </Typography>
-                
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: "#fcfcfc", borderRadius: 2, mt: 2 }}>
-                  <Typography variant="caption" sx={{ fontWeight: "bold", color: "primary.main", mb: 1, display: "block" }}>
+
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 2, bgcolor: "#fcfcfc", borderRadius: 2, mt: 2 }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontWeight: "bold",
+                      color: "primary.main",
+                      mb: 1,
+                      display: "block",
+                    }}
+                  >
                     CONTACT & LOCATION
                   </Typography>
                   {[
                     { label: "Email", value: selectedUser.email },
                     { label: "Phone", value: selectedUser.phone },
                     { label: "Address", value: selectedUser.address },
-                    { label: "City/State", value: `${selectedUser.city || "N/A"}, ${selectedUser.state || "N/A"}` },
+                    {
+                      label: "City/State",
+                      value: `${selectedUser.city || "N/A"}, ${selectedUser.state || "N/A"}`,
+                    },
                     { label: "Pincode", value: selectedUser.pincode },
                   ].map((row) => (
                     <Box key={row.label} sx={{ display: "flex", mb: 1.5 }}>
-                      <Typography variant="body2" sx={{ fontWeight: "bold", width: 100 }}>{row.label}:</Typography>
-                      <Typography variant="body2" sx={{ flex: 1 }}>{row.value || "N/A"}</Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: "bold", width: 100 }}
+                      >
+                        {row.label}:
+                      </Typography>
+                      <Typography variant="body2" sx={{ flex: 1 }}>
+                        {row.value || "N/A"}
+                      </Typography>
                     </Box>
                   ))}
                 </Paper>
@@ -381,40 +532,90 @@ const BookingTable = ({
           )}
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setSelectedUser(null)} variant="outlined">Close</Button>
+          <Button onClick={() => setSelectedUser(null)} variant="outlined">
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
 
       {/* ✅ Dealer Details Dialog */}
-      <Dialog open={Boolean(selectedDealer)} onClose={() => setSelectedDealer(null)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={Boolean(selectedDealer)}
+        onClose={() => setSelectedDealer(null)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle sx={{ bgcolor: "info.main", color: "white", mb: 2 }}>
           Dealer Business Profile
         </DialogTitle>
         <DialogContent>
           {selectedDealer && (
             <Box sx={{ pt: 1 }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold" }} align="center">
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: "bold" }}
+                align="center"
+              >
                 {selectedDealer.shopName || "N/A"}
               </Typography>
-              <Typography variant="subtitle2" color="text.secondary" align="center" gutterBottom>
-                {selectedDealer.dealerId || "No ID"} • {selectedDealer.registrationStatus || "Unknown"} Status
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                align="center"
+                gutterBottom
+              >
+                {selectedDealer.dealerId || "No ID"} •{" "}
+                {selectedDealer.registrationStatus || "Unknown"} Status
               </Typography>
 
-              <Paper variant="outlined" sx={{ p: 2, mt: 3, bgcolor: "#fcfcfc", borderRadius: 2 }}>
-                <Typography variant="caption" sx={{ fontWeight: "bold", color: "info.main", mb: 1, display: "block" }}>
+              <Paper
+                variant="outlined"
+                sx={{ p: 2, mt: 3, bgcolor: "#fcfcfc", borderRadius: 2 }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: "bold",
+                    color: "info.main",
+                    mb: 1,
+                    display: "block",
+                  }}
+                >
                   BUSINESS DETAILS
                 </Typography>
                 {[
                   { label: "Owner", value: selectedDealer.ownerName },
-                  { label: "Phone", value: selectedDealer.shopContact || selectedDealer.phone },
-                  { label: "Support Email", value: selectedDealer.shopEmail || selectedDealer.personalEmail },
+                  {
+                    label: "Phone",
+                    value: selectedDealer.shopContact || selectedDealer.phone,
+                  },
+                  {
+                    label: "Support Email",
+                    value:
+                      selectedDealer.shopEmail || selectedDealer.personalEmail,
+                  },
                   { label: "Full Address", value: selectedDealer.fullAddress },
-                  { label: "City", value: selectedDealer.city || selectedDealer.permanentAddress?.city },
-                  { label: "Registration", value: selectedDealer.registrationStatus },
+                  {
+                    label: "City",
+                    value:
+                      selectedDealer.city ||
+                      selectedDealer.permanentAddress?.city,
+                  },
+                  {
+                    label: "Registration",
+                    value: selectedDealer.registrationStatus,
+                  },
                 ].map((row) => (
                   <Box key={row.label} sx={{ display: "flex", mb: 1.5 }}>
-                    <Typography variant="body2" sx={{ fontWeight: "bold", width: 110 }}>{row.label}:</Typography>
-                    <Typography variant="body2" sx={{ flex: 1 }}>{row.value || "N/A"}</Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: "bold", width: 110 }}
+                    >
+                      {row.label}:
+                    </Typography>
+                    <Typography variant="body2" sx={{ flex: 1 }}>
+                      {row.value || "N/A"}
+                    </Typography>
                   </Box>
                 ))}
               </Paper>
@@ -422,7 +623,248 @@ const BookingTable = ({
           )}
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setSelectedDealer(null)} variant="outlined">Close</Button>
+          <Button onClick={() => setSelectedDealer(null)} variant="outlined">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ✅ Booking Details Dialog */}
+      <Dialog
+        open={Boolean(selectedBooking)}
+        onClose={() => setSelectedBooking(null)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{
+            bgcolor: "success.main",
+            color: "white",
+            mb: 2,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          Booking Details - {selectedBooking?.bookingId}
+          <Chip
+            label={selectedBooking?.status?.replace("_", " ")}
+            size="small"
+            sx={{
+              bgcolor: "white",
+              fontWeight: "bold",
+              textTransform: "capitalize",
+            }}
+          />
+        </DialogTitle>
+        <DialogContent>
+          {selectedBooking && (
+            <Grid container spacing={3} sx={{ pt: 1 }}>
+              <Grid item xs={12} md={6}>
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 2, height: "100%", borderRadius: 2 }}
+                >
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: "bold", color: "primary.main", mb: 2 }}
+                  >
+                    CUSTOMER & BIKE INFO
+                  </Typography>
+                  <Stack spacing={1.5}>
+                    <Box
+                      sx={{ display: "flex", justifyContent: "space-between" }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                        Customer:
+                      </Typography>
+                      <Typography variant="body2">
+                        {selectedBooking.user_id?.first_name}{" "}
+                        {selectedBooking.user_id?.last_name}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{ display: "flex", justifyContent: "space-between" }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                        Phone:
+                      </Typography>
+                      <Typography variant="body2">
+                        {selectedBooking.user_id?.phone || "N/A"}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{ display: "flex", justifyContent: "space-between" }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                        Email:
+                      </Typography>
+                      <Typography variant="body2">
+                        {selectedBooking.user_id?.email || "N/A"}
+                      </Typography>
+                    </Box>
+                    <Divider />
+                    <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                      <Typography variant="body2" sx={{ fontWeight: "bold" }}>Bike Company:</Typography>
+                      <Typography variant="body2">{selectedBooking.userBike_id?.name || "N/A"}</Typography>
+                    </Box>
+                    <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                      <Typography variant="body2" sx={{ fontWeight: "bold" }}>Bike Model:</Typography>
+                      <Typography variant="body2">{selectedBooking.userBike_id?.model || "N/A"}</Typography>
+                    </Box>
+                    <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                      <Typography variant="body2" sx={{ fontWeight: "bold" }}>Plate Number:</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: "bold", color: "error.main" }}>{selectedBooking.userBike_id?.plate_number || "N/A"}</Typography>
+                    </Box>
+                  </Stack>
+                </Paper>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 2, height: "100%", borderRadius: 2 }}
+                >
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: "bold", color: "primary.main", mb: 2 }}
+                  >
+                    SERVICE DETAILS
+                  </Typography>
+                  <Stack spacing={1.5}>
+                    <Box
+                      sx={{ display: "flex", justifyContent: "space-between" }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                        Service Mode:
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: "bold",
+                          color: selectedBooking.pickupAndDropId
+                            ? "secondary.main"
+                            : "success.main",
+                        }}
+                      >
+                        {selectedBooking.pickupAndDropId
+                          ? "Pickup & Drop"
+                          : "Self Visit"}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{ display: "flex", justifyContent: "space-between" }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                        Pickup/Visit Date:
+                      </Typography>
+                      <Typography variant="body2">
+                        {formatDate(selectedBooking.pickupDate)}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{ display: "flex", justifyContent: "space-between" }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                        Amount:
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: "bold", color: "success.main" }}
+                      >
+                        ₹{calculateEstimatedPrice(selectedBooking).toLocaleString()}
+                      </Typography>
+                    </Box>
+                    <Divider />
+                    <Box>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: "bold", mb: 0.5 }}
+                      >
+                        Service Type:
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {selectedBooking.services
+                          ?.map((s) => s.description)
+                          .join(", ") || "N/A"}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Paper>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 2, borderRadius: 2, bgcolor: "#f8f9fa" }}
+                >
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: "bold", color: "primary.main", mb: 2 }}
+                  >
+                    VERIFICATION & TIMELINE
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6} sm={3}>
+                      <Typography
+                        variant="caption"
+                        sx={{ fontWeight: "bold", display: "block" }}
+                      >
+                        Pickup OTP
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "primary.main", fontWeight: "bold" }}
+                      >
+                        {selectedBooking.pickupOtp || "N/A"}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6} sm={3}>
+                      <Typography
+                        variant="caption"
+                        sx={{ fontWeight: "bold", display: "block" }}
+                      >
+                        Delivery OTP
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "success.main", fontWeight: "bold" }}
+                      >
+                        {selectedBooking.deliveryOtp || "N/A"}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6} sm={3}>
+                      <Typography
+                        variant="caption"
+                        sx={{ fontWeight: "bold", display: "block" }}
+                      >
+                        Booked On
+                      </Typography>
+                      <Typography variant="body2">
+                        {formatDate(selectedBooking.createdAt)}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6} sm={3}>
+                      <Typography
+                        variant="caption"
+                        sx={{ fontWeight: "bold", display: "block" }}
+                      >
+                        Last Updated
+                      </Typography>
+                      <Typography variant="body2">
+                        {formatDate(selectedBooking.updatedAt)}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Paper>
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setSelectedBooking(null)} variant="outlined">
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

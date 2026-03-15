@@ -743,6 +743,9 @@ export const getDealersVerify = () =>
 export const approveDealer = (dealerId) =>
   apiRequest("PUT", `/dealerAuth/approve/${dealerId}`, {});
 
+export const verifyDealerDocument = (dealerId, docType, status) =>
+  apiRequest("PUT", `/dealerAuth/verify-document/${dealerId}`, { docType, status });
+
 export const getAdminServiceById = (serviceId) =>
   apiRequest("GET", `/service/admin/services/${serviceId}`, {}, false);
 

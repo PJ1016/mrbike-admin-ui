@@ -28,6 +28,7 @@ import {
   CircularProgress,
   Alert,
   Tooltip,
+  LinearProgress,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -46,7 +47,7 @@ import {
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import { approveDealer, deleteDealer } from "../../api";
+import { approveDealer, deleteDealer, verifyDealerDocument } from "../../api";
 
 const API_BASE_URL = "https://api.mrbikedoctor.cloud";
 
@@ -63,6 +64,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
   const [actionLoading, setActionLoading] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [actionError, setActionError] = useState(null);
+  const [docVerification, setDocVerification] = useState({});
 
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === "asc";
@@ -159,6 +161,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
 
   const handleOpenReview = () => {
     setReviewDialogOpen(true);
+    setDocVerification(selectedDealer?.documentVerification || {});
     handleActionClose();
   };
 
@@ -167,6 +170,19 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
     if (path.startsWith("http")) return path;
     return `${API_BASE_URL}/${path}`;
   };
+
+  const handleDocVerify = async (docType, status) => {
+    if (!selectedDealer) return;
+    try {
+      await verifyDealerDocument(selectedDealer._id, docType, status);
+      setDocVerification((prev) => ({ ...prev, [docType]: status }));
+    } catch (error) {
+      setActionError(error?.response?.data?.message || "Failed to update document status.");
+    }
+  };
+
+  const allDocsVerified = (dv) =>
+    ["aadharFront", "aadharBack", "pan", "shop", "face"].every((k) => dv[k] === true);
 
   const executeConfirmedAction = async () => {
     if (!selectedDealer || !confirmAction) return;
@@ -332,28 +348,22 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                       </Box>
                     </TableCell>
                     <TableCell>
-                      <Box sx={{ display: "flex", gap: 0.5 }}>
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
                         {[
-                          { label: "A", status: dealer.documentVerification?.aadhar, tip: "Aadhar Card" },
-                          { label: "P", status: dealer.documentVerification?.pan, tip: "PAN Card" },
-                          { label: "S", status: dealer.documentVerification?.shop, tip: "Shop Certificate" },
-                          { label: "B", status: dealer.documentVerification?.bank, tip: "Bank Details" },
-                        ].map((doc, i) => (
-                          <Tooltip key={i} title={`${doc.tip}: ${doc.status ? "Verified" : (dealer.documents?.[doc.label.toLowerCase()] ? "Uploaded" : "Missing")}`}>
-                            <Avatar
-                              sx={{ 
-                                width: 24, 
-                                height: 24, 
-                                fontSize: "0.65rem", 
-                                fontWeight: 800,
-                                bgcolor: doc.status ? "#22c55e" : (dealer.isDoc ? "#94a3b8" : "#f1f5f9"),
-                                color: doc.status ? "white" : "#475569",
-                                border: "1px solid #e2e8f0"
-                              }}
-                            >
+                          { label: "Aadhar", status: dealer.documentVerification?.aadharFront && dealer.documentVerification?.aadharBack },
+                          { label: "PAN", status: dealer.documentVerification?.pan },
+                          { label: "Shop", status: dealer.documentVerification?.shop },
+                          { label: "Face", status: dealer.documentVerification?.face },
+                        ].map((doc) => (
+                          <Box key={doc.label} sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                            {doc.status
+                              ? <CheckCircleIcon sx={{ fontSize: 13, color: "#22c55e", flexShrink: 0 }} />
+                              : <PendingIcon sx={{ fontSize: 13, color: "#f59e0b", flexShrink: 0 }} />
+                            }
+                            <Typography variant="caption" sx={{ color: doc.status ? "#15803d" : "#92400e", fontWeight: 600, lineHeight: 1 }}>
                               {doc.label}
-                            </Avatar>
-                          </Tooltip>
+                            </Typography>
+                          </Box>
                         ))}
                       </Box>
                     </TableCell>
@@ -420,19 +430,6 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
             sx={{ mr: 1, color: "primary.main" }}
           />{" "}
           Review Profile
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            handleActionClose();
-            setReviewDialogOpen(true);
-            setConfirmAction("approve");
-          }}
-        >
-          <VerifiedIcon
-            fontSize="small"
-            sx={{ mr: 1, color: "success.main" }}
-          />{" "}
-          Quick Verify
         </MenuItem>
       </Menu>
 
@@ -579,53 +576,116 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
 
               {/* RIGHT COLUMN: Documents */}
               <Grid item xs={12} md={6}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-                  <VisibilityIcon color="primary" fontSize="small" />
-                  <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main" }}>VERIFICATION DOCUMENTS</Typography>
+                {/* Header + progress summary */}
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <VisibilityIcon color="primary" fontSize="small" />
+                    <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main" }}>DOCUMENT REVIEW</Typography>
+                  </Box>
+                  <Chip
+                    size="small"
+                    label={`${["aadharFront","aadharBack","pan","shop","face"].filter(k => docVerification[k] === true).length} / 5 Approved`}
+                    color={allDocsVerified(docVerification) ? "success" : "warning"}
+                    icon={allDocsVerified(docVerification) ? <CheckCircleIcon fontSize="small" /> : <PendingIcon fontSize="small" />}
+                    sx={{ fontWeight: 800, fontSize: "0.7rem" }}
+                  />
                 </Box>
 
-                {/* Doc verification status row */}
-                {selectedDealer.documentVerification && (
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mb: 2 }}>
-                    {Object.entries(selectedDealer.documentVerification).map(([key, val]) => (
-                      <Chip key={key} label={key.toUpperCase()} size="small"
-                        color={val ? "success" : "default"} variant={val ? "filled" : "outlined"}
-                        icon={val ? <CheckCircleIcon fontSize="small" /> : undefined}
-                        sx={{ fontWeight: "bold", fontSize: "0.65rem" }}
-                      />
-                    ))}
-                  </Box>
+                {/* Instruction banner */}
+                {!allDocsVerified(docVerification) && (
+                  <Alert severity="info" sx={{ mb: 2, py: 0.5, fontSize: "0.75rem" }}>
+                    Review each document below. Click the image to enlarge. Approve or Reject each one before you can approve the dealer.
+                  </Alert>
+                )}
+                {allDocsVerified(docVerification) && (
+                  <Alert severity="success" sx={{ mb: 2, py: 0.5, fontSize: "0.75rem" }}>
+                    All documents verified! You can now approve this dealer.
+                  </Alert>
                 )}
 
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   {[
-                    { label: "Aadhar Front", path: selectedDealer.documents?.aadharFront },
-                    { label: "Aadhar Back", path: selectedDealer.documents?.aadharBack },
-                    { label: "PAN Card", path: selectedDealer.documents?.panCardFront },
-                    { label: "Shop Certificate", path: selectedDealer.documents?.shopCertificate },
-                    { label: "Face Verification", path: selectedDealer.documents?.faceVerificationImage },
-                    { label: "Shop Photo", path: selectedDealer.shopImages?.[0] },
-                  ].map((doc) => (
-                    <Box key={doc.label}>
-                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
-                        <Typography variant="caption" sx={{ fontWeight: "bold" }}>{doc.label}</Typography>
-                        {doc.path && <SuccessDocIcon color="success" sx={{ fontSize: 16 }} />}
-                      </Box>
-                      {doc.path ? (
-                        <Paper elevation={0}
-                          sx={{ height: 110, border: "1px solid #e2e8f0", borderRadius: 2, overflow: "hidden", bgcolor: "#fcfcfc", cursor: "pointer", "&:hover": { opacity: 0.85 } }}
-                          onClick={() => window.open(getImageUrl(doc.path), "_blank")}
-                        >
-                          <img src={getImageUrl(doc.path)} alt={doc.label}
-                            style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                        </Paper>
-                      ) : (
-                        <Box sx={{ height: 40, bgcolor: "#f5f5f5", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <Typography variant="caption" color="text.secondary">Not uploaded</Typography>
+                    { label: "Aadhar Card (Front)", path: selectedDealer.documents?.aadharFront, docKey: "aadharFront" },
+                    { label: "Aadhar Card (Back)", path: selectedDealer.documents?.aadharBack, docKey: "aadharBack" },
+                    { label: "PAN Card", path: selectedDealer.documents?.panCardFront, docKey: "pan" },
+                    { label: "Shop Certificate", path: selectedDealer.documents?.shopCertificate, docKey: "shop" },
+                    { label: "Face / Selfie", path: selectedDealer.documents?.faceVerificationImage, docKey: "face" },
+                    { label: "Shop Photo", path: selectedDealer.shopImages?.[0], docKey: null },
+                  ].map((doc) => {
+                    const status = doc.docKey ? docVerification[doc.docKey] : null;
+                    const borderColor = status === true ? "#22c55e" : status === false ? "#ef4444" : "#e2e8f0";
+                    const bgColor = status === true ? "#f0fdf4" : status === false ? "#fef2f2" : "#fcfcfc";
+                    return (
+                      <Paper
+                        key={doc.label}
+                        elevation={0}
+                        sx={{ border: "1.5px solid", borderColor, borderRadius: 2, overflow: "hidden", bgcolor: bgColor, transition: "border-color 0.2s, background 0.2s" }}
+                      >
+                        {/* Doc header row */}
+                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 1.5, py: 1, borderBottom: "1px solid", borderColor: "divider", bgcolor: "rgba(0,0,0,0.02)" }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            {doc.docKey && status === true && <CheckCircleIcon sx={{ fontSize: 15, color: "#22c55e" }} />}
+                            {doc.docKey && status === false && <CancelIcon sx={{ fontSize: 15, color: "#ef4444" }} />}
+                            {doc.docKey && status == null && <PendingIcon sx={{ fontSize: 15, color: "#f59e0b" }} />}
+                            <Typography variant="caption" sx={{ fontWeight: 700 }}>{doc.label}</Typography>
+                          </Box>
+                          {doc.docKey && (
+                            <Chip
+                              size="small"
+                              label={status === true ? "Approved" : status === false ? "Rejected" : "Pending Review"}
+                              color={status === true ? "success" : status === false ? "error" : "warning"}
+                              variant={status == null ? "outlined" : "filled"}
+                              sx={{ fontSize: "0.6rem", fontWeight: 800, height: 20 }}
+                            />
+                          )}
                         </Box>
-                      )}
-                    </Box>
-                  ))}
+
+                        {/* Image */}
+                        {doc.path ? (
+                          <Box
+                            component="img"
+                            src={getImageUrl(doc.path)}
+                            alt={doc.label}
+                            onClick={() => window.open(getImageUrl(doc.path), "_blank")}
+                            sx={{ width: "100%", height: 120, objectFit: "contain", cursor: "pointer", display: "block", "&:hover": { opacity: 0.85 } }}
+                          />
+                        ) : (
+                          <Box sx={{ height: 60, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Typography variant="caption" color="text.secondary">Not uploaded</Typography>
+                          </Box>
+                        )}
+
+                        {/* Approve / Reject buttons */}
+                        {doc.docKey && doc.path && (
+                          <Box sx={{ display: "flex", borderTop: "1px solid", borderColor: "divider" }}>
+                            <Button
+                              fullWidth
+                              size="small"
+                              variant={status === true ? "contained" : "text"}
+                              color="success"
+                              startIcon={<CheckCircleIcon />}
+                              onClick={() => handleDocVerify(doc.docKey, true)}
+                              sx={{ borderRadius: 0, py: 0.75, fontWeight: 800, fontSize: "0.72rem" }}
+                            >
+                              Approve
+                            </Button>
+                            <Divider orientation="vertical" flexItem />
+                            <Button
+                              fullWidth
+                              size="small"
+                              variant={status === false ? "contained" : "text"}
+                              color="error"
+                              startIcon={<CancelIcon />}
+                              onClick={() => handleDocVerify(doc.docKey, false)}
+                              sx={{ borderRadius: 0, py: 0.75, fontWeight: 800, fontSize: "0.72rem" }}
+                            >
+                              Reject
+                            </Button>
+                          </Box>
+                        )}
+                      </Paper>
+                    );
+                  })}
                 </Box>
               </Grid>
             </Grid>
@@ -696,42 +756,68 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
           )}
 
           {/* Main action buttons */}
-          <Box
-            sx={{ display: "flex", p: 2, gap: 1, justifyContent: "flex-end" }}
-          >
-            <Button
-              onClick={() => {
-                setReviewDialogOpen(false);
-                setConfirmAction(null);
-              }}
-              variant="outlined"
-              color="inherit"
-              disabled={actionLoading}
-            >
-              Close
-            </Button>
-            <Button
-              variant="contained"
-              color="error"
-              startIcon={<CancelIcon />}
-              onClick={() => setConfirmAction("reject")}
-              disabled={actionLoading || confirmAction === "reject"}
-            >
-              Reject Application
-            </Button>
-            <Button
-              variant="contained"
-              color="success"
-              startIcon={<CheckCircleIcon />}
-              onClick={() => setConfirmAction("approve")}
-              disabled={
-                actionLoading ||
-                selectedDealer?.isVerify ||
-                confirmAction === "approve"
-              }
-            >
-              {selectedDealer?.isVerify ? "Already Verified" : "Approve Dealer"}
-            </Button>
+          <Box sx={{ display: "flex", p: 2, gap: 1, justifyContent: "space-between", alignItems: "center" }}>
+            {/* Left: pending checklist hint */}
+            {!allDocsVerified(docVerification) && (
+              <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
+                {[
+                  { key: "aadharFront", label: "Aadhar Front" },
+                  { key: "aadharBack", label: "Aadhar Back" },
+                  { key: "pan", label: "PAN" },
+                  { key: "shop", label: "Shop Cert" },
+                  { key: "face", label: "Face/ID" },
+                ].map(({ key, label }) => (
+                  <Chip
+                    key={key}
+                    size="small"
+                    label={label}
+                    icon={docVerification[key] === true ? <CheckCircleIcon fontSize="small" /> : <PendingIcon fontSize="small" />}
+                    color={docVerification[key] === true ? "success" : docVerification[key] === false ? "error" : "default"}
+                    variant={docVerification[key] == null ? "outlined" : "filled"}
+                    sx={{ fontSize: "0.65rem", fontWeight: 700 }}
+                  />
+                ))}
+              </Box>
+            )}
+            {allDocsVerified(docVerification) && (
+              <Typography variant="caption" sx={{ color: "success.main", fontWeight: 700 }}>
+                ✓ All documents reviewed — ready to approve
+              </Typography>
+            )}
+
+            {/* Right: action buttons */}
+            <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
+              <Button
+                onClick={() => { setReviewDialogOpen(false); setConfirmAction(null); }}
+                variant="outlined"
+                color="inherit"
+                disabled={actionLoading}
+              >
+                Close
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                startIcon={<CancelIcon />}
+                onClick={() => setConfirmAction("reject")}
+                disabled={actionLoading || confirmAction === "reject"}
+              >
+                Reject Application
+              </Button>
+              <Tooltip title={!allDocsVerified(docVerification) ? "Review and approve all documents first" : ""}>
+                <span>
+                  <Button
+                    variant="contained"
+                    color="success"
+                    startIcon={<CheckCircleIcon />}
+                    onClick={() => setConfirmAction("approve")}
+                    disabled={actionLoading || selectedDealer?.isVerify || confirmAction === "approve" || !allDocsVerified(docVerification)}
+                  >
+                    {selectedDealer?.isVerify ? "Already Verified" : "Approve Dealer"}
+                  </Button>
+                </span>
+              </Tooltip>
+            </Box>
           </Box>
         </DialogActions>
       </Dialog>
