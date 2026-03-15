@@ -118,7 +118,8 @@ const BookingTable = ({
           item.user_id?.customerId?.toLowerCase().includes(term) || // ✅ Added Search by Customer ID
           item.dealer_id?.dealerId?.toLowerCase().includes(term) || // ✅ Added Search by Dealer ID
           item.userBike_id?.name?.toLowerCase().includes(term) || // ✅ Added Search by Bike Brand
-          item.userBike_id?.model?.toLowerCase().includes(term), // ✅ Added Search by Bike Model
+          item.userBike_id?.model?.toLowerCase().includes(term) || // ✅ Added Search by Bike Model
+          item.services?.[0]?.base_service_id?.name?.toLowerCase().includes(term), // ✅ Added Search by Service Name
       );
     }
 
@@ -314,7 +315,7 @@ const BookingTable = ({
               currentData.map((booking, index) => {
                 const amount = calculateEstimatedPrice(booking);
                 const services = booking.services || [];
-                const firstService = services[0]?.description || services[0]?.serviceId || "N/A";
+                const firstService = services[0]?.base_service_id?.name || services[0]?.description || services[0]?.serviceId || "N/A";
                 const displayServices = services.length > 1 
                   ? `${firstService.substring(0, 15)}... +${services.length - 1}` 
                   : firstService.substring(0, 20);
@@ -825,17 +826,23 @@ const BookingTable = ({
                     </Box>
                     <Divider />
                     <Box>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: "bold", mb: 0.5 }}
-                      >
+                      <Typography variant="body2" sx={{ fontWeight: "bold", mb: 0.5 }}>
                         Service Type:
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {selectedBooking.services
-                          ?.map((s) => s.description)
-                          .join(", ") || "N/A"}
-                      </Typography>
+                      {selectedBooking.services?.length > 0 ? (
+                        selectedBooking.services.map((s, idx) => (
+                          <Chip
+                            key={idx}
+                            label={s.base_service_id?.name || s.serviceId || "N/A"}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                            sx={{ mr: 0.5, mb: 0.5, fontSize: "0.72rem" }}
+                          />
+                        ))
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">N/A</Typography>
+                      )}
                     </Box>
                   </Stack>
                 </Paper>
