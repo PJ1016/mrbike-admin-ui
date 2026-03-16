@@ -144,12 +144,12 @@ const UserTable = ({
       const term = searchTerm.toLowerCase();
       result = result.filter(
         (item) =>
-          item.shopName?.toLowerCase().includes(term) ||
-          item.ownerName?.toLowerCase().includes(term) ||
-          item.dealerId?.toLowerCase().includes(term) ||
-          item.email?.toLowerCase().includes(term) ||
-          item.phone?.toLowerCase().includes(term) ||
-          item.city?.toLowerCase().includes(term)
+          (item.shopName || "")?.toLowerCase().includes(term) ||
+          (item.ownerName || "")?.toLowerCase().includes(term) ||
+          (item.dealerId || "")?.toLowerCase().includes(term) ||
+          (item.shopEmail || item.personalEmail || item.email || "")?.toLowerCase().includes(term) ||
+          (item.shopContact || item.phone || "")?.toLowerCase().includes(term) ||
+          (item.permanentAddress?.city || item.city || "")?.toLowerCase().includes(term)
       );
     }
 
@@ -388,19 +388,19 @@ const UserTable = ({
                       <Stack spacing={0.5}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                           <EmailIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-                          <Typography variant="caption">{dealer.email}</Typography>
+                          <Typography variant="caption">{dealer.shopEmail || dealer.email || "N/A"}</Typography>
                         </Box>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                           <PhoneIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-                          <Typography variant="caption">{dealer.phone}</Typography>
+                          <Typography variant="caption">{dealer.shopContact || dealer.phone || "N/A"}</Typography>
                         </Box>
                       </Stack>
                     </TableCell>
 
                     <TableCell>
                       <Stack spacing={0.5}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{dealer.city || "N/A"}</Typography>
-                        <Typography variant="caption" color="text.secondary">{dealer.state || "N/A"}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{dealer.permanentAddress?.city || dealer.city || "N/A"}</Typography>
+                        <Typography variant="caption" color="text.secondary">{dealer.permanentAddress?.state || dealer.state || "N/A"}</Typography>
                       </Stack>
                     </TableCell>
 
@@ -531,10 +531,11 @@ const UserTable = ({
                 <Typography variant="overline" sx={{ color: "#2e83ff", fontWeight: 700 }}>Basic Information</Typography>
                 <Stack spacing={2} sx={{ mt: 1 }}>
                   {[
-                    { label: "Owner Name", value: selectedDealer.ownerName, icon: <PersonIcon sx={{ fontSize: 18 }} /> },
-                    { label: "Phone", value: selectedDealer.phone, icon: <PhoneIcon sx={{ fontSize: 18 }} /> },
-                    { label: "Email", value: selectedDealer.email, icon: <EmailIcon sx={{ fontSize: 18 }} /> },
-                    { label: "Shop Contact", value: selectedDealer.shopContact, icon: <PhoneIcon sx={{ fontSize: 18 }} /> },
+                    { label: "Owner Name", value: selectedDealer.ownerName || "N/A", icon: <PersonIcon sx={{ fontSize: 18 }} /> },
+                    { label: "Owner Phone", value: selectedDealer.phone || "N/A", icon: <PhoneIcon sx={{ fontSize: 18 }} /> },
+                    { label: "Owner Email", value: selectedDealer.personalEmail || selectedDealer.email || "N/A", icon: <EmailIcon sx={{ fontSize: 18 }} /> },
+                    { label: "Shop Contact", value: selectedDealer.shopContact || selectedDealer.phone || "N/A", icon: <PhoneIcon sx={{ fontSize: 18 }} /> },
+                    { label: "Shop Email", value: selectedDealer.shopEmail || "N/A", icon: <EmailIcon sx={{ fontSize: 18 }} /> },
                   ].map((row, i) => (
                     <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                       <Box sx={{ color: "text.secondary" }}>{row.icon}</Box>
@@ -575,8 +576,8 @@ const UserTable = ({
                 <Box sx={{ mt: 1, display: "flex", gap: 2 }}>
                   <LocationIcon color="primary" />
                   <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedDealer.fullAddress || "Address not provided"}</Typography>
-                    <Typography variant="body2" color="text.secondary">{selectedDealer.city}, {selectedDealer.state} - {selectedDealer.shopPincode}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedDealer.permanentAddress?.address || selectedDealer.fullAddress || "Address not provided"}</Typography>
+                    <Typography variant="body2" color="text.secondary">{selectedDealer.permanentAddress?.city || selectedDealer.city || "N/A"}, {selectedDealer.permanentAddress?.state || selectedDealer.state || "N/A"} - {selectedDealer.shopPincode || "N/A"}</Typography>
                   </Box>
                 </Box>
               </Grid>
