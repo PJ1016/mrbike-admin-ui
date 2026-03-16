@@ -81,7 +81,10 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
           item.shopName?.toLowerCase().includes(term) ||
           item.ownerName?.toLowerCase().includes(term) ||
           item.email?.toLowerCase().includes(term) ||
+          item.personalEmail?.toLowerCase().includes(term) ||
+          item.shopEmail?.toLowerCase().includes(term) ||
           item.phone?.toLowerCase().includes(term) ||
+          item.shopContact?.toLowerCase().includes(term) ||
           item._id?.toLowerCase().includes(term),
       );
     }
@@ -335,12 +338,45 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                           variant="caption"
                           color="text.secondary"
                           display="block"
+                          sx={{ fontStyle: "italic" }}
                         >
-                          {dealer.city || "N/A"}, {dealer.state || "N/A"}
+                          {dealer.fullAddress ||
+                            dealer.permanentAddress?.address ||
+                            dealer.presentAddress?.address ||
+                            "No Address"}
                         </Typography>
-                        <Typography variant="caption" color="primary">
-                          {dealer.phone}
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                        >
+                          {dealer.city ||
+                            dealer.permanentAddress?.city ||
+                            dealer.presentAddress?.city ||
+                            "N/A"}
+                          ,{" "}
+                          {dealer.state ||
+                            dealer.permanentAddress?.state ||
+                            dealer.presentAddress?.state ||
+                            "N/A"}
                         </Typography>
+                        <Box sx={{ mt: 0.5 }}>
+                          <Typography
+                            variant="caption"
+                            display="block"
+                            color="primary"
+                            sx={{ fontWeight: "bold" }}
+                          >
+                            {dealer.shopContact || "No Contact"}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            display="block"
+                            color="text.secondary"
+                          >
+                            {dealer.shopEmail || "No Email"}
+                          </Typography>
+                        </Box>
                       </Box>
                     </TableCell>
                     <TableCell>
@@ -348,8 +384,11 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                         <Typography variant="body2">
                           {dealer.ownerName || "N/A"}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {dealer.email || "N/A"}
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          {dealer.personalEmail || dealer.email || "N/A"}
+                        </Typography>
+                        <Typography variant="caption" color="primary" display="block" sx={{ fontWeight: "bold" }}>
+                          {dealer.alternatePhone || dealer.phone || "N/A"}
                         </Typography>
                       </Box>
                     </TableCell>
@@ -647,11 +686,12 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                       label: "Full Address",
                       value:
                         selectedDealer.fullAddress ||
-                        selectedDealer.permanentAddress?.address,
+                        selectedDealer.permanentAddress?.address ||
+                        selectedDealer.presentAddress?.address,
                     },
                     {
                       label: "City / State",
-                      value: `${selectedDealer.city || selectedDealer.permanentAddress?.city || "N/A"}, ${selectedDealer.state || selectedDealer.permanentAddress?.state || "N/A"}`,
+                      value: `${selectedDealer.city || selectedDealer.permanentAddress?.city || selectedDealer.presentAddress?.city || "N/A"}, ${selectedDealer.state || selectedDealer.permanentAddress?.state || selectedDealer.presentAddress?.state || "N/A"}`,
                     },
                     {
                       label: "Present Addr.",
