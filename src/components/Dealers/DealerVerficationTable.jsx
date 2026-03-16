@@ -185,7 +185,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
   };
 
   const allDocsVerified = (dv) =>
-    ["aadharFront", "aadharBack", "pan", "shop", "face"].every(
+    ["aadharFront", "aadharBack", "pan", "shop", "face", "passbook"].every(
       (k) => dv[k] === "verified",
     );
 
@@ -419,6 +419,10 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                             key: "face",
                             label: "Face",
                           },
+                          {
+                            key: "passbook",
+                            label: "Passbook",
+                          },
                         ].map((doc) => {
                           const status =
                             dealer.documentVerification?.[doc.key] || "none";
@@ -509,6 +513,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                                   pan: "PAN",
                                   shop: "Shop Cert",
                                   face: "Face/ID",
+                                  passbook: "Passbook",
                                 };
                                 return labels[k] || k;
                               })
@@ -896,7 +901,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                   </Box>
                   <Chip
                     size="small"
-                    label={`${["aadharFront", "aadharBack", "pan", "shop", "face"].filter((k) => docVerification[k] === "verified").length} / 5 Approved`}
+                    label={`${["aadharFront", "aadharBack", "pan", "shop", "face", "passbook"].filter((k) => docVerification[k] === "verified").length} / 6 Approved`}
                     color={
                       allDocsVerified(docVerification) ? "success" : "warning"
                     }
@@ -967,6 +972,11 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                       label: "Face / Selfie",
                       path: selectedDealer.documents?.faceVerificationImage,
                       docKey: "face",
+                    },
+                    {
+                      label: "Passbook / Cheque",
+                      path: selectedDealer.bankDetails?.passbookImage,
+                      docKey: "passbook",
                     },
                     {
                       label: "Shop Photo",
