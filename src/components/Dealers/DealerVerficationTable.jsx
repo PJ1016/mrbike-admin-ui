@@ -186,7 +186,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
 
   const allDocsVerified = (dv) =>
     ["aadharFront", "aadharBack", "pan", "shop", "face"].every(
-      (k) => dv[k] === true,
+      (k) => dv[k] === "verified",
     );
 
   const executeConfirmedAction = async () => {
@@ -400,62 +400,122 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                       >
                         {[
                           {
-                            label: "Aadhar",
-                            status:
-                              dealer.documentVerification?.aadharFront &&
-                              dealer.documentVerification?.aadharBack,
+                            key: "aadharFront",
+                            label: "Aadhar Front",
                           },
                           {
+                            key: "aadharBack",
+                            label: "Aadhar Back",
+                          },
+                          {
+                            key: "pan",
                             label: "PAN",
-                            status: dealer.documentVerification?.pan,
                           },
                           {
+                            key: "shop",
                             label: "Shop",
-                            status: dealer.documentVerification?.shop,
                           },
                           {
+                            key: "face",
                             label: "Face",
-                            status: dealer.documentVerification?.face,
                           },
-                        ].map((doc) => (
-                          <Box
-                            key={doc.label}
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 0.75,
-                            }}
-                          >
-                            {doc.status ? (
-                              <CheckCircleIcon
-                                sx={{
-                                  fontSize: 13,
-                                  color: "#22c55e",
-                                  flexShrink: 0,
-                                }}
-                              />
-                            ) : (
-                              <PendingIcon
-                                sx={{
-                                  fontSize: 13,
-                                  color: "#f59e0b",
-                                  flexShrink: 0,
-                                }}
-                              />
-                            )}
-                            <Typography
-                              variant="caption"
+                        ].map((doc) => {
+                          const status =
+                            dealer.documentVerification?.[doc.key] || "none";
+                          return (
+                            <Box
+                              key={doc.label}
                               sx={{
-                                color: doc.status ? "#15803d" : "#92400e",
-                                fontWeight: 600,
-                                lineHeight: 1,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.75,
                               }}
                             >
-                              {doc.label}
-                            </Typography>
-                          </Box>
-                        ))}
+                              {status === "verified" ? (
+                                <CheckCircleIcon
+                                  sx={{
+                                    fontSize: 13,
+                                    color: "#22c55e",
+                                    flexShrink: 0,
+                                  }}
+                                />
+                              ) : status === "rejected" ? (
+                                <CancelIcon
+                                  sx={{
+                                    fontSize: 13,
+                                    color: "#ef4444",
+                                    flexShrink: 0,
+                                  }}
+                                />
+                              ) : status === "pending" ? (
+                                <PendingIcon
+                                  sx={{
+                                    fontSize: 13,
+                                    color: "#f59e0b",
+                                    flexShrink: 0,
+                                  }}
+                                />
+                              ) : (
+                                <DotIcon
+                                  sx={{
+                                    fontSize: 13,
+                                    color: "#94a3b8",
+                                    flexShrink: 0,
+                                  }}
+                                />
+                              )}
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color:
+                                    status === "verified"
+                                      ? "#15803d"
+                                      : status === "rejected"
+                                        ? "#b91c1c"
+                                        : status === "pending"
+                                          ? "#92400e"
+                                          : "#64748b",
+                                  fontWeight: 600,
+                                  lineHeight: 1,
+                                }}
+                              >
+                                {doc.label}
+                              </Typography>
+                            </Box>
+                          );
+                        })}
                       </Box>
+                      {Object.entries(dealer.documentVerification || {})
+                        .filter(([_, v]) => v === "rejected")
+                        .length > 0 && (
+                        <Box sx={{ mt: 1 }}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "#ef4444",
+                              fontWeight: "bold",
+                              display: "block",
+                              fontSize: "0.65rem",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Rejected:{" "}
+                            {Object.entries(dealer.documentVerification)
+                              .filter(([_, v]) => v === "rejected")
+                              .map(([k, _]) => {
+                                const labels = {
+                                  aadharFront: "Aadhar Front",
+                                  aadharBack: "Aadhar Back",
+                                  pan: "PAN",
+                                  shop: "Shop Cert",
+                                  face: "Face/ID",
+                                };
+                                return labels[k] || k;
+                              })
+                              .join(", ")}
+                          </Typography>
+                        </Box>
+                      )}
                     </TableCell>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
                       {new Date(dealer.createdAt).toLocaleDateString("en-GB", {
@@ -836,7 +896,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                   </Box>
                   <Chip
                     size="small"
-                    label={`${["aadharFront", "aadharBack", "pan", "shop", "face"].filter((k) => docVerification[k] === true).length} / 5 Approved`}
+                    label={`${["aadharFront", "aadharBack", "pan", "shop", "face"].filter((k) => docVerification[k] === "verified").length} / 5 Approved`}
                     color={
                       allDocsVerified(docVerification) ? "success" : "warning"
                     }
@@ -852,7 +912,18 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                 </Box>
 
                 {/* Instruction banner */}
-                {!allDocsVerified(docVerification) && (
+                {Object.values(docVerification).some(
+                  (v) => v === "rejected",
+                ) ? (
+                  <Alert
+                    severity="error"
+                    sx={{ mb: 2, py: 0.5, fontSize: "0.75rem" }}
+                  >
+                    <strong>Needs Attention:</strong> One or more documents have
+                    been rejected. The dealer will need to re-upload these
+                    before the profile can be fully approved.
+                  </Alert>
+                ) : !allDocsVerified(docVerification) ? (
                   <Alert
                     severity="info"
                     sx={{ mb: 2, py: 0.5, fontSize: "0.75rem" }}
@@ -861,8 +932,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                     Approve or Reject each one before you can approve the
                     dealer.
                   </Alert>
-                )}
-                {allDocsVerified(docVerification) && (
+                ) : (
                   <Alert
                     severity="success"
                     sx={{ mb: 2, py: 0.5, fontSize: "0.75rem" }}
@@ -908,17 +978,21 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                       ? docVerification[doc.docKey]
                       : null;
                     const borderColor =
-                      status === true
+                      status === "verified"
                         ? "#22c55e"
-                        : status === false
+                        : status === "rejected"
                           ? "#ef4444"
-                          : "#e2e8f0";
+                          : status === "pending"
+                            ? "#f59e0b"
+                            : "#e2e8f0";
                     const bgColor =
-                      status === true
+                      status === "verified"
                         ? "#f0fdf4"
-                        : status === false
+                        : status === "rejected"
                           ? "#fef2f2"
-                          : "#fcfcfc";
+                          : status === "pending"
+                            ? "#fffbeb"
+                            : "#fcfcfc";
                     return (
                       <Paper
                         key={doc.label}
@@ -952,21 +1026,22 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                               gap: 1,
                             }}
                           >
-                            {doc.docKey && status === true && (
+                            {doc.docKey && status === "verified" && (
                               <CheckCircleIcon
                                 sx={{ fontSize: 15, color: "#22c55e" }}
                               />
                             )}
-                            {doc.docKey && status === false && (
+                            {doc.docKey && status === "rejected" && (
                               <CancelIcon
                                 sx={{ fontSize: 15, color: "#ef4444" }}
                               />
                             )}
-                            {doc.docKey && status == null && (
-                              <PendingIcon
-                                sx={{ fontSize: 15, color: "#f59e0b" }}
-                              />
-                            )}
+                            {doc.docKey &&
+                              (status === "pending" || status === "none") && (
+                                <PendingIcon
+                                  sx={{ fontSize: 15, color: "#f59e0b" }}
+                                />
+                              )}
                             <Typography
                               variant="caption"
                               sx={{ fontWeight: 700 }}
@@ -978,20 +1053,24 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                             <Chip
                               size="small"
                               label={
-                                status === true
+                                status === "verified"
                                   ? "Approved"
-                                  : status === false
+                                  : status === "rejected"
                                     ? "Rejected"
                                     : "Pending Review"
                               }
                               color={
-                                status === true
+                                status === "verified"
                                   ? "success"
-                                  : status === false
+                                  : status === "rejected"
                                     ? "error"
                                     : "warning"
                               }
-                              variant={status == null ? "outlined" : "filled"}
+                              variant={
+                                status === "verified" || status === "rejected"
+                                  ? "filled"
+                                  : "outlined"
+                              }
                               sx={{
                                 fontSize: "0.6rem",
                                 fontWeight: 800,
@@ -1049,10 +1128,14 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                             <Button
                               fullWidth
                               size="small"
-                              variant={status === true ? "contained" : "text"}
+                              variant={
+                                status === "verified" ? "contained" : "text"
+                              }
                               color="success"
                               startIcon={<CheckCircleIcon />}
-                              onClick={() => handleDocVerify(doc.docKey, true)}
+                              onClick={() =>
+                                handleDocVerify(doc.docKey, "verified")
+                              }
                               sx={{
                                 borderRadius: 0,
                                 py: 0.75,
@@ -1066,10 +1149,14 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                             <Button
                               fullWidth
                               size="small"
-                              variant={status === false ? "contained" : "text"}
+                              variant={
+                                status === "rejected" ? "contained" : "text"
+                              }
                               color="error"
                               startIcon={<CancelIcon />}
-                              onClick={() => handleDocVerify(doc.docKey, false)}
+                              onClick={() =>
+                                handleDocVerify(doc.docKey, "rejected")
+                              }
                               sx={{
                                 borderRadius: 0,
                                 py: 0.75,
@@ -1178,21 +1265,26 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                     size="small"
                     label={label}
                     icon={
-                      docVerification[key] === true ? (
+                      docVerification[key] === "verified" ? (
                         <CheckCircleIcon fontSize="small" />
+                      ) : docVerification[key] === "rejected" ? (
+                        <CancelIcon fontSize="small" />
                       ) : (
                         <PendingIcon fontSize="small" />
                       )
                     }
                     color={
-                      docVerification[key] === true
+                      docVerification[key] === "verified"
                         ? "success"
-                        : docVerification[key] === false
+                        : docVerification[key] === "rejected"
                           ? "error"
                           : "default"
                     }
                     variant={
-                      docVerification[key] == null ? "outlined" : "filled"
+                      docVerification[key] === "verified" ||
+                      docVerification[key] === "rejected"
+                        ? "filled"
+                        : "outlined"
                     }
                     sx={{ fontSize: "0.65rem", fontWeight: 700 }}
                   />
