@@ -227,12 +227,13 @@ const VendorDealerDetails = () => {
     }
 
     addSection("Shop Information")
-    addInfo("Shop Email", dealer.email)
-    addInfo("Shop Contact", dealer.phone)
-    addInfo("Full Address", dealer.fullAddress)
-    addInfo("City / State", `${dealer.city || "N/A"} / ${dealer.state || "N/A"}`)
-    addInfo("Pincode", dealer.shopPincode)
-    addInfo("Commission / Tax", `${dealer.commission}% / ${dealer.tax}%`)
+    addInfo("Shop Name", dealer.shopName || "N/A")
+    addInfo("Shop Email", dealer.shopEmail || dealer.email || "N/A")
+    addInfo("Shop Contact", dealer.shopContact || dealer.phone || "N/A")
+    addInfo("Full Address", dealer.permanentAddress?.address || dealer.fullAddress || "N/A")
+    addInfo("City / State", `${dealer.permanentAddress?.city || dealer.city || "N/A"} / ${dealer.permanentAddress?.state || dealer.state || "N/A"}`)
+    addInfo("Pincode", dealer.shopPincode || "N/A")
+    addInfo("Commission / Tax", `${dealer.commission || 0}% / ${dealer.tax || 0}%`)
     addInfo("Status", dealer.isActive ? "Active" : "Inactive")
     yPos += 5
 
@@ -258,11 +259,12 @@ const VendorDealerDetails = () => {
     }
 
     addSection("Owner Details")
-    addInfo("Owner Name", dealer.ownerName)
-    addInfo("Owner Phone", dealer.phone)
-    addInfo("Alternate Phone", dealer.alternatePhone)
-    addInfo("Aadhar No.", dealer.aadharCardNo)
-    addInfo("PAN No.", dealer.panCardNo)
+    addInfo("Owner Name", dealer.ownerName || "N/A")
+    addInfo("Owner Email", dealer.personalEmail || dealer.email || "N/A")
+    addInfo("Owner Phone", dealer.phone || "N/A")
+    addInfo("Alternate Phone", dealer.alternatePhone || "N/A")
+    addInfo("Aadhar No.", dealer.aadharCardNo || "N/A")
+    addInfo("PAN No.", (dealer.panCardNo || "N/A").toUpperCase())
     yPos += 10
 
     addSection("KYC Documents")
@@ -536,23 +538,23 @@ const VendorDealerDetails = () => {
                       <Grid container spacing={2}>
                         <Grid item xs={12} sm={6}>
                           <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>EMAIL ADDRESS</Typography>
-                          <Typography variant="body1" fontWeight="600">{dealer.email || "N/A"}</Typography>
+                          <Typography variant="body1" fontWeight="600">{dealer.shopEmail || dealer.email || "N/A"}</Typography>
                         </Grid>
                         <Grid item xs={12} sm={6}>
                           <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>CONTACT NUMBER</Typography>
-                          <Typography variant="body1" fontWeight="600">{dealer.phone || "N/A"}</Typography>
+                          <Typography variant="body1" fontWeight="600">{dealer.shopContact || dealer.phone || "N/A"}</Typography>
                         </Grid>
                         <Grid item xs={12}>
                           <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>SHOP ADDRESS</Typography>
-                          <Typography variant="body1" fontWeight="600">{dealer.fullAddress || "N/A"}</Typography>
+                          <Typography variant="body1" fontWeight="600">{dealer.permanentAddress?.address || dealer.fullAddress || "N/A"}</Typography>
                         </Grid>
                         <Grid item xs={12} sm={6}>
                           <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>CITY / STATE</Typography>
-                          <Typography variant="body1" fontWeight="600">{dealer.city} / {dealer.state}</Typography>
+                          <Typography variant="body1" fontWeight="600">{dealer.permanentAddress?.city || dealer.city || "N/A"} / {dealer.permanentAddress?.state || dealer.state || "N/A"}</Typography>
                         </Grid>
                         <Grid item xs={12} sm={6}>
                           <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>COMMISSION RATE</Typography>
-                          <Chip label={`${dealer.commission}%`} size="small" sx={{ fontWeight: 800, bgcolor: 'primary.50', color: 'primary.main' }} />
+                          <Chip label={`${dealer.commission || 0}%`} size="small" sx={{ fontWeight: 800, bgcolor: 'primary.50', color: 'primary.main' }} />
                         </Grid>
                       </Grid>
                     </Box>
@@ -589,15 +591,23 @@ const VendorDealerDetails = () => {
                       <Stack spacing={2.5}>
                         <Box>
                           <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>FULL NAME</Typography>
-                          <Typography variant="body1" fontWeight="700">{dealer.ownerName}</Typography>
+                          <Typography variant="body1" fontWeight="700">{dealer.ownerName || "N/A"}</Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>EMAIL</Typography>
+                          <Typography variant="body1" fontWeight="600">{dealer.personalEmail || dealer.email || "N/A"}</Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>PHONE</Typography>
+                          <Typography variant="body1" fontWeight="600">{dealer.phone || "N/A"}</Typography>
                         </Box>
                         <Box>
                           <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>AADHAR CARD NO.</Typography>
-                          <Typography variant="body1" fontWeight="600">{dealer.aadharCardNo}</Typography>
+                          <Typography variant="body1" fontWeight="600">{dealer.aadharCardNo || "N/A"}</Typography>
                         </Box>
                         <Box>
                           <Typography variant="caption" color="text.secondary" fontWeight="700" sx={{ display: 'block', mb: 0.5 }}>PAN CARD NO.</Typography>
-                          <Typography variant="body1" fontWeight="600" sx={{ textTransform: 'uppercase' }}>{dealer.panCardNo}</Typography>
+                          <Typography variant="body1" fontWeight="600" sx={{ textTransform: 'uppercase' }}>{dealer.panCardNo || "N/A"}</Typography>
                         </Box>
                       </Stack>
                     </Box>
@@ -851,6 +861,10 @@ const VendorDealerDetails = () => {
                       <Chip label={dealer?.bankDetails?.ifscCode || "N/A"} sx={{ fontWeight: 800, bgcolor: 'grey.100', px: 1 }} />
                     </Grid>
                   </Grid>
+
+                  <Box sx={{ mt: 4 }}>
+                    <ImagePreview src={dealer?.documents?.passbookImage} label="Passbook / Cancelled Cheque Image" />
+                  </Box>
 
                   <Alert severity="info" variant="outlined" icon={<AccountBalanceIcon />} sx={{ mt: 5, borderRadius: 2, borderStyle: 'dashed' }}>
                     <Typography variant="caption" fontWeight="700" sx={{ display: 'block' }}>AUDIT NOTE</Typography>

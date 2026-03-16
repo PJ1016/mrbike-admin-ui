@@ -113,10 +113,10 @@ const ViewDealersVerify = () => {
 
                                 <div className="viewdealers p-3">
                                     <h5 className="text-primary mb-3"><FaImage className="me-2" />Shop Details</h5>
-                                    <p><strong>Shop Email:</strong> {dealer.email || 'N/A'}</p>
-                                    <p><strong>Shop Contact:</strong> {dealer.phone || 'N/A'}</p>
-                                    <p><strong>Shop Address:</strong> {dealer.fullAddress || 'N/A'}</p>
-                                    <p><strong>Comission:</strong> {dealer.commission} % | <strong>Tax:</strong> {dealer.tax} %</p>
+                                    <p><strong>Shop Email:</strong> {dealer.shopEmail || dealer.email || 'N/A'}</p>
+                                    <p><strong>Shop Contact:</strong> {dealer.shopContact || dealer.phone || 'N/A'}</p>
+                                    <p><strong>Shop Address:</strong> {dealer.permanentAddress?.address || dealer.fullAddress || 'N/A'}</p>
+                                    <p><strong>Comission:</strong> {dealer.commission || 0} % | <strong>Tax:</strong> {dealer.tax || 0} %</p>
                                     <p><strong>Shop Images: &nbsp;</strong>
                                         {Array.isArray(dealer.shopImages) && dealer.shopImages.length > 0 ? (
                                             dealer.shopImages.map((img, index) => (
@@ -130,16 +130,16 @@ const ViewDealersVerify = () => {
                                     {/* Personal Info */}
                                     <hr />
                                     <h5 className="text-primary mb-3"><FaUser className="me-2" /> Personal Information</h5>
-                                    <p><strong>Name:</strong> {dealer.ownerName}</p>
-                                    <p><FaEnvelope className="me-2" /><strong>Email:</strong> {dealer.email}</p>
-                                    <p><FaPhone className="me-2" /><strong>Phone:</strong> {dealer.phone}</p>
+                                    <p><strong>Name:</strong> {dealer.ownerName || 'N/A'}</p>
+                                    <p><FaEnvelope className="me-2" /><strong>Email:</strong> {dealer.personalEmail || dealer.email || 'N/A'}</p>
+                                    <p><FaPhone className="me-2" /><strong>Phone:</strong> {dealer.phone || 'N/A'}</p>
                                     <p><strong>Alternate Phone:</strong> {dealer.alternatePhone || 'N/A'}</p>
 
                                     {/* Address */}
                                     <hr />
                                     <h5 className="text-primary mb-3"><FaMapMarkerAlt className="me-2" /> Address Details</h5>
-                                    <p><strong>Full Address:</strong> {dealer.fullAddress}</p>
-                                    <p><strong>City:</strong> {dealer.city} | <strong>State:</strong> {dealer.state} | <strong>Pincode:</strong> {dealer.shopPincode}</p>
+                                    <p><strong>Full Address:</strong> {dealer.permanentAddress?.address || dealer.fullAddress || "N/A"}</p>
+                                    <p><strong>City:</strong> {dealer.permanentAddress?.city || dealer.city || "N/A"} | <strong>State:</strong> {dealer.permanentAddress?.state || dealer.state || "N/A"} | <strong>Pincode:</strong> {dealer.shopPincode || 'N/A'}</p>
 
                                     {/* Bank Info */}
                                     <hr />
@@ -148,6 +148,9 @@ const ViewDealersVerify = () => {
                                     <p><strong>Bank Name:</strong> {dealer.bankDetails.bankName}</p>
                                     <p><strong>Account No.:</strong> {dealer.bankDetails.accountNumber}</p>
                                     <p><strong>IFSC Code:</strong> {dealer.bankDetails.ifscCode}</p>
+                                    <div className="mt-3">
+                                        <ImagePreview src={dealer.documents?.passbookImage} label="Passbook / Cancelled Cheque" />
+                                    </div>
 
                                     {/* Documents */}
                                     <hr />
