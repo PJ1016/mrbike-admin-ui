@@ -8,15 +8,24 @@ import {
   Divider,
   Breadcrumbs,
   Link,
-  CircularProgress,
+  Grid,
+  LinearProgress,
+  Card,
+  CardContent,
+  Tabs,
+  Tab,
+  Stack,
   Alert,
-  Chip,
+  CircularProgress,
 } from "@mui/material";
 import {
   FileDownload as DownloadIcon,
   Description as PdfIcon,
   TableChart as ExcelIcon,
   Home as HomeIcon,
+  CheckCircle as CheckCircleIcon,
+  Pending as PendingIcon,
+  Cancel as CancelIcon,
 } from "@mui/icons-material";
 import BookingTable from "../../components/Booking/BookingTable";
 import { getAllBookings } from "../../api";
@@ -101,14 +110,36 @@ const Bookings = () => {
     );
 
     return [
-      { label: "Total Bookings", value: total, color: "#2e83ff" },
-      { label: "Confirmed/Active", value: confirmed, color: "#2e7d32" },
-      { label: "Pending", value: pending, color: "#ed6c02" },
-      { label: "Cancelled", value: cancelled, color: "#d32f2f" },
+      {
+        label: "Total Bookings",
+        value: total,
+        color: "#6366f1",
+        icon: <DownloadIcon />,
+      },
+      {
+        label: "Confirmed/Active",
+        value: confirmed,
+        color: "#10b981",
+        icon: <CheckCircleIcon />,
+      },
+      {
+        label: "Pending",
+        value: pending,
+        color: "#f59e0b",
+        icon: <PendingIcon />,
+      },
+      {
+        label: "Cancelled",
+        value: cancelled,
+        color: "#ef4444",
+        icon: <CancelIcon />,
+      },
       {
         label: "Est. Revenue",
-        value: `₹${revenue.toLocaleString()}`,
-        color: "#9c27b0",
+        value: revenue,
+        color: "#8b5cf6",
+        icon: <PdfIcon />,
+        isRevenue: true,
       },
     ];
   }, [data]);
@@ -121,6 +152,10 @@ const Bookings = () => {
     "Completed",
     "Cancelled",
   ];
+
+  const handleStatusChange = (event, newValue) => {
+    setStatusFilter(newValue);
+  };
 
   return (
     <div className="page-wrapper">
@@ -206,67 +241,152 @@ const Bookings = () => {
           </Box>
 
           {/* Stats Overview */}
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "1fr 1fr",
-                md: "repeat(4, 1fr)",
-              },
-              gap: 3,
-              mb: 4,
-            }}
-          >
-            {stats.map((stat, index) => (
-              <Paper
-                key={index}
-                elevation={2}
-                sx={{
-                  p: 3,
-                  borderRadius: 3,
-                  borderLeft: `6px solid ${stat.color}`,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 1,
-                }}
-              >
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ fontWeight: "medium" }}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            {stats.map((stat, index) => {
+              const goal = 50000;
+              const progress = stat.isRevenue
+                ? Math.min((stat.value / goal) * 100, 100)
+                : 0;
+
+              return (
+                <Grid
+                  item
+                  xs={12}
+                  sm={6}
+                  md={stat.isRevenue ? 6 : 3}
+                  key={index}
+                  lg={stat.isRevenue ? 4 : 2.4}
                 >
-                  {stat.label}
-                </Typography>
-                <Typography
-                  variant="h5"
-                  sx={{ fontWeight: "bold", color: stat.color }}
-                >
-                  {stat.value}
-                </Typography>
-              </Paper>
-            ))}
-          </Box>
+                  <Card
+                    elevation={0}
+                    sx={{
+                      borderRadius: 4,
+                      border: "1px solid #e2e8f0",
+                      height: "100%",
+                      transition: "transform 0.2s",
+                      "&:hover": { transform: "translateY(-4px)" },
+                    }}
+                  >
+                    <CardContent sx={{ p: 3 }}>
+                      <Stack
+                        direction="row"
+                        justifyContent="space-between"
+                        alignItems="flex-start"
+                        sx={{ mb: 2 }}
+                      >
+                        <Box
+                          sx={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 2,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            bgcolor: `${stat.color}15`,
+                            color: stat.color,
+                          }}
+                        >
+                          {stat.icon}
+                        </Box>
+                        {stat.isRevenue && (
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontWeight: 700,
+                              px: 1,
+                              py: 0.5,
+                              borderRadius: 1,
+                              bgcolor: "success.light",
+                              color: "success.dark",
+                            }}
+                          >
+                            KPI
+                          </Typography>
+                        )}
+                      </Stack>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                        }}
+                      >
+                        {stat.label}
+                      </Typography>
+                      <Typography
+                        variant="h4"
+                        sx={{ fontWeight: 800, mt: 0.5, color: "neutral.800" }}
+                      >
+                        {stat.isRevenue
+                          ? `₹${stat.value.toLocaleString()}`
+                          : stat.value}
+                      </Typography>
+
+                      {stat.isRevenue && (
+                        <Box sx={{ mt: 2 }}>
+                          <Stack
+                            direction="row"
+                            justifyContent="space-between"
+                            sx={{ mb: 0.5 }}
+                          >
+                            <Typography
+                              variant="caption"
+                              sx={{ fontWeight: 600 }}
+                            >
+                              Goal: ₹50,000
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{ fontWeight: 700, color: "primary.main" }}
+                            >
+                              {Math.round(progress)}%
+                            </Typography>
+                          </Stack>
+                          <LinearProgress
+                            variant="determinate"
+                            value={progress}
+                            sx={{
+                              height: 6,
+                              borderRadius: 3,
+                              bgcolor: "#f1f5f9",
+                              "& .MuiLinearProgress-bar": {
+                                borderRadius: 3,
+                                bgcolor: stat.color,
+                              },
+                            }}
+                          />
+                        </Box>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
+          </Grid>
 
           {/* Status Filters */}
-          <Box sx={{ mb: 3, display: "flex", gap: 1, flexWrap: "wrap" }}>
-            {statuses.map((status) => (
-              <Chip
-                key={status}
-                label={status}
-                onClick={() => setStatusFilter(status)}
-                color={statusFilter === status ? "primary" : "default"}
-                variant={statusFilter === status ? "filled" : "outlined"}
-                sx={{
-                  px: 1,
-                  fontWeight: statusFilter === status ? "bold" : "normal",
-                  "&:hover": {
-                    bgcolor:
-                      statusFilter === status ? "primary.dark" : "grey.200",
-                  },
-                }}
-              />
-            ))}
+          <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
+            <Tabs
+              value={statusFilter}
+              onChange={handleStatusChange}
+              variant="scrollable"
+              scrollButtons="auto"
+              sx={{
+                "& .MuiTab-root": {
+                  textTransform: "none",
+                  fontWeight: 600,
+                  fontSize: "0.95rem",
+                  minWidth: 100,
+                  py: 1.5,
+                },
+              }}
+            >
+              {statuses.map((status) => (
+                <Tab key={status} label={status} value={status} />
+              ))}
+            </Tabs>
           </Box>
 
           {/* Main Table Section */}
