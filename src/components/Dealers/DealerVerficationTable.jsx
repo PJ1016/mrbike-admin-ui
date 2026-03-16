@@ -177,12 +177,16 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
       await verifyDealerDocument(selectedDealer._id, docType, status);
       setDocVerification((prev) => ({ ...prev, [docType]: status }));
     } catch (error) {
-      setActionError(error?.response?.data?.message || "Failed to update document status.");
+      setActionError(
+        error?.response?.data?.message || "Failed to update document status.",
+      );
     }
   };
 
   const allDocsVerified = (dv) =>
-    ["aadharFront", "aadharBack", "pan", "shop", "face"].every((k) => dv[k] === true);
+    ["aadharFront", "aadharBack", "pan", "shop", "face"].every(
+      (k) => dv[k] === true,
+    );
 
   const executeConfirmedAction = async () => {
     if (!selectedDealer || !confirmAction) return;
@@ -202,7 +206,9 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
       }
     } catch (error) {
       console.error("Action failed:", error);
-      const msg = error?.response?.data?.message || "Something went wrong. Please try again.";
+      const msg =
+        error?.response?.data?.message ||
+        "Something went wrong. Please try again.";
       setActionError(msg);
       setConfirmAction(null);
     } finally {
@@ -348,19 +354,66 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                       </Box>
                     </TableCell>
                     <TableCell>
-                      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 0.5,
+                        }}
+                      >
                         {[
-                          { label: "Aadhar", status: dealer.documentVerification?.aadharFront && dealer.documentVerification?.aadharBack },
-                          { label: "PAN", status: dealer.documentVerification?.pan },
-                          { label: "Shop", status: dealer.documentVerification?.shop },
-                          { label: "Face", status: dealer.documentVerification?.face },
+                          {
+                            label: "Aadhar",
+                            status:
+                              dealer.documentVerification?.aadharFront &&
+                              dealer.documentVerification?.aadharBack,
+                          },
+                          {
+                            label: "PAN",
+                            status: dealer.documentVerification?.pan,
+                          },
+                          {
+                            label: "Shop",
+                            status: dealer.documentVerification?.shop,
+                          },
+                          {
+                            label: "Face",
+                            status: dealer.documentVerification?.face,
+                          },
                         ].map((doc) => (
-                          <Box key={doc.label} sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                            {doc.status
-                              ? <CheckCircleIcon sx={{ fontSize: 13, color: "#22c55e", flexShrink: 0 }} />
-                              : <PendingIcon sx={{ fontSize: 13, color: "#f59e0b", flexShrink: 0 }} />
-                            }
-                            <Typography variant="caption" sx={{ color: doc.status ? "#15803d" : "#92400e", fontWeight: 600, lineHeight: 1 }}>
+                          <Box
+                            key={doc.label}
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.75,
+                            }}
+                          >
+                            {doc.status ? (
+                              <CheckCircleIcon
+                                sx={{
+                                  fontSize: 13,
+                                  color: "#22c55e",
+                                  flexShrink: 0,
+                                }}
+                              />
+                            ) : (
+                              <PendingIcon
+                                sx={{
+                                  fontSize: 13,
+                                  color: "#f59e0b",
+                                  flexShrink: 0,
+                                }}
+                              />
+                            )}
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: doc.status ? "#15803d" : "#92400e",
+                                fontWeight: 600,
+                                lineHeight: 1,
+                              }}
+                            >
                               {doc.label}
                             </Typography>
                           </Box>
@@ -436,7 +489,12 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
       {/* Dealer Review Dialog */}
       <Dialog
         open={reviewDialogOpen}
-        onClose={() => { if (!actionLoading) { setReviewDialogOpen(false); setActionError(null); } }}
+        onClose={() => {
+          if (!actionLoading) {
+            setReviewDialogOpen(false);
+            setActionError(null);
+          }
+        }}
         maxWidth="md"
         fullWidth
       >
@@ -473,7 +531,11 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
 
         {/* Inline error alert */}
         {actionError && (
-          <Alert severity="error" onClose={() => setActionError(null)} sx={{ mx: 3, mt: 2, borderRadius: 2 }}>
+          <Alert
+            severity="error"
+            onClose={() => setActionError(null)}
+            sx={{ mx: 3, mt: 2, borderRadius: 2 }}
+          >
             {actionError}
           </Alert>
         )}
@@ -482,12 +544,23 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
             <Grid container spacing={4}>
               {/* LEFT COLUMN */}
               <Grid item xs={12} md={6}>
-
                 {/* Business Profile */}
                 <Box sx={{ mb: 3 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 1.5,
+                    }}
+                  >
                     <BusinessIcon color="primary" fontSize="small" />
-                    <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main" }}>BUSINESS PROFILE</Typography>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ fontWeight: "bold", color: "primary.main" }}
+                    >
+                      BUSINESS PROFILE
+                    </Typography>
                   </Box>
                   {[
                     { label: "Shop Name", value: selectedDealer.shopName },
@@ -495,43 +568,130 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                     { label: "Gender", value: selectedDealer.gender },
                     { label: "Phone", value: selectedDealer.phone },
                     { label: "Shop Phone", value: selectedDealer.shopContact },
-                    { label: "Personal Email", value: selectedDealer.personalEmail || selectedDealer.email },
+                    {
+                      label: "Personal Email",
+                      value:
+                        selectedDealer.personalEmail || selectedDealer.email,
+                    },
                     { label: "Shop Email", value: selectedDealer.shopEmail },
-                    { label: "Alt. Phone", value: selectedDealer.alternatePhone },
-                    { label: "Commission", value: selectedDealer.commission != null ? `${selectedDealer.commission}%` : null },
-                    { label: "Tax", value: selectedDealer.tax != null ? `${selectedDealer.tax}%` : null },
+                    {
+                      label: "Alt. Phone",
+                      value: selectedDealer.alternatePhone,
+                    },
+                    {
+                      label: "Commission",
+                      value:
+                        selectedDealer.commission != null
+                          ? `${selectedDealer.commission}%`
+                          : null,
+                    },
+                    {
+                      label: "Tax",
+                      value:
+                        selectedDealer.tax != null
+                          ? `${selectedDealer.tax}%`
+                          : null,
+                    },
                     { label: "Holiday", value: selectedDealer.holiday },
-                    { label: "Shop Pincode", value: selectedDealer.shopPincode },
-                    { label: "Opening Date", value: selectedDealer.shopOpeningDate ? new Date(selectedDealer.shopOpeningDate).toLocaleDateString("en-GB") : null },
+                    {
+                      label: "Shop Pincode",
+                      value: selectedDealer.shopPincode,
+                    },
+                    {
+                      label: "Opening Date",
+                      value: selectedDealer.shopOpeningDate
+                        ? new Date(
+                            selectedDealer.shopOpeningDate,
+                          ).toLocaleDateString("en-GB")
+                        : null,
+                    },
                   ].map((item) => (
                     <Box key={item.label} sx={{ display: "flex", mb: 0.75 }}>
-                      <Typography variant="caption" sx={{ fontWeight: "bold", minWidth: 110, color: "text.secondary" }}>{item.label}:</Typography>
-                      <Typography variant="caption">{item.value || "N/A"}</Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: "bold",
+                          minWidth: 110,
+                          color: "text.secondary",
+                        }}
+                      >
+                        {item.label}:
+                      </Typography>
+                      <Typography variant="caption">
+                        {item.value || "N/A"}
+                      </Typography>
                     </Box>
                   ))}
                 </Box>
 
                 {/* Address */}
                 <Box sx={{ mb: 3 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 1.5,
+                    }}
+                  >
                     <LocationIcon color="primary" fontSize="small" />
-                    <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main" }}>ADDRESS & LOCATION</Typography>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ fontWeight: "bold", color: "primary.main" }}
+                    >
+                      ADDRESS & LOCATION
+                    </Typography>
                   </Box>
                   {[
-                    { label: "Full Address", value: selectedDealer.fullAddress || selectedDealer.permanentAddress?.address },
-                    { label: "City / State", value: `${selectedDealer.city || selectedDealer.permanentAddress?.city || "N/A"}, ${selectedDealer.state || selectedDealer.permanentAddress?.state || "N/A"}` },
-                    { label: "Present Addr.", value: selectedDealer.presentAddress?.address },
-                    { label: "GPS", value: selectedDealer.latitude ? `${selectedDealer.latitude}, ${selectedDealer.longitude}` : null },
+                    {
+                      label: "Full Address",
+                      value:
+                        selectedDealer.fullAddress ||
+                        selectedDealer.permanentAddress?.address,
+                    },
+                    {
+                      label: "City / State",
+                      value: `${selectedDealer.city || selectedDealer.permanentAddress?.city || "N/A"}, ${selectedDealer.state || selectedDealer.permanentAddress?.state || "N/A"}`,
+                    },
+                    {
+                      label: "Present Addr.",
+                      value: selectedDealer.presentAddress?.address,
+                    },
+                    {
+                      label: "GPS",
+                      value: selectedDealer.latitude
+                        ? `${selectedDealer.latitude}, ${selectedDealer.longitude}`
+                        : null,
+                    },
                   ].map((item) => (
                     <Box key={item.label} sx={{ display: "flex", mb: 0.75 }}>
-                      <Typography variant="caption" sx={{ fontWeight: "bold", minWidth: 110, color: "text.secondary" }}>{item.label}:</Typography>
-                      <Typography variant="caption" sx={{ wordBreak: "break-word" }}>{item.value || "N/A"}</Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: "bold",
+                          minWidth: 110,
+                          color: "text.secondary",
+                        }}
+                      >
+                        {item.label}:
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ wordBreak: "break-word" }}
+                      >
+                        {item.value || "N/A"}
+                      </Typography>
                     </Box>
                   ))}
                   {selectedDealer.latitude && (
-                    <Button variant="text" size="small" startIcon={<LocationIcon />}
+                    <Button
+                      variant="text"
+                      size="small"
+                      startIcon={<LocationIcon />}
                       href={`https://www.google.com/maps/search/?api=1&query=${selectedDealer.latitude},${selectedDealer.longitude}`}
-                      target="_blank" sx={{ textTransform: "none", mt: 0.5 }}>
+                      target="_blank"
+                      sx={{ textTransform: "none", mt: 0.5 }}
+                    >
                       View on Google Maps
                     </Button>
                   )}
@@ -539,36 +699,97 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
 
                 {/* Banking */}
                 <Box sx={{ mb: 3 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 1.5,
+                    }}
+                  >
                     <BankIcon color="primary" fontSize="small" />
-                    <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main" }}>BANKING DETAILS</Typography>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ fontWeight: "bold", color: "primary.main" }}
+                    >
+                      BANKING DETAILS
+                    </Typography>
                   </Box>
                   {[
-                    { label: "Account Holder", value: selectedDealer.bankDetails?.accountHolderName },
-                    { label: "Bank Name", value: selectedDealer.bankDetails?.bankName },
-                    { label: "Account No.", value: selectedDealer.bankDetails?.accountNumber },
-                    { label: "IFSC Code", value: selectedDealer.bankDetails?.ifscCode },
+                    {
+                      label: "Account Holder",
+                      value: selectedDealer.bankDetails?.accountHolderName,
+                    },
+                    {
+                      label: "Bank Name",
+                      value: selectedDealer.bankDetails?.bankName,
+                    },
+                    {
+                      label: "Account No.",
+                      value: selectedDealer.bankDetails?.accountNumber,
+                    },
+                    {
+                      label: "IFSC Code",
+                      value: selectedDealer.bankDetails?.ifscCode,
+                    },
                   ].map((item) => (
                     <Box key={item.label} sx={{ display: "flex", mb: 0.75 }}>
-                      <Typography variant="caption" sx={{ fontWeight: "bold", minWidth: 110, color: "text.secondary" }}>{item.label}:</Typography>
-                      <Typography variant="caption">{item.value || "N/A"}</Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: "bold",
+                          minWidth: 110,
+                          color: "text.secondary",
+                        }}
+                      >
+                        {item.label}:
+                      </Typography>
+                      <Typography variant="caption">
+                        {item.value || "N/A"}
+                      </Typography>
                     </Box>
                   ))}
                 </Box>
 
                 {/* ID Numbers */}
                 <Box>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 1.5,
+                    }}
+                  >
                     <VisibilityIcon color="primary" fontSize="small" />
-                    <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main" }}>IDENTITY NUMBERS</Typography>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ fontWeight: "bold", color: "primary.main" }}
+                    >
+                      IDENTITY NUMBERS
+                    </Typography>
                   </Box>
                   {[
                     { label: "Aadhar No.", value: selectedDealer.aadharCardNo },
                     { label: "PAN No.", value: selectedDealer.panCardNo },
                   ].map((item) => (
                     <Box key={item.label} sx={{ display: "flex", mb: 0.75 }}>
-                      <Typography variant="caption" sx={{ fontWeight: "bold", minWidth: 110, color: "text.secondary" }}>{item.label}:</Typography>
-                      <Typography variant="caption" sx={{ fontFamily: "monospace", letterSpacing: 1 }}>{item.value || "N/A"}</Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: "bold",
+                          minWidth: 110,
+                          color: "text.secondary",
+                        }}
+                      >
+                        {item.label}:
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ fontFamily: "monospace", letterSpacing: 1 }}
+                      >
+                        {item.value || "N/A"}
+                      </Typography>
                     </Box>
                   ))}
                 </Box>
@@ -577,65 +798,186 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
               {/* RIGHT COLUMN: Documents */}
               <Grid item xs={12} md={6}>
                 {/* Header + progress summary */}
-                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    mb: 2,
+                  }}
+                >
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <VisibilityIcon color="primary" fontSize="small" />
-                    <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main" }}>DOCUMENT REVIEW</Typography>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ fontWeight: "bold", color: "primary.main" }}
+                    >
+                      DOCUMENT REVIEW
+                    </Typography>
                   </Box>
                   <Chip
                     size="small"
-                    label={`${["aadharFront","aadharBack","pan","shop","face"].filter(k => docVerification[k] === true).length} / 5 Approved`}
-                    color={allDocsVerified(docVerification) ? "success" : "warning"}
-                    icon={allDocsVerified(docVerification) ? <CheckCircleIcon fontSize="small" /> : <PendingIcon fontSize="small" />}
+                    label={`${["aadharFront", "aadharBack", "pan", "shop", "face"].filter((k) => docVerification[k] === true).length} / 5 Approved`}
+                    color={
+                      allDocsVerified(docVerification) ? "success" : "warning"
+                    }
+                    icon={
+                      allDocsVerified(docVerification) ? (
+                        <CheckCircleIcon fontSize="small" />
+                      ) : (
+                        <PendingIcon fontSize="small" />
+                      )
+                    }
                     sx={{ fontWeight: 800, fontSize: "0.7rem" }}
                   />
                 </Box>
 
                 {/* Instruction banner */}
                 {!allDocsVerified(docVerification) && (
-                  <Alert severity="info" sx={{ mb: 2, py: 0.5, fontSize: "0.75rem" }}>
-                    Review each document below. Click the image to enlarge. Approve or Reject each one before you can approve the dealer.
+                  <Alert
+                    severity="info"
+                    sx={{ mb: 2, py: 0.5, fontSize: "0.75rem" }}
+                  >
+                    Review each document below. Click the image to enlarge.
+                    Approve or Reject each one before you can approve the
+                    dealer.
                   </Alert>
                 )}
                 {allDocsVerified(docVerification) && (
-                  <Alert severity="success" sx={{ mb: 2, py: 0.5, fontSize: "0.75rem" }}>
+                  <Alert
+                    severity="success"
+                    sx={{ mb: 2, py: 0.5, fontSize: "0.75rem" }}
+                  >
                     All documents verified! You can now approve this dealer.
                   </Alert>
                 )}
 
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   {[
-                    { label: "Aadhar Card (Front)", path: selectedDealer.documents?.aadharFront, docKey: "aadharFront" },
-                    { label: "Aadhar Card (Back)", path: selectedDealer.documents?.aadharBack, docKey: "aadharBack" },
-                    { label: "PAN Card", path: selectedDealer.documents?.panCardFront, docKey: "pan" },
-                    { label: "Shop Certificate", path: selectedDealer.documents?.shopCertificate, docKey: "shop" },
-                    { label: "Face / Selfie", path: selectedDealer.documents?.faceVerificationImage, docKey: "face" },
-                    { label: "Shop Photo", path: selectedDealer.shopImages?.[0], docKey: null },
+                    {
+                      label: "Aadhar Card (Front)",
+                      path: selectedDealer.documents?.aadharFront,
+                      docKey: "aadharFront",
+                    },
+                    {
+                      label: "Aadhar Card (Back)",
+                      path: selectedDealer.documents?.aadharBack,
+                      docKey: "aadharBack",
+                    },
+                    {
+                      label: "PAN Card",
+                      path: selectedDealer.documents?.panCardFront,
+                      docKey: "pan",
+                    },
+                    {
+                      label: "Shop Certificate",
+                      path: selectedDealer.documents?.shopCertificate,
+                      docKey: "shop",
+                    },
+                    {
+                      label: "Face / Selfie",
+                      path: selectedDealer.documents?.faceVerificationImage,
+                      docKey: "face",
+                    },
+                    {
+                      label: "Shop Photo",
+                      path: selectedDealer.shopImages?.[0],
+                      docKey: null,
+                    },
                   ].map((doc) => {
-                    const status = doc.docKey ? docVerification[doc.docKey] : null;
-                    const borderColor = status === true ? "#22c55e" : status === false ? "#ef4444" : "#e2e8f0";
-                    const bgColor = status === true ? "#f0fdf4" : status === false ? "#fef2f2" : "#fcfcfc";
+                    const status = doc.docKey
+                      ? docVerification[doc.docKey]
+                      : null;
+                    const borderColor =
+                      status === true
+                        ? "#22c55e"
+                        : status === false
+                          ? "#ef4444"
+                          : "#e2e8f0";
+                    const bgColor =
+                      status === true
+                        ? "#f0fdf4"
+                        : status === false
+                          ? "#fef2f2"
+                          : "#fcfcfc";
                     return (
                       <Paper
                         key={doc.label}
                         elevation={0}
-                        sx={{ border: "1.5px solid", borderColor, borderRadius: 2, overflow: "hidden", bgcolor: bgColor, transition: "border-color 0.2s, background 0.2s" }}
+                        sx={{
+                          border: "1.5px solid",
+                          borderColor,
+                          borderRadius: 2,
+                          overflow: "hidden",
+                          bgcolor: bgColor,
+                          transition: "border-color 0.2s, background 0.2s",
+                        }}
                       >
                         {/* Doc header row */}
-                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 1.5, py: 1, borderBottom: "1px solid", borderColor: "divider", bgcolor: "rgba(0,0,0,0.02)" }}>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                            {doc.docKey && status === true && <CheckCircleIcon sx={{ fontSize: 15, color: "#22c55e" }} />}
-                            {doc.docKey && status === false && <CancelIcon sx={{ fontSize: 15, color: "#ef4444" }} />}
-                            {doc.docKey && status == null && <PendingIcon sx={{ fontSize: 15, color: "#f59e0b" }} />}
-                            <Typography variant="caption" sx={{ fontWeight: 700 }}>{doc.label}</Typography>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            px: 1.5,
+                            py: 1,
+                            borderBottom: "1px solid",
+                            borderColor: "divider",
+                            bgcolor: "rgba(0,0,0,0.02)",
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            {doc.docKey && status === true && (
+                              <CheckCircleIcon
+                                sx={{ fontSize: 15, color: "#22c55e" }}
+                              />
+                            )}
+                            {doc.docKey && status === false && (
+                              <CancelIcon
+                                sx={{ fontSize: 15, color: "#ef4444" }}
+                              />
+                            )}
+                            {doc.docKey && status == null && (
+                              <PendingIcon
+                                sx={{ fontSize: 15, color: "#f59e0b" }}
+                              />
+                            )}
+                            <Typography
+                              variant="caption"
+                              sx={{ fontWeight: 700 }}
+                            >
+                              {doc.label}
+                            </Typography>
                           </Box>
                           {doc.docKey && (
                             <Chip
                               size="small"
-                              label={status === true ? "Approved" : status === false ? "Rejected" : "Pending Review"}
-                              color={status === true ? "success" : status === false ? "error" : "warning"}
+                              label={
+                                status === true
+                                  ? "Approved"
+                                  : status === false
+                                    ? "Rejected"
+                                    : "Pending Review"
+                              }
+                              color={
+                                status === true
+                                  ? "success"
+                                  : status === false
+                                    ? "error"
+                                    : "warning"
+                              }
                               variant={status == null ? "outlined" : "filled"}
-                              sx={{ fontSize: "0.6rem", fontWeight: 800, height: 20 }}
+                              sx={{
+                                fontSize: "0.6rem",
+                                fontWeight: 800,
+                                height: 20,
+                              }}
                             />
                           )}
                         </Box>
@@ -646,18 +988,45 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                             component="img"
                             src={getImageUrl(doc.path)}
                             alt={doc.label}
-                            onClick={() => window.open(getImageUrl(doc.path), "_blank")}
-                            sx={{ width: "100%", height: 120, objectFit: "contain", cursor: "pointer", display: "block", "&:hover": { opacity: 0.85 } }}
+                            onClick={() =>
+                              window.open(getImageUrl(doc.path), "_blank")
+                            }
+                            sx={{
+                              width: "100%",
+                              height: 120,
+                              objectFit: "contain",
+                              cursor: "pointer",
+                              display: "block",
+                              "&:hover": { opacity: 0.85 },
+                            }}
                           />
                         ) : (
-                          <Box sx={{ height: 60, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <Typography variant="caption" color="text.secondary">Not uploaded</Typography>
+                          <Box
+                            sx={{
+                              height: 60,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              Not uploaded
+                            </Typography>
                           </Box>
                         )}
 
                         {/* Approve / Reject buttons */}
                         {doc.docKey && doc.path && (
-                          <Box sx={{ display: "flex", borderTop: "1px solid", borderColor: "divider" }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              borderTop: "1px solid",
+                              borderColor: "divider",
+                            }}
+                          >
                             <Button
                               fullWidth
                               size="small"
@@ -665,7 +1034,12 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                               color="success"
                               startIcon={<CheckCircleIcon />}
                               onClick={() => handleDocVerify(doc.docKey, true)}
-                              sx={{ borderRadius: 0, py: 0.75, fontWeight: 800, fontSize: "0.72rem" }}
+                              sx={{
+                                borderRadius: 0,
+                                py: 0.75,
+                                fontWeight: 800,
+                                fontSize: "0.72rem",
+                              }}
                             >
                               Approve
                             </Button>
@@ -677,7 +1051,12 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                               color="error"
                               startIcon={<CancelIcon />}
                               onClick={() => handleDocVerify(doc.docKey, false)}
-                              sx={{ borderRadius: 0, py: 0.75, fontWeight: 800, fontSize: "0.72rem" }}
+                              sx={{
+                                borderRadius: 0,
+                                py: 0.75,
+                                fontWeight: 800,
+                                fontSize: "0.72rem",
+                              }}
                             >
                               Reject
                             </Button>
@@ -756,7 +1135,15 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
           )}
 
           {/* Main action buttons */}
-          <Box sx={{ display: "flex", p: 2, gap: 1, justifyContent: "space-between", alignItems: "center" }}>
+          <Box
+            sx={{
+              display: "flex",
+              p: 2,
+              gap: 1,
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             {/* Left: pending checklist hint */}
             {!allDocsVerified(docVerification) && (
               <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
@@ -771,16 +1158,33 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                     key={key}
                     size="small"
                     label={label}
-                    icon={docVerification[key] === true ? <CheckCircleIcon fontSize="small" /> : <PendingIcon fontSize="small" />}
-                    color={docVerification[key] === true ? "success" : docVerification[key] === false ? "error" : "default"}
-                    variant={docVerification[key] == null ? "outlined" : "filled"}
+                    icon={
+                      docVerification[key] === true ? (
+                        <CheckCircleIcon fontSize="small" />
+                      ) : (
+                        <PendingIcon fontSize="small" />
+                      )
+                    }
+                    color={
+                      docVerification[key] === true
+                        ? "success"
+                        : docVerification[key] === false
+                          ? "error"
+                          : "default"
+                    }
+                    variant={
+                      docVerification[key] == null ? "outlined" : "filled"
+                    }
                     sx={{ fontSize: "0.65rem", fontWeight: 700 }}
                   />
                 ))}
               </Box>
             )}
             {allDocsVerified(docVerification) && (
-              <Typography variant="caption" sx={{ color: "success.main", fontWeight: 700 }}>
+              <Typography
+                variant="caption"
+                sx={{ color: "success.main", fontWeight: 700 }}
+              >
                 ✓ All documents reviewed — ready to approve
               </Typography>
             )}
@@ -788,7 +1192,10 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
             {/* Right: action buttons */}
             <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
               <Button
-                onClick={() => { setReviewDialogOpen(false); setConfirmAction(null); }}
+                onClick={() => {
+                  setReviewDialogOpen(false);
+                  setConfirmAction(null);
+                }}
                 variant="outlined"
                 color="inherit"
                 disabled={actionLoading}
@@ -804,16 +1211,24 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
               >
                 Reject Application
               </Button>
-              <Tooltip title={!allDocsVerified(docVerification) ? "Review and approve all documents first" : ""}>
+              <Tooltip
+                title={
+                  !allDocsVerified(docVerification)
+                    ? "Review and approve all documents first"
+                    : ""
+                }
+              >
                 <span>
                   <Button
                     variant="contained"
                     color="success"
                     startIcon={<CheckCircleIcon />}
                     onClick={() => setConfirmAction("approve")}
-                    disabled={actionLoading || selectedDealer?.isVerify || confirmAction === "approve" || !allDocsVerified(docVerification)}
+                    // disabled={actionLoading || selectedDealer?.isVerify || confirmAction === "approve" || !allDocsVerified(docVerification)}
                   >
-                    {selectedDealer?.isVerify ? "Already Verified" : "Approve Dealer"}
+                    {selectedDealer?.isVerify
+                      ? "Already Verified"
+                      : "Approve Dealer"}
                   </Button>
                 </span>
               </Tooltip>

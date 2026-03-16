@@ -1,6 +1,33 @@
 "use client"
 
-import { useState, useMemo, useRef } from "react"
+import React, { useState, useMemo, useRef } from "react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TablePagination,
+  Box,
+  Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  IconButton,
+  Menu,
+  Tooltip,
+  Chip,
+  alpha,
+} from "@mui/material"
+import {
+  MoreVert as MoreIcon,
+  Delete as DeleteIcon,
+  FilterList as FilterIcon,
+  TwoWheeler as BikeIcon,
+} from "@mui/icons-material"
 import Swal from "sweetalert2"
 import { useDownloadExcel } from "react-export-table-to-excel"
 import jsPDF from "jspdf"
@@ -9,8 +36,8 @@ import { deleteBike } from "../../api"
 
 const BikeTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, datas, text, onBikeDeleted }) => {
   const tableRef = useRef(null)
-  const rowsPerPage = 10
-  const [currentPage, setCurrentPage] = useState(1)
+  const [currentPage, setCurrentPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
   const [filters, setFilters] = useState({
     company: "",
     model: "",
@@ -18,12 +45,24 @@ const BikeTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, dat
     engineCC: "",
   })
 
+  // Anchor for the actions menu
+  const [anchorEl, setAnchorEl] = useState(null)
+  const [selectedVariantId, setSelectedVariantId] = useState(null)
+
+  const handleMenuOpen = (event, variantId) => {
+    setAnchorEl(event.currentTarget)
+    setSelectedVariantId(variantId)
+  }
+
+  const handleMenuClose = () => {
+    setAnchorEl(null)
+    setSelectedVariantId(null)
+  }
+
   // Handle filter changes with cascading reset
   const handleFilterChange = (key, value) => {
     setFilters((prev) => {
       const newFilters = { ...prev, [key]: value }
-
-      // Reset dependent filters when parent filter changes
       if (key === "company") {
         newFilters.model = ""
         newFilters.variant = ""
@@ -34,13 +73,12 @@ const BikeTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, dat
       } else if (key === "variant") {
         newFilters.engineCC = ""
       }
-
       return newFilters
     })
-    setCurrentPage(1)
+    setCurrentPage(0)
   }
 
-  // Get filtered data based on current filters
+  // Get filtered data
   const filteredData = useMemo(() => {
     return datas
       .filter((company) => (filters.company ? company.name === filters.company : true))
@@ -62,96 +100,55 @@ const BikeTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, dat
       .filter((company) => company.models.length > 0)
   }, [datas, filters])
 
-  // Cascading dropdown options
+  // Options for dropdowns
   const companyOptions = useMemo(() => [...new Set(datas.map((c) => c.name))].sort(), [datas])
-
   const modelOptions = useMemo(() => {
-    if (!filters.company) {
-      return [...new Set(datas.flatMap((c) => c.models.map((m) => m.model_name)))].sort()
-    }
-
+    if (!filters.company) return [...new Set(datas.flatMap((c) => c.models.map((m) => m.model_name)))].sort()
     const selectedCompany = datas.find((c) => c.name === filters.company)
-    if (!selectedCompany) return []
-
-    return [...new Set(selectedCompany.models.map((m) => m.model_name))].sort()
+    return selectedCompany ? [...new Set(selectedCompany.models.map((m) => m.model_name))].sort() : []
   }, [datas, filters.company])
 
   const variantOptions = useMemo(() => {
-    if (!filters.company && !filters.model) {
-      return [...new Set(datas.flatMap((c) => c.models.flatMap((m) => m.variants.map((v) => v.variant_name))))].sort()
-    }
-
-    if (filters.company && !filters.model) {
-      const selectedCompany = datas.find((c) => c.name === filters.company)
-      if (!selectedCompany) return []
-
-      return [...new Set(selectedCompany.models.flatMap((m) => m.variants.map((v) => v.variant_name)))].sort()
-    }
-
+    let variants = []
     if (filters.company && filters.model) {
       const selectedCompany = datas.find((c) => c.name === filters.company)
-      if (!selectedCompany) return []
-
-      const selectedModel = selectedCompany.models.find((m) => m.model_name === filters.model)
-      if (!selectedModel) return []
-
-      return [...new Set(selectedModel.variants.map((v) => v.variant_name))].sort()
+      const selectedModel = selectedCompany?.models.find((m) => m.model_name === filters.model)
+      variants = selectedModel?.variants || []
+    } else if (filters.company) {
+      const selectedCompany = datas.find((c) => c.name === filters.company)
+      variants = selectedCompany?.models.flatMap((m) => m.variants) || []
+    } else {
+      variants = datas.flatMap((c) => c.models.flatMap((m) => m.variants))
     }
-
-    return []
+    return [...new Set(variants.map((v) => v.variant_name))].sort()
   }, [datas, filters.company, filters.model])
 
   const engineCCOptions = useMemo(() => {
-    if (!filters.company && !filters.model && !filters.variant) {
-      return [...new Set(datas.flatMap((c) => c.models.flatMap((m) => m.variants.map((v) => v.engine_cc))))].sort(
-        (a, b) => a - b,
-      )
-    }
-
     let variants = []
-
     if (filters.company && filters.model && filters.variant) {
       const selectedCompany = datas.find((c) => c.name === filters.company)
-      if (!selectedCompany) return []
-
-      const selectedModel = selectedCompany.models.find((m) => m.model_name === filters.model)
-      if (!selectedModel) return []
-
-      variants = selectedModel.variants.filter((v) => v.variant_name === filters.variant)
+      const selectedModel = selectedCompany?.models.find((m) => m.model_name === filters.model)
+      variants = selectedModel?.variants.filter((v) => v.variant_name === filters.variant) || []
     } else if (filters.company && filters.model) {
       const selectedCompany = datas.find((c) => c.name === filters.company)
-      if (!selectedCompany) return []
-
-      const selectedModel = selectedCompany.models.find((m) => m.model_name === filters.model)
-      if (!selectedModel) return []
-
-      variants = selectedModel.variants
+      const selectedModel = selectedCompany?.models.find((m) => m.model_name === filters.model)
+      variants = selectedModel?.variants || []
     } else if (filters.company) {
       const selectedCompany = datas.find((c) => c.name === filters.company)
-      if (!selectedCompany) return []
-
-      variants = selectedCompany.models.flatMap((m) => m.variants)
+      variants = selectedCompany?.models.flatMap((m) => m.variants) || []
+    } else {
+      variants = datas.flatMap((c) => c.models.flatMap((m) => m.variants))
     }
-
     return [...new Set(variants.map((v) => v.engine_cc))].sort((a, b) => a - b)
   }, [datas, filters.company, filters.model, filters.variant])
 
-  // Pagination
-  const totalRows = useMemo(() => {
-    return filteredData.reduce(
-      (count, company) => count + company.models.reduce((modelCount, model) => modelCount + model.variants.length, 0),
-      0,
-    )
-  }, [filteredData])
-
-  const totalPages = Math.ceil(totalRows / rowsPerPage)
-
-  const currentData = useMemo(() => {
-    const flatRows = []
+  // Flat data for table
+  const flatRows = useMemo(() => {
+    const rows = []
     filteredData.forEach((company) => {
       company.models.forEach((model) => {
         model.variants.forEach((variant) => {
-          flatRows.push({
+          rows.push({
             companyName: company.name,
             modelName: model.model_name,
             variantName: variant.variant_name,
@@ -161,11 +158,19 @@ const BikeTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, dat
         })
       })
     })
-    const start = (currentPage - 1) * rowsPerPage
-    return flatRows.slice(start, start + rowsPerPage)
-  }, [filteredData, currentPage])
+    return rows
+  }, [filteredData])
 
-  // Excel & PDF
+  const handleChangePage = (event, newPage) => {
+    setCurrentPage(newPage)
+  }
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10))
+    setCurrentPage(0)
+  }
+
+  // Download Handlers
   const { onDownload } = useDownloadExcel({
     currentTableRef: tableRef.current,
     filename: "Bike_List",
@@ -175,10 +180,8 @@ const BikeTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, dat
   const exportToPDF = () => {
     const doc = new jsPDF()
     doc.text("Bike List", 14, 10)
-    const table = tableRef.current
-    if (!table) return
     doc.autoTable({
-      html: "#example",
+      html: "#bike-export-table",
       startY: 20,
       theme: "striped",
     })
@@ -188,13 +191,17 @@ const BikeTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, dat
   triggerDownloadExcel.current = onDownload
   triggerDownloadPDF.current = exportToPDF
 
-  // Delete handler
-  const handleDelete = async (variantId) => {
+  const handleDelete = async () => {
+    const variantId = selectedVariantId
+    handleMenuClose()
+    
     Swal.fire({
       title: "Are you sure?",
       text: "You won't be able to revert this!",
       icon: "warning",
       showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
       confirmButtonText: "Yes, delete it!",
     }).then(async (result) => {
       if (result.isConfirmed) {
@@ -205,156 +212,165 @@ const BikeTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, dat
             Swal.fire({
               icon: "success",
               title: "Deleted!",
-              text: response.message || "vehicle deleted successfully",
+              text: response.message || "Bike details deleted successfully",
               timer: 2000,
               showConfirmButton: false,
             })
-          } else {
-            Swal.fire("Error!", response.message || "Deletion failed.", "error")
           }
         } catch (error) {
-          console.error("[v0] Bike deletion error:", error)
-          // Error alert is handled in api.js
+          console.error("Bike deletion error:", error)
         }
       }
     })
   }
 
   return (
-    <div className="row">
-      <div className="col-sm-12">
-        <div className="card-table card p-2">
-          <div className="card-body">
-            {/* Filters */}
-            <div className="d-flex gap-2 mb-3">
-              <select
-                value={filters.company}
-                onChange={(e) => handleFilterChange("company", e.target.value)}
-                className="form-select form-select-sm"
-              >
-                <option value="">All Companies</option>
-                {companyOptions.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={filters.model}
-                onChange={(e) => handleFilterChange("model", e.target.value)}
-                className="form-select form-select-sm"
-                disabled={!filters.company}
-              >
-                <option value="">All Models</option>
-                {modelOptions.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={filters.variant}
-                onChange={(e) => handleFilterChange("variant", e.target.value)}
-                className="form-select form-select-sm"
-                disabled={!filters.model}
-              >
-                <option value="">All Variants</option>
-                {variantOptions.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={filters.engineCC}
-                onChange={(e) => handleFilterChange("engineCC", e.target.value)}
-                className="form-select form-select-sm"
-                disabled={!filters.variant}
-              >
-                <option value="">All CC</option>
-                {engineCCOptions.map((cc) => (
-                  <option key={cc} value={cc}>
-                    {cc}
-                  </option>
-                ))}
-              </select>
-            </div>
+    <Box>
+      {/* Filters Section */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 2, 
+          mb: 3, 
+          borderRadius: "12px", 
+          border: "1px solid", 
+          borderColor: "divider",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 2,
+          alignItems: "center"
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", mr: 1 }}>
+          <FilterIcon sx={{ color: "text.secondary", mr: 1 }} />
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.secondary" }}>
+            FILTERS
+          </Typography>
+        </Box>
 
-            {/* Table */}
-            <div className="table-responsive">
-              <table ref={tableRef} id="example" className="table table-striped">
-                <thead className="thead-light" style={{ backgroundColor: "#2e83ff" }}>
-                  <tr>
-                    {tableHeaders.map((header, i) => (
-                      <th key={i}>{header}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentData.map((row, index) => (
-                    <tr key={row.variantId}>
-                      <td>{(currentPage - 1) * rowsPerPage + index + 1}</td>
-                      <td>{row.companyName}</td>
-                      <td>{row.modelName}</td>
-                      <td>{row.variantName}</td>
-                      <td>{row.engineCC} CC</td>
-                      <td className="d-flex align-items-center">
-                        <div className="dropdown">
-                          <a href="#" className="btn-action-icon" data-bs-toggle="dropdown">
-                            <i className="fas fa-ellipsis-v" />
-                          </a>
-                          <ul className="dropdown-menu dropdown-menu-end">
-                            {/* <li>
-                              <button className="dropdown-item" onClick={(e) => e.preventDefault()}>
-                                <i className="far fa-edit me-2" /> Edit
-                              </button>
-                            </li> */}
-                            <li>
-                              <button className="dropdown-item" onClick={() => handleDelete(row.variantId)}>
-                                <i className="far fa-trash-alt me-2" /> Delete
-                              </button>
-                            </li>
-                          </ul>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        {[
+          { label: "Company", key: "company", options: companyOptions, disabled: false },
+          { label: "Model", key: "model", options: modelOptions, disabled: !filters.company },
+          { label: "Variant", key: "variant", options: variantOptions, disabled: !filters.model },
+          { label: "Engine CC", key: "engineCC", options: engineCCOptions, disabled: !filters.variant },
+        ].map((item) => (
+          <FormControl key={item.key} size="small" sx={{ minWidth: 150 }} disabled={item.disabled}>
+            <InputLabel>{item.label}</InputLabel>
+            <Select
+              value={filters[item.key]}
+              label={item.label}
+              onChange={(e) => handleFilterChange(item.key, e.target.value)}
+              sx={{ borderRadius: "8px" }}
+            >
+              <option value="">{`All ${item.label}s`}</option>
+              {item.options.map((opt) => (
+                <MenuItem key={opt} value={opt}>
+                  {opt}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        ))}
+      </Paper>
 
-            {/* Pagination & Total */}
-            <div className="d-flex justify-content-between align-items-center mt-4 p-3 bg-light rounded shadow-sm">
-              <div style={{ fontWeight: "500", fontSize: "0.9rem" }}>
-                Total Records: <span className="text-primary fw-bold">{totalRows}</span>
-              </div>
+      {/* Table Section */}
+      <TableContainer component={Paper} elevation={0} sx={{ borderRadius: "12px", border: "1px solid", borderColor: "divider", overflow: "hidden" }}>
+        <Table sx={{ minWidth: 650 }}>
+          <TableHead sx={{ bgcolor: alpha("#2e83ff", 0.05) }}>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 700 }}>#</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>Company Name</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>Model Name</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>Variant Name</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>Engine CC</TableCell>
+              <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {flatRows.slice(currentPage * rowsPerPage, currentPage * rowsPerPage + rowsPerPage).map((row, index) => (
+              <TableRow key={row.variantId} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
+                <TableCell>{currentPage * rowsPerPage + index + 1}</TableCell>
+                <TableCell>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                    <Box sx={{ p: 1, bgcolor: alpha("#2e83ff", 0.1), borderRadius: "8px", display: "flex" }}>
+                      <BikeIcon sx={{ fontSize: 18, color: "primary.main" }} />
+                    </Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{row.companyName}</Typography>
+                  </Box>
+                </TableCell>
+                <TableCell>{row.modelName}</TableCell>
+                <TableCell>
+                  <Chip label={row.variantName} size="small" sx={{ bgcolor: "background.default", fontWeight: 500 }} />
+                </TableCell>
+                <TableCell>{row.engineCC} CC</TableCell>
+                <TableCell align="right">
+                  <IconButton size="small" onClick={(e) => handleMenuOpen(e, row.variantId)}>
+                    <MoreIcon fontSize="small" />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+            {flatRows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    No bikes found matching your criteria.
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={flatRows.length}
+          rowsPerPage={rowsPerPage}
+          page={currentPage}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          sx={{ borderTop: "1px solid", borderColor: "divider" }}
+        />
+      </TableContainer>
 
-              <nav>
-                <ul className="pagination pagination-sm mb-0">
-                  <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
-                    <button className="page-link" onClick={() => setCurrentPage(currentPage - 1)}>
-                      &laquo;
-                    </button>
-                  </li>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <li key={page} className={`page-item ${currentPage === page ? "active" : ""}`}>
-                      <button className="page-link" onClick={() => setCurrentPage(page)}>
-                        {page}
-                      </button>
-                    </li>
-                  ))}
-                  <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
-                    <button className="page-link" onClick={() => setCurrentPage(currentPage + 1)}>
-                      &raquo;
-                    </button>
-                  </li>
-                </ul>
-              </nav>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      {/* Hidden Table for Exporting */}
+      <table ref={tableRef} id="bike-export-table" style={{ display: "none" }}>
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Model</th>
+            <th>Variant</th>
+            <th>CC</th>
+          </tr>
+        </thead>
+        <tbody>
+          {flatRows.map((row) => (
+            <tr key={row.variantId}>
+              <td>{row.companyName}</td>
+              <td>{row.modelName}</td>
+              <td>{row.variantName}</td>
+              <td>{row.engineCC}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Actions Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        PaperProps={{
+          elevation: 2,
+          sx: { borderRadius: "10px", minWidth: 120 }
+        }}
+      >
+        <MenuItem onClick={handleDelete} sx={{ color: "error.main", gap: 1.5 }}>
+          <DeleteIcon fontSize="small" />
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>Delete</Typography>
+        </MenuItem>
+      </Menu>
+    </Box>
   )
 }
 

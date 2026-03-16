@@ -31,6 +31,7 @@ import {
   FiberManualRecord as BulletIcon,
   SupportAgent as TicketIcon,
   PowerSettingsNew as LogoutIcon,
+  TwoWheeler as BikeIcon,
 } from "@mui/icons-material";
 
 const DRAWER_WIDTH = 280;
@@ -80,6 +81,14 @@ const menuConfig = [
     title: "Customers",
     icon: <CustomerIcon />,
     path: "/customers",
+  },
+  {
+    title: "Bikes",
+    icon: <BikeIcon />,
+    children: [
+      { title: "Bike Companies", path: "/bikes" },
+      { title: "Add Bike Company", path: "/addBikeCompany" },
+    ],
   },
   {
     title: "FINANCE",

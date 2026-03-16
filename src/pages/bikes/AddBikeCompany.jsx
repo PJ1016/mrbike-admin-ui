@@ -1,7 +1,42 @@
 import { useState, useEffect } from "react"
+import {
+  Box,
+  Typography,
+  Button,
+  Breadcrumbs,
+  Link as MuiLink,
+  Stack,
+  Card,
+  CardContent,
+  Grid,
+  TextField,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
+  Divider,
+  Paper,
+  alpha,
+  IconButton,
+} from "@mui/material"
+import {
+  Add as AddIcon,
+  Home as HomeIcon,
+  NavigateNext as NavigateNextIcon,
+  Business as CompanyIcon,
+  DirectionsBike as BikeIcon,
+  Tune as VariantIcon,
+  CheckCircle as SuccessIcon,
+} from "@mui/icons-material"
+import { Link as RouterLink, useNavigate } from "react-router-dom"
 import Swal from "sweetalert2"
-import { addBikeCompany, addBikeModel, addBikeVariant, getBikeCompanies, getBikeModels } from "../../api"
-import { useNavigate } from "react-router-dom"
+import {
+  addBikeCompany,
+  addBikeModel,
+  addBikeVariant,
+  getBikeCompanies,
+  getBikeModels
+} from "../../api"
 
 const AddBike = () => {
   const [companyName, setCompanyName] = useState("")
@@ -12,7 +47,6 @@ const AddBike = () => {
   const [engineCC, setEngineCC] = useState("")
   const [companies, setCompanies] = useState([])
   const [models, setModels] = useState([])
-  const [variants, setVariants] = useState([])
   const navigate = useNavigate()
 
   // Fetch companies on component load
@@ -94,7 +128,6 @@ const AddBike = () => {
         Swal.fire("Success", "Variant added!", "success")
         setVariantName("")
         setEngineCC("")
-        // navigate("/bikes")
       }
     } catch (error) {
       Swal.fire("Error", "Failed to add variant", "error")
@@ -102,151 +135,270 @@ const AddBike = () => {
   }
 
   return (
-    <div className="page-wrapper">
-      <div className="content container-fluid">
-        <div className="page-header">
-          <div className="content-page-header">
-            <h5>🚀 Add Bike Details</h5>
-          </div>
-        </div>
+    <Box sx={{ p: { xs: 2, md: 4 } }}>
+      {/* Header Section */}
+      <Stack spacing={1} sx={{ mb: 4 }}>
+        <Typography variant="h4" sx={{ fontWeight: 800, color: "#1e293b" }}>
+          🚀 Add Bike Details
+        </Typography>
+        <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} aria-label="breadcrumb">
+          <MuiLink
+            component={RouterLink}
+            underline="hover"
+            color="inherit"
+            to="/"
+            sx={{ display: "flex", alignItems: "center" }}
+          >
+            <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
+            Dashboard
+          </MuiLink>
+          <MuiLink
+            component={RouterLink}
+            underline="hover"
+            color="inherit"
+            to="/bikes"
+          >
+            Bikes
+          </MuiLink>
+          <Typography color="text.primary" sx={{ fontWeight: 500 }}>Add Bike</Typography>
+        </Breadcrumbs>
+      </Stack>
 
-        <div className="card shadow-sm border-0">
-          <div className="card-body">
-            {/* Mockup labels row */}
-            <div className="row mb-4 border-bottom pb-2">
-              <div className="col-md-4">
-                <h6 className="fw-bold text-decoration-underline">Company</h6>
-              </div>
-              <div className="col-md-4">
-                <h6 className="fw-bold text-decoration-underline">bike</h6>
-              </div>
-              <div className="col-md-4">
-                <h6 className="fw-bold text-decoration-underline">variant</h6>
-              </div>
-            </div>
+      {/* Main Grid Layout */}
+      <Grid container spacing={3}>
+        {/* Column 1: Company Selection/Addition */}
+        <Grid item xs={12} md={4}>
+          <Card elevation={0} sx={{ height: "100%", borderRadius: "16px", border: "1px solid", borderColor: "divider" }}>
+            <CardContent sx={{ p: 3, height: "100%", display: "flex", flexDirection: "column" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+                <Box sx={{ p: 1, bgcolor: alpha("#2e83ff", 0.1), borderRadius: "10px", display: "flex" }}>
+                  <CompanyIcon color="primary" />
+                </Box>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>Company</Typography>
+              </Box>
 
-            <div className="row">
-              {/* Column 1: Add Company */}
-              <div className="col-md-4 border-end">
-                <h6 className="mb-3 fw-bold">Add company</h6>
-                <div className="mb-4" style={{ maxHeight: "300px", overflowY: "auto" }}>
-                  {companies.map((company) => (
-                    <div key={company._id} className="form-check mb-2">
-                      <input
-                        className="form-check-input"
-                        type="radio" // Use radio for single selection to drive cascading models
-                        name="companySelect"
-                        id={`company-${company._id}`}
-                        checked={selectedCompanyId === company._id}
-                        onChange={() => setSelectedCompanyId(company._id)}
-                      />
-                      <label className="form-check-label" htmlFor={`company-${company._id}`}>
-                        {company.name}
-                      </label>
-                    </div>
-                  ))}
-                  {companies.length === 0 && <p className="text-muted small">No companies found.</p>}
-                </div>
-                <div className="mt-auto">
-                  <div className="input-group">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Company name"
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                    />
-                    <button className="btn btn-primary" onClick={handleSubmitCompany}>
-                      Add
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Column 2: Model */}
-              <div className="col-md-4 border-end">
-                <h6 className="mb-3 fw-bold">model</h6>
-                <div className="mb-4" style={{ maxHeight: "300px", overflowY: "auto" }}>
-                  {!selectedCompanyId ? (
-                    <p className="text-muted small text-center mt-4 italic">Select a company first</p>
-                  ) : (
-                    <>
-                      {models.map((model) => (
-                        <div key={model._id} className="form-check mb-2">
-                          <input
-                            className="form-check-input"
-                            type="radio"
-                            name="modelSelect"
-                            id={`model-${model._id}`}
-                            checked={selectedModelId === model._id}
-                            onChange={() => setSelectedModelId(model._id)}
-                          />
-                          <label className="form-check-label" htmlFor={`model-${model._id}`}>
-                            {model.model_name}
-                          </label>
-                        </div>
-                      ))}
-                      {models.length === 0 && <p className="text-muted small">No models found for this company.</p>}
-                    </>
-                  )}
-                </div>
-                <div className="mt-auto">
-                  <div className="input-group">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Model name"
-                      disabled={!selectedCompanyId}
-                      value={modelName}
-                      onChange={(e) => setModelName(e.target.value)}
-                    />
-                    <button className="btn btn-primary" onClick={handleSubmitModel} disabled={!selectedCompanyId}>
-                      Add
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Column 3: Add Variant and CC */}
-              <div className="col-md-4">
-                <h6 className="mb-3 fw-bold">add variant and cc</h6>
-                <div className="mb-4">
-                  {!selectedModelId ? (
-                    <p className="text-muted small text-center mt-4 italic">Select a model first</p>
-                  ) : (
-                    <div className="p-3 bg-light rounded">
-                      <div className="mb-3">
-                        <label className="form-label small fw-bold">Variant Name</label>
-                        <input
-                          type="text"
-                          className="form-control form-control-sm"
-                          placeholder="e.g. ns"
-                          value={variantName}
-                          onChange={(e) => setVariantName(e.target.value)}
+              <Box sx={{ flexGrow: 1, mb: 3, maxHeight: "400px", overflowY: "auto", pr: 1 }}>
+                <FormControl component="fieldset" fullWidth>
+                  <RadioGroup value={selectedCompanyId} onChange={(e) => setSelectedCompanyId(e.target.value)}>
+                    {companies.map((company) => (
+                      <Paper
+                        key={company._id}
+                        elevation={0}
+                        sx={{
+                          mb: 1,
+                          p: 0.5,
+                          borderRadius: "10px",
+                          border: "1px solid",
+                          borderColor: selectedCompanyId === company._id ? "primary.main" : "divider",
+                          bgcolor: selectedCompanyId === company._id ? alpha("#2e83ff", 0.04) : "transparent",
+                          transition: "all 0.2s",
+                          "&:hover": { bgcolor: alpha("#2e83ff", 0.02) }
+                        }}
+                      >
+                        <FormControlLabel
+                          value={company._id}
+                          control={<Radio size="small" />}
+                          label={company.name}
+                          sx={{ width: "100%", m: 0, px: 1 }}
                         />
-                      </div>
-                      <div className="mb-3">
-                        <label className="form-label small fw-bold">Engine CC</label>
-                        <input
-                          type="number"
-                          className="form-control form-control-sm"
-                          placeholder="e.g. 160"
-                          value={engineCC}
-                          onChange={(e) => setEngineCC(e.target.value)}
+                      </Paper>
+                    ))}
+                    {companies.length === 0 && (
+                      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic", textAlign: "center", mt: 2 }}>
+                        No companies found.
+                      </Typography>
+                    )}
+                  </RadioGroup>
+                </FormControl>
+              </Box>
+
+              <Divider sx={{ mb: 3 }} />
+
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="New Company"
+                  placeholder="e.g. Bajaj"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
+                />
+                <Button 
+                  variant="contained" 
+                  onClick={handleSubmitCompany}
+                  sx={{ borderRadius: "10px", minWidth: 80 }}
+                >
+                  Add
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Column 2: Model Selection/Addition */}
+        <Grid item xs={12} md={4}>
+          <Card 
+            elevation={0} 
+            sx={{ 
+              height: "100%", 
+              borderRadius: "16px", 
+              border: "1px solid", 
+              borderColor: "divider",
+              opacity: !selectedCompanyId ? 0.6 : 1,
+              transition: "opacity 0.3s"
+            }}
+          >
+            <CardContent sx={{ p: 3, height: "100%", display: "flex", flexDirection: "column" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+                <Box sx={{ p: 1, bgcolor: alpha("#2e83ff", 0.1), borderRadius: "10px", display: "flex" }}>
+                  <BikeIcon color="primary" />
+                </Box>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>Bike Model</Typography>
+              </Box>
+
+              {!selectedCompanyId ? (
+                <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center", alignItems: "center", fontStyle: "italic", color: "text.secondary" }}>
+                  <Typography variant="body2">Select a company first</Typography>
+                </Box>
+              ) : (
+                <Box sx={{ flexGrow: 1, mb: 3, maxHeight: "400px", overflowY: "auto", pr: 1 }}>
+                  <RadioGroup value={selectedModelId} onChange={(e) => setSelectedModelId(e.target.value)}>
+                    {models.map((model) => (
+                      <Paper
+                        key={model._id}
+                        elevation={0}
+                        sx={{
+                          mb: 1,
+                          p: 0.5,
+                          borderRadius: "10px",
+                          border: "1px solid",
+                          borderColor: selectedModelId === model._id ? "primary.main" : "divider",
+                          bgcolor: selectedModelId === model._id ? alpha("#2e83ff", 0.04) : "transparent",
+                          transition: "all 0.2s",
+                          "&:hover": { bgcolor: alpha("#2e83ff", 0.02) }
+                        }}
+                      >
+                        <FormControlLabel
+                          value={model._id}
+                          control={<Radio size="small" />}
+                          label={model.model_name}
+                          sx={{ width: "100%", m: 0, px: 1 }}
                         />
-                      </div>
-                      <button className="btn btn-primary w-100 btn-sm" onClick={handleSubmitVariant}>
-                        Add Variant
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+                      </Paper>
+                    ))}
+                    {models.length === 0 && (
+                      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic", textAlign: "center", mt: 2 }}>
+                        No models found.
+                      </Typography>
+                    )}
+                  </RadioGroup>
+                </Box>
+              )}
+
+              <Divider sx={{ mb: 3 }} />
+
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="New Model"
+                  placeholder="e.g. Pulsar"
+                  disabled={!selectedCompanyId}
+                  value={modelName}
+                  onChange={(e) => setModelName(e.target.value)}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
+                />
+                <Button 
+                  variant="contained" 
+                  disabled={!selectedCompanyId}
+                  onClick={handleSubmitModel}
+                  sx={{ borderRadius: "10px", minWidth: 80 }}
+                >
+                  Add
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Column 3: Variant Addition */}
+        <Grid item xs={12} md={4}>
+          <Card 
+            elevation={0} 
+            sx={{ 
+              height: "100%", 
+              borderRadius: "16px", 
+              border: "1px solid", 
+              borderColor: "divider",
+              opacity: !selectedModelId ? 0.6 : 1,
+              transition: "opacity 0.3s"
+            }}
+          >
+            <CardContent sx={{ p: 3, height: "100%", display: "flex", flexDirection: "column" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+                <Box sx={{ p: 1, bgcolor: alpha("#2e83ff", 0.1), borderRadius: "10px", display: "flex" }}>
+                  <VariantIcon color="primary" />
+                </Box>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>Add Variant</Typography>
+              </Box>
+
+              {!selectedModelId ? (
+                <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center", alignItems: "center", fontStyle: "italic", color: "text.secondary" }}>
+                  <Typography variant="body2">Select a model first</Typography>
+                </Box>
+              ) : (
+                <Stack spacing={3} sx={{ flexGrow: 1 }}>
+                  <Box sx={{ p: 2, bgcolor: "background.default", borderRadius: "12px", border: "1px dashed", borderColor: "primary.light" }}>
+                    <SuccessIcon color="primary" sx={{ fontSize: 40, mb: 1, opacity: 0.8 }} />
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary", mb: 0.5 }}>
+                      Ready to add variant
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Adding details to the selected model.
+                    </Typography>
+                  </Box>
+
+                  <TextField
+                    fullWidth
+                    label="Variant Name"
+                    placeholder="e.g. NS 160 BS6"
+                    value={variantName}
+                    onChange={(e) => setVariantName(e.target.value)}
+                    sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
+                  />
+
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Engine CC"
+                    placeholder="e.g. 160"
+                    value={engineCC}
+                    onChange={(e) => setEngineCC(e.target.value)}
+                    sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
+                  />
+
+                  <Button 
+                    fullWidth 
+                    variant="contained" 
+                    size="large"
+                    onClick={handleSubmitVariant}
+                    sx={{ 
+                      borderRadius: "10px", 
+                      py: 1.5,
+                      fontWeight: 700,
+                      boxShadow: "0 4px 12px rgba(46, 131, 255, 0.4)"
+                    }}
+                  >
+                    Add Variant
+                  </Button>
+                </Stack>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
   )
 }
 
