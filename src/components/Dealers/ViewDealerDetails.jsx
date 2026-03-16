@@ -272,6 +272,7 @@ const VendorDealerDetails = () => {
       { label: "Aadhar Front", key: dealer.documents?.aadharFront },
       { label: "Aadhar Back", key: dealer.documents?.aadharBack },
       { label: "PAN Card", key: dealer.documents?.panCardFront },
+      { label: "Passbook", key: dealer.bankDetails?.passbookImage },
     ]
 
     let docXOffset = 15
@@ -306,6 +307,7 @@ const VendorDealerDetails = () => {
       ["Aadhar Card Front", dealer.documents?.aadharFront ? "Uploaded" : "Pending"],
       ["Aadhar Card Back", dealer.documents?.aadharBack ? "Uploaded" : "Pending"],
       ["PAN Card Front", dealer.documents?.panCardFront ? "Uploaded" : "Pending"],
+      ["Passbook", dealer.bankDetails?.passbookImage ? "Uploaded" : "Pending"],
       ["Shop Profile", dealer.isProfile ? "Completed" : "Incomplete"],
       ["Verification", dealer.isVerify ? "Verified" : "Unverified"],
     ]
@@ -863,7 +865,7 @@ const VendorDealerDetails = () => {
                   </Grid>
 
                   <Box sx={{ mt: 4 }}>
-                    <ImagePreview src={dealer?.documents?.passbookImage} label="Passbook / Cancelled Cheque Image" />
+                    <ImagePreview src={dealer?.bankDetails?.passbookImage} label="Passbook / Cancelled Cheque Image" />
                   </Box>
 
                   <Alert severity="info" variant="outlined" icon={<AccountBalanceIcon />} sx={{ mt: 5, borderRadius: 2, borderStyle: 'dashed' }}>
