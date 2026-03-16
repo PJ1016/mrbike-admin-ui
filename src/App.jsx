@@ -63,28 +63,63 @@ import ViewAdminServiceDetails from "./components/Service/ViewAdminServiceDetail
 const theme = createTheme({
   palette: {
     primary: {
-      main: "#2e83ff",
+      main: "#2563eb",
+      light: "#eff6ff",
+      dark: "#1d4ed8",
       contrastText: "#fff",
     },
     background: {
-      default: "#f8e9f7",
+      default: "#f8fafc",
+      paper: "#ffffff",
+    },
+    text: {
+      primary: "#0f172a",
+      secondary: "#64748b",
+    },
+    success: {
+      main: "#10b981",
+    },
+    warning: {
+      main: "#f59e0b",
+    },
+    error: {
+      main: "#ef4444",
     },
   },
   typography: {
     fontFamily: '"Inter", "Poppins", sans-serif',
+    h1: { fontWeight: 700, letterSpacing: "-0.025em" },
+    h2: { fontWeight: 700, letterSpacing: "-0.025em" },
+    h3: { fontWeight: 600 },
+    button: { textTransform: "none", fontWeight: 600 },
+  },
+  shape: {
+    borderRadius: 8,
   },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
-          textTransform: "none",
-          fontWeight: 600,
-          borderRadius: "8px",
+          padding: "8px 16px",
+          transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+          "&:hover": {
+            transform: "translateY(-1px)",
+          },
         },
         containedPrimary: {
+          boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
           "&:hover": {
-            color: "#fff !important", // Fix globl link hover conflict
+            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
           },
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: "12px",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+          border: "1px solid #e2e8f0",
         },
       },
     },

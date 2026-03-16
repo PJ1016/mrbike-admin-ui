@@ -46,12 +46,12 @@ import moment from "moment";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 const STATUS_META = {
-  confirmed:    { label: "Confirmed",    color: "#6366f1", bg: "#eef2ff", icon: <CheckCircle fontSize="small" /> },
-  pickedup:     { label: "Picked Up",    color: "#f59e0b", bg: "#fffbeb", icon: <LocalShipping fontSize="small" /> },
-  arrived:      { label: "Arrived",      color: "#0ea5e9", bg: "#e0f2fe", icon: <EventNote fontSize="small" /> },
-  completed:    { label: "Completed",    color: "#10b981", bg: "#ecfdf5", icon: <CheckCircle fontSize="small" /> },
-  user_cancelled: { label: "Cancelled", color: "#ef4444", bg: "#fef2f2", icon: <Cancel fontSize="small" /> },
-  rejected:     { label: "Rejected",    color: "#ef4444", bg: "#fef2f2", icon: <Cancel fontSize="small" /> },
+  confirmed:      { label: "Confirmed",    color: "#2563eb", bg: "#eff6ff", icon: <CheckCircle fontSize="small" /> },
+  pickedup:       { label: "Picked Up",    color: "#f59e0b", bg: "#fffbeb", icon: <LocalShipping fontSize="small" /> },
+  arrived:        { label: "Arrived",      color: "#0ea5e9", bg: "#f0f9ff", icon: <EventNote fontSize="small" /> },
+  completed:      { label: "Completed",    color: "#10b981", bg: "#ecfdf5", icon: <CheckCircle fontSize="small" /> },
+  user_cancelled: { label: "Cancelled",    color: "#ef4444", bg: "#fef2f2", icon: <Cancel fontSize="small" /> },
+  rejected:       { label: "Rejected",     color: "#ef4444", bg: "#fef2f2", icon: <Cancel fontSize="small" /> },
 };
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
@@ -62,32 +62,75 @@ const StatCard = ({ title, value, subtitle, icon, color, bg, onClick }) => (
     elevation={0}
     onClick={onClick}
     sx={{
-      borderRadius: 3,
-      border: "1px solid #e8ecf0",
+      borderRadius: "16px",
+      border: "1px solid #f1f5f9",
+      bgcolor: "#ffffff",
       cursor: onClick ? "pointer" : "default",
-      transition: "all 0.2s",
-      "&:hover": onClick ? { transform: "translateY(-3px)", boxShadow: "0 8px 24px rgba(0,0,0,0.08)" } : {},
+      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+      "&:hover": onClick ? { 
+        transform: "translateY(-4px)", 
+        boxShadow: "0 12px 24px -10px rgba(0,0,0,0.1)",
+        borderColor: color ? `${color}40` : "#e2e8f0"
+      } : {},
       height: "100%",
     }}
   >
     <CardContent sx={{ p: 3 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-        <Box flex={1} pr={1}>
-          <Typography variant="caption" sx={{ fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+      <Stack direction="row" spacing={2} alignItems="center">
+        <Avatar 
+          sx={{ 
+            bgcolor: bg || `${color}10`, 
+            color: color || "primary.main", 
+            width: 48, 
+            height: 48, 
+            borderRadius: "12px",
+            flexShrink: 0 
+          }}
+        >
+          {icon}
+        </Avatar>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              fontWeight: 700, 
+              color: "neutral.500", 
+              textTransform: "uppercase", 
+              letterSpacing: "0.05em",
+              fontSize: "0.65rem" 
+            }}
+          >
             {title}
           </Typography>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: "#0f172a", mt: 0.5, lineHeight: 1.2, wordBreak: "break-word" }}>
+          <Typography 
+            variant="h4" 
+            sx={{ 
+              fontWeight: 800, 
+              color: "neutral.800", 
+              mt: 0.2, 
+              fontSize: "1.5rem",
+              lineHeight: 1.2 
+            }}
+          >
             {value}
           </Typography>
           {subtitle && (
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                mt: 0.4, 
+                display: "block", 
+                color: "neutral.400",
+                fontWeight: 500,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis"
+              }}
+            >
               {subtitle}
             </Typography>
           )}
         </Box>
-        <Avatar sx={{ bgcolor: bg || `${color}18`, color, width: 52, height: 52, flexShrink: 0 }}>
-          {icon}
-        </Avatar>
       </Stack>
     </CardContent>
   </Card>
@@ -279,20 +322,28 @@ const Dashboard = () => {
   const statusOrder = ["confirmed", "pickedup", "arrived", "completed", "user_cancelled", "rejected"];
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: "#f7f8fc", minHeight: "100vh" }}>
+    <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: "neutral.50", minHeight: "100vh" }}>
       {/* ── Header ── */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 5 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: "#0f172a" }}>
-            👋 Hello, Admin!
+          <Typography variant="h4" sx={{ fontWeight: 800, color: "neutral.800", letterSpacing: "-0.03em" }}>
+            Hi, Admin 👋
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {today} — Here's what's happening with BikeDoctor today.
+          <Typography variant="body2" sx={{ color: "neutral.500", fontWeight: 500, mt: 0.5 }}>
+            {today} — Here's what's happening today.
           </Typography>
         </Box>
-        <Tooltip title="Refresh Data">
-          <IconButton onClick={fetchData} sx={{ bgcolor: "white", boxShadow: 1 }}>
-            <Refresh />
+        <Tooltip title="Refresh Dashboard">
+          <IconButton 
+            onClick={fetchData} 
+            sx={{ 
+              bgcolor: "white", 
+              boxShadow: "var(--shadow-sm)",
+              border: "1px solid #f1f5f9",
+              "&:hover": { bgcolor: "neutral.50" }
+            }}
+          >
+            <Refresh sx={{ fontSize: 20, color: "neutral.600" }} />
           </IconButton>
         </Tooltip>
       </Stack>

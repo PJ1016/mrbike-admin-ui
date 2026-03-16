@@ -183,28 +183,31 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
 
     return (
       <React.Fragment key={item.title}>
-        <ListItem disablePadding sx={{ px: 1.5, mb: 0.5 }}>
+        <ListItem disablePadding sx={{ px: 1, mb: 0.5 }}>
           <ListItemButton
             onClick={() => handleMenuClick(item.title, item.path, hasChildren)}
             active={isActive ? 1 : 0}
             sx={{
-              borderRadius: "10px",
+              borderRadius: "8px",
               py: 1,
-              bgcolor: isActive && !hasChildren ? "primary.main" : "transparent",
-              color: isActive && !hasChildren ? "primary.contrastText" : "text.primary",
+              px: 1.5,
+              bgcolor: isActive && !hasChildren ? "primary.light" : "transparent",
+              color: isActive && !hasChildren ? "primary.main" : "text.secondary",
               "&:hover": {
-                bgcolor: isActive && !hasChildren ? "primary.dark" : "rgba(46, 131, 255, 0.08)",
+                bgcolor: isActive && !hasChildren ? "primary.light" : "neutral-100",
+                color: isActive && !hasChildren ? "primary.main" : "neutral-800",
               },
-              transition: "all 0.2s",
+              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           >
             <ListItemIcon
               sx={{
-                minWidth: 40,
-                color: isActive && !hasChildren ? "inherit" : isActive ? "primary.main" : "text.secondary",
+                minWidth: 32,
+                color: isActive ? "primary.main" : "inherit",
+                "& svg": { fontSize: isChild ? 18 : 20 }
               }}
             >
-              {isChild ? <BulletIcon sx={{ fontSize: 8 }} /> : item.icon}
+              {isChild ? <BulletIcon sx={{ fontSize: 6 }} /> : item.icon}
             </ListItemIcon>
             <ListItemText 
               primary={item.title} 
@@ -213,7 +216,11 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
                 fontWeight: isActive ? 600 : 500,
               }} 
             />
-            {hasChildren && (isOpen ? <ExpandLess /> : <ExpandMore />)}
+            {hasChildren && (
+              <Box sx={{ display: 'flex', color: 'text.disabled' }}>
+                {isOpen ? <ExpandLess sx={{ fontSize: 18 }} /> : <ExpandMore sx={{ fontSize: 18 }} />}
+              </Box>
+            )}
           </ListItemButton>
         </ListItem>
 
@@ -229,60 +236,68 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
   };
 
   const drawerContent = (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", bgcolor: "#fff" }}>
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", bgcolor: "#ffffff" }}>
       {/* Sidebar Brand/Header */}
-      <Box sx={{ p: 3, display: "flex", alignItems: "center", gap: 2 }}>
+      <Box sx={{ p: 4, pb: 3, display: "flex", alignItems: "center", gap: 2 }}>
         <Box 
           sx={{ 
             width: 40, 
             height: 40, 
             bgcolor: "primary.main", 
-            borderRadius: "10px",
+            borderRadius: "12px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             color: "#fff",
-            fontWeight: "bold",
+            fontWeight: "900",
             fontSize: "1.2rem",
-            boxShadow: "0 4px 12px rgba(46, 131, 255, 0.3)"
+            boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)"
           }}
         >
           BD
         </Box>
         <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1, color: "#1e293b" }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1, letterSpacing: "-0.02em", color: "neutral.800" }}>
             BIKE DOCTOR
           </Typography>
-          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
-            ADMIN PORTAL
+          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, letterSpacing: "0.05em" }}>
+            ADMIN
           </Typography>
         </Box>
       </Box>
 
-      <Divider sx={{ mx: 2, mb: 1, opacity: 0.6 }} />
-
       {/* Menu Items */}
-      <Box sx={{ flexGrow: 1, overflowY: "auto", px: 0, py: 1 }}>
-        <List>
+      <Box sx={{ 
+        flexGrow: 1, 
+        overflowY: "auto", 
+        px: 2, 
+        py: 2,
+        '&::-webkit-scrollbar': { width: '4px' },
+        '&::-webkit-scrollbar-thumb': { bgcolor: 'neutral.200', borderRadius: '10px' }
+      }}>
+        <List sx={{ pt: 0 }}>
           {menuConfig.map((item) => renderMenuItem(item))}
         </List>
       </Box>
 
-      <Divider sx={{ mx: 2, mt: "auto", opacity: 0.6 }} />
-
-      {/* Footer / Logout */}
-      <Box sx={{ p: 2 }}>
+      {/* Footer / Account */}
+      <Box sx={{ p: 2, mt: "auto", borderTop: "1px solid #f1f5f9" }}>
         <ListItem disablePadding>
           <ListItemButton
             onClick={handleLogout}
             sx={{
               borderRadius: "10px",
-              color: "error.main",
-              "&:hover": { bgcolor: "error.light", color: "error.contrastText", "& .MuiListItemIcon-root": { color: "inherit" } }
+              color: "text.secondary",
+              py: 1.5,
+              "&:hover": { 
+                bgcolor: "error.light", 
+                color: "error.main", 
+                "& .MuiListItemIcon-root": { color: "inherit" } 
+              }
             }}
           >
-            <ListItemIcon sx={{ minWidth: 40, color: "inherit" }}>
-              <LogoutIcon />
+            <ListItemIcon sx={{ minWidth: 36, color: "inherit" }}>
+              <LogoutIcon sx={{ fontSize: 20 }} />
             </ListItemIcon>
             <ListItemText primary="Logout" primaryTypographyProps={{ fontSize: "0.875rem", fontWeight: 600 }} />
           </ListItemButton>
@@ -293,7 +308,6 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
 
   return (
     <>
-      {/* Mobile Drawer */}
       <Drawer
         variant="temporary"
         open={mobileOpen}
@@ -301,13 +315,17 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: "block", lg: "none" },
-          "& .MuiDrawer-paper": { boxSizing: "border-box", width: DRAWER_WIDTH, border: "none" },
+          "& .MuiDrawer-paper": { 
+            boxSizing: "border-box", 
+            width: DRAWER_WIDTH, 
+            border: "none",
+            boxShadow: "var(--shadow-lg)"
+          },
         }}
       >
         {drawerContent}
       </Drawer>
 
-      {/* Desktop Drawer */}
       <Drawer
         variant="permanent"
         sx={{
@@ -316,7 +334,7 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
             boxSizing: "border-box", 
             width: DRAWER_WIDTH, 
             border: "none",
-            borderRight: "1px solid #e2e8f0",
+            borderRight: "1px solid #f1f5f9",
             bgcolor: "#fff"
           },
         }}

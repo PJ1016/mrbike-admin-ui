@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { Box, Stack, Avatar, Typography, Menu, MenuItem, IconButton, Tooltip } from "@mui/material"
-import { Logout as LogoutIcon, Person as PersonIcon } from "@mui/icons-material"
+import { Box, Stack, Avatar, Typography, Menu, MenuItem, IconButton, Tooltip, Divider, ListItemIcon } from "@mui/material"
+import { Logout as LogoutIcon, Person as PersonIcon, Menu as MenuIcon } from "@mui/icons-material"
 import React, { useState } from "react"
 import img1 from "../../assets2/img/logos/logo.png"
 import img2 from "../../assets2/img/logos/logo-small.png"
@@ -26,101 +26,118 @@ const Navbar = ({ handleToggleDrawer }) => {
   }
 
   return (
-    <div className="header header-one d-flex align-items-center">
-      <Link
-        to={"/"}
-        className="d-inline-flex d-sm-inline-flex align-items-center d-md-inline-flex d-lg-none align-items-center device-logo"
-      >
-        <img
-          src={img1}
-          className="img-fluid logo2"
-          alt="Logo"
-          style={{ width: 60 }}
-        />
-      </Link>
-      <div className="main-logo d-inline float-start d-lg-flex align-items-center d-none d-sm-none d-md-none">
-        <div className="logo-color">
-          <Link to={"/"}>
-            <img
-              src={img1}
-              className="img-fluid logo-blue"
-              alt="Logo"
-              style={{ width: 60 }}
-            />
+    <Box
+      component="header"
+      sx={{
+        position: "fixed",
+        top: 0,
+        right: 0,
+        left: 0,
+        height: "70px",
+        bgcolor: "#ffffff",
+        borderBottom: "1px solid #f1f5f9",
+        zIndex: 1100,
+        display: "flex",
+        alignItems: "center",
+        px: { xs: 2, lg: 4 },
+      }}
+    >
+      {/* Mobile Toggle & Logo */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <IconButton
+          onClick={handleToggleDrawer}
+          sx={{ display: { lg: "none" }, color: "neutral.600" }}
+        >
+          <MenuIcon />
+        </IconButton>
+        
+        <Box sx={{ display: { lg: "none" } }}>
+          <Link to="/">
+            <img src={img2} alt="Logo" style={{ height: "40px" }} />
           </Link>
-          <Link to={"/"}>
-            <img
-              src={img2}
-              className="img-fluid logo-small"
-              alt="Logo"
-              style={{ width: 50 }}
-            />
-          </Link>
-        </div>
-      </div>
-      <Link href="#" id="toggle_btn" onClick={(e) => { e.preventDefault(); handleToggleDrawer(); }}>
-        <span className="toggle-bars">
-          <span className="bar-icons" />
-          <span className="bar-icons" />
-          <span className="bar-icons" />
-          <span className="bar-icons" />
-        </span>
-      </Link>
-      <Link className="mobile_btn" id="mobile_btn" onClick={(e) => { e.preventDefault(); handleToggleDrawer(); }}>
-        <i className="fas fa-bars" />
-      </Link>
+        </Box>
+      </Box>
 
-      <Stack 
-        direction="row" 
-        spacing={2} 
-        alignItems="center" 
-        sx={{ ml: 'auto', px: 3, flexGrow: 1, justifyContent: 'flex-end' }}
-      >
-        <Box sx={{ display: { xs: 'none', sm: 'block' }, maxWidth: 450, width: '100%' }}>
+      {/* Desktop Search Area */}
+      <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "flex-start", ml: { lg: 32 } }}>
+        <Box sx={{ display: { xs: "none", md: "block" }, width: "100%", maxWidth: "500px" }}>
           <GlobalSearch />
         </Box>
+      </Box>
 
-        <Tooltip title="Open settings">
-          <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ cursor: 'pointer' }}>
-              <Box sx={{ display: { xs: 'none', lg: 'block' }, textAlign: 'right' }}>
-                <Typography variant="caption" display="block" color="text.secondary" sx={{ lineHeight: 1, fontWeight: 500 }}>
-                  Admin
-                </Typography>
-                <Typography variant="body2" fontWeight="700">
+      {/* Right Actions */}
+      <Stack direction="row" spacing={2} alignItems="center">
+        <Tooltip title="Account settings">
+          <IconButton onClick={handleOpenUserMenu} sx={{ p: 0.5 }}>
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <Box sx={{ display: { xs: "none", sm: "block" }, textAlign: "right" }}>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: "neutral.800" }}>
                   John Smith
                 </Typography>
+                <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontWeight: 600 }}>
+                  Administrator
+                </Typography>
               </Box>
-              <Avatar alt="Admin User" src={img3} sx={{ width: 40, height: 40, border: '2px solid #fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
+              <Avatar 
+                alt="Admin User" 
+                src={img3} 
+                sx={{ 
+                  width: 40, 
+                  height: 40, 
+                  border: '2px solid #fff', 
+                  boxShadow: "0 0 0 1px #e2e8f0" 
+                }} 
+              />
             </Stack>
           </IconButton>
         </Tooltip>
 
         <Menu
-          sx={{ mt: '45px' }}
-          id="menu-appbar"
           anchorEl={anchorEl}
-          anchorOrigin={{
-            vertical: 'top',
-            horizontal: 'right',
-          }}
-          keepMounted
-          transformOrigin={{
-            vertical: 'top',
-            horizontal: 'right',
-          }}
           open={Boolean(anchorEl)}
           onClose={handleCloseUserMenu}
+          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          PaperProps={{
+            elevation: 0,
+            sx: {
+              mt: 1.5,
+              borderRadius: "12px",
+              border: "1px solid #f1f5f9",
+              boxShadow: "var(--shadow-lg)",
+              minWidth: 180,
+              overflow: 'visible',
+              '&:before': {
+                content: '""',
+                display: 'block',
+                position: 'absolute',
+                top: 0,
+                right: 14,
+                width: 10,
+                height: 10,
+                bgcolor: 'background.paper',
+                transform: 'translateY(-50%) rotate(45deg)',
+                zIndex: 0,
+              },
+            },
+          }}
         >
-          <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/profile'); }}>
-            <PersonIcon sx={{ mr: 1, fontSize: 20 }} /> Profile
+          <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/profile'); }} sx={{ py: 1.2, px: 2, borderRadius: "8px", mx: 0.5 }}>
+            <ListItemIcon>
+              <PersonIcon fontSize="small" sx={{ color: "primary.main" }} />
+            </ListItemIcon>
+            <Typography variant="body2" fontWeight={600}>Profile</Typography>
           </MenuItem>
-          <MenuItem onClick={handleLogout}>
-            <LogoutIcon sx={{ mr: 1, fontSize: 20 }} /> Log Out
+          <Divider sx={{ my: 1, opacity: 0.6 }} />
+          <MenuItem onClick={handleLogout} sx={{ py: 1.2, px: 2, borderRadius: "8px", mx: 0.5, color: "error.main" }}>
+            <ListItemIcon>
+              <LogoutIcon fontSize="small" sx={{ color: "inherit" }} />
+            </ListItemIcon>
+            <Typography variant="body2" fontWeight={600}>Log Out</Typography>
           </MenuItem>
         </Menu>
       </Stack>
-    </div>
+    </Box>
   )
 }
 

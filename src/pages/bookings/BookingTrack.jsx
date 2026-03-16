@@ -64,18 +64,36 @@ const BookingTrack = () => {
   const getStatusChip = (status) => {
     const s = status?.toLowerCase() || "pending";
     let color = "default";
-    if (s.includes("cancel")) color = "error";
-    if (["confirmed", "arrived", "pickedup"].includes(s)) color = "primary";
-    if (s === "completed") color = "success";
-    if (s === "pending" || s === "waiting") color = "warning";
+    let bgcolor = "neutral.100";
+    let textColor = "neutral.600";
+
+    if (s.includes("cancel") || s.includes("reject")) {
+      bgcolor = "error.light";
+      textColor = "error.main";
+    } else if (["confirmed", "arrived", "pickedup"].includes(s)) {
+      bgcolor = "info.light";
+      textColor = "info.main";
+    } else if (s === "completed") {
+      bgcolor = "success.light";
+      textColor = "success.main";
+    } else if (s === "pending" || s === "waiting" || s.includes("created")) {
+      bgcolor = "warning.light";
+      textColor = "warning.main";
+    }
 
     return (
       <Chip
         label={status || "Unknown"}
         size="small"
-        color={color}
-        variant="filled"
-        sx={{ fontWeight: "bold", textTransform: "capitalize" }}
+        sx={{ 
+          fontWeight: 700, 
+          textTransform: "capitalize",
+          bgcolor: bgcolor,
+          color: textColor,
+          borderRadius: "20px",
+          fontSize: "0.7rem",
+          border: "none"
+        }}
       />
     );
   };
@@ -150,22 +168,22 @@ const BookingTrack = () => {
               <Table stickyHeader>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ bgcolor: "#f8fafc", fontWeight: "bold" }}>#</TableCell>
-                    <TableCell sx={{ bgcolor: "#f8fafc", fontWeight: "bold" }}>Date & Time</TableCell>
-                    <TableCell sx={{ bgcolor: "#f8fafc", fontWeight: "bold" }}>Booking ID</TableCell>
-                    <TableCell sx={{ bgcolor: "#f8fafc", fontWeight: "bold" }}>Service</TableCell>
-                    <TableCell sx={{ bgcolor: "#f8fafc", fontWeight: "bold" }}>Customer</TableCell>
-                    <TableCell sx={{ bgcolor: "#f8fafc", fontWeight: "bold" }}>Dealer</TableCell>
-                    <TableCell sx={{ bgcolor: "#f8fafc", fontWeight: "bold" }}>Status</TableCell>
-                    <TableCell sx={{ bgcolor: "#f8fafc", fontWeight: "bold" }}>Action</TableCell>
+                    <TableCell sx={{ bgcolor: "#f1f5f9", color: "neutral.600", fontWeight: 700, fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>#</TableCell>
+                    <TableCell sx={{ bgcolor: "#f1f5f9", color: "neutral.600", fontWeight: 700, fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Date & Time</TableCell>
+                    <TableCell sx={{ bgcolor: "#f1f5f9", color: "neutral.600", fontWeight: 700, fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Booking ID</TableCell>
+                    <TableCell sx={{ bgcolor: "#f1f5f9", color: "neutral.600", fontWeight: 700, fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Service</TableCell>
+                    <TableCell sx={{ bgcolor: "#f1f5f9", color: "neutral.600", fontWeight: 700, fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Customer</TableCell>
+                    <TableCell sx={{ bgcolor: "#f1f5f9", color: "neutral.600", fontWeight: 700, fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Dealer</TableCell>
+                    <TableCell sx={{ bgcolor: "#f1f5f9", color: "neutral.600", fontWeight: 700, fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Status</TableCell>
+                    <TableCell sx={{ bgcolor: "#f1f5f9", color: "neutral.600", fontWeight: 700, fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Action</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {loading ? (
                     <TableRow>
                       <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
-                        <CircularProgress />
-                        <Typography sx={{ mt: 2 }}>Loading live operations...</Typography>
+                        <CircularProgress thickness={5} size={40} />
+                        <Typography variant="body2" sx={{ mt: 2, color: "neutral.500", fontWeight: 500 }}>Loading live operations...</Typography>
                       </TableCell>
                     </TableRow>
                   ) : data.length === 0 ? (
@@ -176,13 +194,17 @@ const BookingTrack = () => {
                     </TableRow>
                   ) : (
                     data.map((booking, index) => (
-                      <TableRow key={booking._id} hover>
-                        <TableCell>{index + 1}</TableCell>
+                      <TableRow 
+                        key={booking._id} 
+                        hover
+                        sx={{ "&:hover": { bgcolor: "neutral.50" }, transition: "background-color 0.2s" }}
+                      >
+                        <TableCell sx={{ color: "neutral.500", fontSize: "0.875rem" }}>{index + 1}</TableCell>
                         <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: "neutral.800" }}>
                             {moment(booking.createdAt).format("DD MMM YYYY")}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" sx={{ color: "neutral.500", fontWeight: 500 }}>
                             {moment(booking.createdAt).format("hh:mm A")}
                           </Typography>
                         </TableCell>
@@ -190,26 +212,37 @@ const BookingTrack = () => {
                           <Chip 
                             label={booking.bookingId} 
                             size="small" 
-                            variant="outlined" 
-                            sx={{ fontWeight: "bold", bgcolor: "#f1f5f9" }} 
+                            sx={{ 
+                              fontWeight: 700, 
+                              bgcolor: "primary.light", 
+                              color: "primary.main",
+                              borderRadius: "6px",
+                              fontSize: "0.75rem"
+                            }} 
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ fontSize: "0.875rem", fontWeight: 500 }}>
                           {booking.services?.[0]?.base_service_id?.name || "General Service"}
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: "neutral.800" }}>
                             {booking.user_id?.first_name} {booking.user_id?.last_name}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" sx={{ color: "neutral.500" }}>
                             {booking.user_id?.phone}
                           </Typography>
                         </TableCell>
-                        <TableCell>
-                          {booking.dealer_id?.shopName || (
-                            <Typography variant="caption" color="error" sx={{ fontWeight: "bold" }}>
-                              Unassigned
-                            </Typography>
+                        <TableCell sx={{ fontSize: "0.875rem" }}>
+                          {booking.dealer_id?.shopName ? (
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{booking.dealer_id.shopName}</Typography>
+                          ) : (
+                            <Chip 
+                              label="Unassigned" 
+                              size="small" 
+                              variant="outlined"
+                              color="error" 
+                              sx={{ fontWeight: 700, fontSize: "0.65rem", height: 20 }} 
+                            />
                           )}
                         </TableCell>
                         <TableCell>{getStatusChip(booking.status)}</TableCell>
@@ -217,8 +250,12 @@ const BookingTrack = () => {
                           <Tooltip title="View Details">
                             <IconButton 
                               size="small" 
-                              color="primary"
-                              onClick={() => navigate(`/bookings`)} // In a real app, this would go to a detail page
+                              sx={{ 
+                                color: "primary.main",
+                                bgcolor: "primary.light",
+                                "&:hover": { bgcolor: "primary.main", color: "white" }
+                              }}
+                              onClick={() => navigate(`/bookings`)}
                             >
                               <VisibilityIcon fontSize="small" />
                             </IconButton>
