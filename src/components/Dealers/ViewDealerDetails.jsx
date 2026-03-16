@@ -621,7 +621,7 @@ const VendorDealerDetails = () => {
                       <Stack spacing={1.5}>
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <Typography variant="body2" fontWeight="600">Merchant Identity</Typography>
-                          {dealer.isVerify ? (
+                          {(dealer.documentVerification?.face === 'verified' && dealer.documentVerification?.aadharFront === 'verified' && dealer.documentVerification?.pan === 'verified') ? (
                             <Chip icon={<FaCheckCircle style={{ color: 'white' }} />} label="VERIFIED" color="success" size="small" sx={{ fontWeight: 800, fontSize: '0.6rem' }} />
                           ) : (
                             <Chip label="PENDING" color="warning" size="small" sx={{ fontWeight: 800, fontSize: '0.6rem' }} />
@@ -629,7 +629,7 @@ const VendorDealerDetails = () => {
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <Typography variant="body2" fontWeight="600">Onboarding Docs</Typography>
-                          {dealer.isDoc ? (
+                          {dealer.documentVerification?.shop === 'verified' ? (
                             <Chip icon={<FaCheckCircle style={{ color: 'white' }} />} label="APPROVED" color="success" size="small" sx={{ fontWeight: 800, fontSize: '0.6rem' }} />
                           ) : (
                             <Chip label="INCOMPLETE" color="error" size="small" sx={{ fontWeight: 800, fontSize: '0.6rem' }} />
@@ -637,7 +637,11 @@ const VendorDealerDetails = () => {
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <Typography variant="body2" fontWeight="600">Bank Verification</Typography>
-                          <Chip label="UNVERIFIED" variant="outlined" color="error" size="small" sx={{ fontWeight: 800, fontSize: '0.6rem', bgcolor: 'white' }} />
+                          {dealer.documentVerification?.passbook === 'verified' ? (
+                            <Chip icon={<FaCheckCircle style={{ color: 'white' }} />} label="VERIFIED" color="success" size="small" sx={{ fontWeight: 800, fontSize: '0.6rem' }} />
+                          ) : (
+                            <Chip label="UNVERIFIED" variant="outlined" color="error" size="small" sx={{ fontWeight: 800, fontSize: '0.6rem', bgcolor: 'white' }} />
+                          )}
                         </Box>
                       </Stack>
                     </Card>
