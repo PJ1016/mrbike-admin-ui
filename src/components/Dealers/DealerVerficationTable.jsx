@@ -146,9 +146,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
     { id: "id", label: "#", sortable: false },
     { id: "shopName", label: "Shop Details", sortable: true },
     { id: "ownerName", label: "Owner Info", sortable: true },
-    { id: "docs", label: "Documents", sortable: false },
-    { id: "verification", label: "Verification", sortable: true },
-    { id: "registration", label: "Reg Status", sortable: true },
+    { id: "docs", label: "Documents Status", sortable: false },
     { id: "createdAt", label: "Requested On", sortable: true },
     { id: "actions", label: "Action", sortable: false },
   ];
@@ -458,25 +456,6 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                           </Box>
                         ))}
                       </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={verifyStatus.label}
-                        color={verifyStatus.color}
-                        icon={verifyStatus.icon}
-                        size="small"
-                        sx={{ fontWeight: "bold" }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={dealer.registrationStatus || "Pending"}
-                        color={regStatus.color}
-                        icon={regStatus.icon}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontWeight: "bold", textTransform: "capitalize" }}
-                      />
                     </TableCell>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
                       {new Date(dealer.createdAt).toLocaleDateString("en-GB", {
