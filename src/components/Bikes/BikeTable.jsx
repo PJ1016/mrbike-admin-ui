@@ -32,7 +32,7 @@ import Swal from "sweetalert2"
 import { useDownloadExcel } from "react-export-table-to-excel"
 import jsPDF from "jspdf"
 import "jspdf-autotable"
-import { deleteBike } from "../../api"
+import { deleteBike, deleteBikeModel, deleteBikeCompany } from "../../api"
 
 const BikeTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, datas, text, onBikeDeleted }) => {
   const tableRef = useRef(null)
@@ -47,16 +47,16 @@ const BikeTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, dat
 
   // Anchor for the actions menu
   const [anchorEl, setAnchorEl] = useState(null)
-  const [selectedVariantId, setSelectedVariantId] = useState(null)
+  const [selectedRow, setSelectedRow] = useState(null)
 
-  const handleMenuOpen = (event, variantId) => {
+  const handleMenuOpen = (event, row) => {
     setAnchorEl(event.currentTarget)
-    setSelectedVariantId(variantId)
+    setSelectedRow(row)
   }
 
   const handleMenuClose = () => {
     setAnchorEl(null)
-    setSelectedVariantId(null)
+    setSelectedRow(null)
   }
 
   // Handle filter changes with cascading reset
@@ -150,10 +150,12 @@ const BikeTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, dat
         model.variants.forEach((variant) => {
           rows.push({
             companyName: company.name,
+            companyId: company._id,
             modelName: model.model_name,
+            modelId: model._id,
             variantName: variant.variant_name,
-            engineCC: variant.engine_cc,
             variantId: variant._id,
+            engineCC: variant.engine_cc,
           })
         })
       })
@@ -191,13 +193,31 @@ const BikeTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, dat
   triggerDownloadExcel.current = onDownload
   triggerDownloadPDF.current = exportToPDF
 
-  const handleDelete = async () => {
-    const variantId = selectedVariantId
+  const handleDelete = async (type) => {
+    const { variantId, modelId, companyId, variantName, modelName, companyName } = selectedRow
     handleMenuClose()
-    
+
+    let deleteFn, title, text, successText
+    if (type === "variant") {
+      deleteFn = () => deleteBike(variantId)
+      title = `Delete variant "${variantName}"?`
+      text = "This will only delete this specific variant."
+      successText = "Variant deleted successfully"
+    } else if (type === "model") {
+      deleteFn = () => deleteBikeModel(modelId)
+      title = `Delete model "${modelName}"?`
+      text = `This will delete the model and ALL its variants under ${companyName}.`
+      successText = "Model and variants deleted successfully"
+    } else if (type === "company") {
+      deleteFn = () => deleteBikeCompany(companyId)
+      title = `Delete company "${companyName}"?`
+      text = "This will delete the company and ALL its models and variants. This action cannot be undone!"
+      successText = "Company and all associated data deleted successfully"
+    }
+
     Swal.fire({
-      title: "Are you sure?",
-      text: "You won't be able to revert this!",
+      title: title,
+      text: text,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
@@ -206,13 +226,13 @@ const BikeTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, dat
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const response = await deleteBike(variantId)
+          const response = await deleteFn()
           if (response.status === 200 || response.status === "200") {
             onBikeDeleted()
             Swal.fire({
               icon: "success",
               title: "Deleted!",
-              text: response.message || "Bike details deleted successfully",
+              text: response.message || successText,
               timer: 2000,
               showConfirmButton: false,
             })
@@ -304,7 +324,7 @@ const BikeTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, dat
                 </TableCell>
                 <TableCell>{row.engineCC} CC</TableCell>
                 <TableCell align="right">
-                  <IconButton size="small" onClick={(e) => handleMenuOpen(e, row.variantId)}>
+                  <IconButton size="small" onClick={(e) => handleMenuOpen(e, row)}>
                     <MoreIcon fontSize="small" />
                   </IconButton>
                 </TableCell>
@@ -365,9 +385,17 @@ const BikeTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, dat
           sx: { borderRadius: "10px", minWidth: 120 }
         }}
       >
-        <MenuItem onClick={handleDelete} sx={{ color: "error.main", gap: 1.5 }}>
+        <MenuItem onClick={() => handleDelete("variant")} sx={{ color: "error.main", gap: 1.5 }}>
           <DeleteIcon fontSize="small" />
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>Delete</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>Delete Variant</Typography>
+        </MenuItem>
+        <MenuItem onClick={() => handleDelete("model")} sx={{ color: "error.main", gap: 1.5 }}>
+          <DeleteIcon fontSize="small" />
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>Delete Model</Typography>
+        </MenuItem>
+        <MenuItem onClick={() => handleDelete("company")} sx={{ color: "error.main", gap: 1.5 }}>
+          <DeleteIcon fontSize="small" />
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>Delete Company</Typography>
         </MenuItem>
       </Menu>
     </Box>

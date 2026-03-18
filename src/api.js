@@ -279,6 +279,64 @@ export const deleteBike = async (bikeId) => {
   }
 };
 
+export const deleteBikeModel = async (modelId) => {
+  try {
+    const token = getAuthToken();
+    const response = await axios.delete(
+      `${API_BASE_URL}/bike/deleteBikeModel/${modelId}`,
+      {
+        headers: {
+          token: token,
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Delete model failed:", error.response?.data || error.message);
+
+    const errorMessage =
+      error.response?.data?.message || "Could not delete Bike Model";
+
+    Swal.fire({
+      icon: "error",
+      title: "Deletion Failed",
+      text: errorMessage,
+    });
+
+    throw error;
+  }
+};
+
+export const deleteBikeCompany = async (companyId) => {
+  try {
+    const token = getAuthToken();
+    const response = await axios.delete(
+      `${API_BASE_URL}/bike/deleteBikeCompany/${companyId}`,
+      {
+        headers: {
+          token: token,
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Delete company failed:", error.response?.data || error.message);
+
+    const errorMessage =
+      error.response?.data?.message || "Could not delete Bike Company";
+
+    Swal.fire({
+      icon: "error",
+      title: "Deletion Failed",
+      text: errorMessage,
+    });
+
+    throw error;
+  }
+};
+
 export const addService = async (serviceData) => {
   try {
     const response = await axios.post(
