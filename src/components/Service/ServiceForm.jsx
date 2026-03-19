@@ -31,14 +31,22 @@ import BikePricingTable from "./service-form/BikePricingTable";
 import BaseCatalogPreview from "./service-form/BaseCatalogPreview";
 import PricingPreviewPanel from "./service-form/PricingPreviewPanel";
 import FooterActions from "./service-form/FooterActions";
+import PageHeader from "../Global/PageHeader";
 
 const EMPTY_ARRAY = [];
 
 const getImageUrl = (imagePath) => {
   if (!imagePath) return "";
-  if (imagePath.startsWith("http")) return imagePath;
-  const baseUrl =
-    process.env.REACT_APP_IMAGE_BASE_URL || "https://api.mrbikedoctor.cloud/";
+  const baseUrl = process.env.REACT_APP_IMAGE_BASE_URL || "https://api.mrbikedoctor.cloud/";
+  
+  // Handle absolute URLs that might point to localhost from dev database
+  if (imagePath.startsWith("http")) {
+    if (imagePath.includes("localhost:8001")) {
+      return imagePath.replace(/http:\/\/localhost:8001\//, baseUrl);
+    }
+    return imagePath;
+  }
+  
   return `${baseUrl}${imagePath}`;
 };
 
@@ -356,6 +364,12 @@ const ServiceForm = ({ serviceId, dealerId, onDataLoaded }) => {
     }
   };
 
+  const breadcrumbs = [
+    { label: "Dashboard", path: "/" },
+    { label: "Base Services", path: "/base-services" },
+    { label: "Manage Service", path: "#" },
+  ];
+
   if (isLoading)
     return (
       <Box sx={{ pb: 10 }}>
@@ -366,8 +380,8 @@ const ServiceForm = ({ serviceId, dealerId, onDataLoaded }) => {
                 <Card
                   key={i}
                   sx={{
-                    borderRadius: "16px",
-                    p: 3,
+                    borderRadius: "20px",
+                    p: 4,
                     border: "1px solid",
                     borderColor: "divider",
                   }}
@@ -378,7 +392,7 @@ const ServiceForm = ({ serviceId, dealerId, onDataLoaded }) => {
                   />
                   <Skeleton
                     variant="rectangular"
-                    sx={{ width: "100%", height: 120, borderRadius: "8px" }}
+                    sx={{ width: "100%", height: 120, borderRadius: "12px" }}
                   />
                 </Card>
               ))}
@@ -388,29 +402,15 @@ const ServiceForm = ({ serviceId, dealerId, onDataLoaded }) => {
             <Stack spacing={3}>
               <Card
                 sx={{
-                  borderRadius: "16px",
-                  p: 3,
+                  borderRadius: "20px",
+                  p: 4,
                   border: "1px solid",
                   borderColor: "divider",
                 }}
               >
                 <Skeleton
                   variant="rectangular"
-                  sx={{ width: "100%", height: 200, borderRadius: "12px" }}
-                />
-              </Card>
-              <Card
-                sx={{
-                  borderRadius: "16px",
-                  p: 3,
-                  border: "1px solid",
-                  borderColor: "divider",
-                }}
-              >
-                <Skeleton variant="text" sx={{ width: "60%", mb: 2 }} />
-                <Skeleton
-                  variant="rectangular"
-                  sx={{ width: "100%", height: 150, borderRadius: "8px" }}
+                  sx={{ width: "100%", height: 200, borderRadius: "16px" }}
                 />
               </Card>
             </Stack>
@@ -420,16 +420,26 @@ const ServiceForm = ({ serviceId, dealerId, onDataLoaded }) => {
     );
 
   return (
-    <Box sx={{ pb: 10 }}>
+    <Box sx={{ pb: 12, px: { xs: 2, lg: 4 } }}>
+      <PageHeader
+        title="Service Management"
+        breadcrumbs={breadcrumbs}
+        action={{
+          label: "Back to Services",
+          onClick: () => navigate("/services")
+        }}
+      />
+
       {alertInfo.show && alertInfo.severity === "error" && (
         <Alert
           severity="error"
-          sx={{ mb: 3, borderRadius: "12px" }}
+          sx={{ mb: 4, borderRadius: "16px", border: '1px solid', borderColor: 'error.light' }}
           onClose={() => setAlertInfo({ ...alertInfo, show: false })}
         >
           {alertInfo.message}
         </Alert>
       )}
+
       <form onSubmit={handleSubmit}>
         <Grid container spacing={4}>
           <Grid item xs={12} lg={8}>
@@ -522,9 +532,11 @@ const ServiceForm = ({ serviceId, dealerId, onDataLoaded }) => {
         autoHideDuration={3000}
         onClose={() => setAlertInfo({ ...alertInfo, show: false })}
         message={alertInfo.message}
+        sx={{ mb: 8 }}
       />
     </Box>
   );
 };
+
 
 export default ServiceForm;

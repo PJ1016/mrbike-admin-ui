@@ -56,7 +56,13 @@ const BaseServiceTable = ({
 
   const getImageUrl = (path) => {
     if (!path) return null;
-    return path.startsWith("http") ? path : `${API_IMAGE_BASE}${path}`;
+    if (path.startsWith("http")) {
+      if (path.includes("localhost:8001")) {
+        return path.replace(/http:\/\/localhost:8001\//, API_IMAGE_BASE);
+      }
+      return path;
+    }
+    return `${API_IMAGE_BASE}${path}`;
   };
 
   const handleRequestSort = (property) => {

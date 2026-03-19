@@ -3,7 +3,7 @@ import { baseApi } from './baseApi';
 export const serviceApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getBaseServices: builder.query({
-      query: () => '/service/adminservices',
+      query: () => '/service/admin/base-services',
       transformResponse: (res) => res.data || res,
       providesTags: ['Service'],
     }),
