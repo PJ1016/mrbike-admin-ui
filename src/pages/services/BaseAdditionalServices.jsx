@@ -59,7 +59,7 @@ const BaseAdditionalServices = () => {
                 <LibraryAddIcon sx={{ color: "#2e83ff", fontSize: 32 }} />
                 <Box>
                   <Typography variant="h4" fontWeight="700" color="text.primary">
-                    Base Additional Services
+                    Additional Services
                   </Typography>
                   <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
                     <Typography color="text.secondary" variant="body2">
@@ -70,7 +70,7 @@ const BaseAdditionalServices = () => {
                       variant="body2"
                       fontWeight="500"
                     >
-                      Base Additional Services
+                      Additional Services
                     </Typography>
                   </Breadcrumbs>
                 </Box>
@@ -85,7 +85,7 @@ const BaseAdditionalServices = () => {
                   startIcon={<AddCircleOutlineIcon />}
                   sx={{ fontWeight: "bold" }}
                 >
-                  Add Base Additional Service
+                  Add Additional Service
                 </Button>
               </Box>
             </Stack>

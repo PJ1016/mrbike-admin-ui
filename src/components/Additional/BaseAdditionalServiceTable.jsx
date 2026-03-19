@@ -244,7 +244,7 @@ const BaseAdditionalServiceTable = ({
                 <TableCell colSpan={tableHeaders.length} align="center" sx={{ py: 6 }}>
                   <CircularProgress size={36} />
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Loading base additional services…
+                    Loading additional services…
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -255,7 +255,7 @@ const BaseAdditionalServiceTable = ({
                     <InventoryIcon sx={{ fontSize: 40 }} />
                   </Box>
                   <Typography variant="body2" color="text.secondary">
-                    No base additional services found
+                    No additional services found
                   </Typography>
                 </TableCell>
               </TableRow>

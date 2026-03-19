@@ -65,7 +65,7 @@ const AdditionalServiceConfigurationSection = ({
               Additional Service Configuration
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Select a base additional service and assign a dealer.
+              Select an additional service type and assign a dealer.
             </Typography>
           </Box>
         </Stack>
@@ -83,7 +83,7 @@ const AdditionalServiceConfigurationSection = ({
                 letterSpacing: "0.05em",
               }}
             >
-              Select Base Additional Service
+              Select Additional Service
             </Typography>
             <Grid container spacing={2}>
               {baseServices.map((service) => {

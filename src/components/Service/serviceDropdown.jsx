@@ -65,7 +65,7 @@ const ServiceDropdown = ({ activeItem, handleMenuClick }) => {
             to="/base-additional-services"
             style={{ textDecoration: "none" }}
           >
-            Base Additional Services
+            Additional Services
           </Link>
         </li>
       </ul>

@@ -155,7 +155,7 @@ const BaseAdditionalServiceForm = ({ isEdit = false }) => {
       <div className="content container-fluid">
         <Box sx={{ py: 1 }}>
           <PageHeader
-            title={`${isEdit ? 'Edit' : 'Create'} Base Additional Service`}
+            title={`${isEdit ? 'Edit' : 'Create'} Additional Service`}
             breadcrumbs={[
               { label: "Dashboard", path: "/" },
               { label: "Additional Services", path: "/base-additional-services" },
