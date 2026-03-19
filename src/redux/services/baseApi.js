@@ -18,6 +18,6 @@ export const baseApi = createApi({
     },
   }),
   // tagTypes are crucial for automated cache invalidation (e.g., refetching lists after a mutation occurs)
-  tagTypes: ['Dealer', 'Customer', 'Service', 'Bike', 'Booking', 'Admin', 'Offer', 'Banner'],
+  tagTypes: ['Dealer', 'Customer', 'Service', 'AdditionalService', 'Bike', 'Booking', 'Admin', 'Offer', 'Banner'],
   endpoints: () => ({}), // Empty endpoints object. Modules will inject their own endpoints into this base API
 });

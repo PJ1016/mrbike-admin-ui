@@ -50,7 +50,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline"
 import VerifiedIcon from "@mui/icons-material/Verified"
 import StorefrontIcon from "@mui/icons-material/Storefront"
-import { getServiceList } from "../../api"
+import { getServiceList, getAdditionalServiceList } from "../../api"
 import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary"
 import BusinessIcon from "@mui/icons-material/Business"
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance"
@@ -158,6 +158,7 @@ const VendorDealerDetails = () => {
   const navigate = useNavigate()
   const [dealer, setDealer] = useState(null)
   const [dealerServices, setDealersServices] = useState([])
+  const [additionalServices, setAdditionalServices] = useState([])
   const [loading, setLoading] = useState(true)
   const [tabIndex, setTabIndex] = useState(0)
   const token = localStorage.getItem("token")
@@ -383,10 +384,13 @@ const VendorDealerDetails = () => {
 
     const fetchServices = async () => {
       try {
-        const response = await getServiceList()
-        if (response && response.status === true && Array.isArray(response.data)) {
-          // Filter services that belong to this dealer
-          const dealerAssignedServices = response.data.filter(service => {
+        const [servicesRes, addServicesRes] = await Promise.all([
+          getServiceList(),
+          getAdditionalServiceList()
+        ]);
+
+        if (servicesRes && servicesRes.status === true && Array.isArray(servicesRes.data)) {
+          const dealerAssignedServices = servicesRes.data.filter(service => {
             const serviceDealerId = service.dealer_id?._id || service.dealer_id || service.dealer?._id || service.dealer
             return serviceDealerId === id
           })
@@ -394,9 +398,20 @@ const VendorDealerDetails = () => {
         } else {
           setDealersServices([])
         }
+
+        if (addServicesRes && addServicesRes.status === true && Array.isArray(addServicesRes.data)) {
+          const dealerAddServices = addServicesRes.data.filter(service => {
+            const serviceDealerId = service.dealer_id?._id || service.dealer_id || service.dealer?._id || service.dealer
+            return serviceDealerId === id
+          })
+          setAdditionalServices(dealerAddServices)
+        } else {
+          setAdditionalServices([])
+        }
       } catch (error) {
         console.error("Error fetching services:", error)
         setDealersServices([])
+        setAdditionalServices([])
       }
     }
 
@@ -419,6 +434,21 @@ const VendorDealerDetails = () => {
     })
     return Object.values(groups)
   }, [dealerServices])
+
+  const groupedAdditionalServices = React.useMemo(() => {
+    const groups = {}
+    additionalServices.forEach(service => {
+      const baseId = service.base_additional_service_id?._id || service.base_additional_service_id || 'unknown'
+      if (!groups[baseId]) {
+        groups[baseId] = {
+          details: service.base_additional_service_id || { name: service.name || 'Unknown Service' },
+          instances: []
+        }
+      }
+      groups[baseId].instances.push(service)
+    })
+    return Object.values(groups)
+  }, [additionalServices])
 
   if (loading) {
     return (
@@ -679,197 +709,239 @@ const VendorDealerDetails = () => {
               <Box sx={{ px: 4, pb: 5 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
                   <Box>
-                    <Typography variant="h6" fontWeight="800" color="primary.main">ACTIVE SERVICES</Typography>
-                    <Typography variant="body2" color="text.secondary">Services this dealer is currently eligible to provide.</Typography>
+                    <Typography variant="h6" fontWeight="800" color="primary.main">MARKETPLACE SERVICES</Typography>
+                    <Typography variant="body2" color="text.secondary">Services this dealer is currently providing.</Typography>
                   </Box>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<AddCircleOutlineIcon />}
-                    onClick={() => navigate(`/create-service?dealerId=${dealer._id}`)}
-                    sx={{ fontWeight: '800', borderRadius: 2, px: 3 }}
-                  >
-                    Set New Service
-                  </Button>
+                  <Stack direction="row" spacing={2}>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      startIcon={<AddCircleOutlineIcon />}
+                      onClick={() => navigate(`/create-additional-service?dealerId=${dealer._id}`)}
+                      sx={{ fontWeight: '800', borderRadius: 2, px: 3 }}
+                    >
+                      Set Addtl. Service
+                    </Button>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={<AddCircleOutlineIcon />}
+                      onClick={() => navigate(`/create-service?dealerId=${dealer._id}`)}
+                      sx={{ fontWeight: '800', borderRadius: 2, px: 3 }}
+                    >
+                      Set Major Service
+                    </Button>
+                  </Stack>
                 </Box>
 
-                {groupedServices.length > 0 ? (
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    {groupedServices.map((group, gIdx) => (
-                      <Accordion 
-                        key={gIdx} 
-                        elevation={0} 
-                        sx={{ 
-                          border: '1px solid', 
-                          borderColor: 'divider', 
-                          borderRadius: '12px !important',
-                          '&:before': { display: 'none' },
-                          overflow: 'hidden'
-                        }}
-                      >
-                        <AccordionSummary
-                          expandIcon={<ExpandMoreIcon />}
-                          sx={{ 
-                            bgcolor: '#f8fafc',
-                            px: 3,
-                            py: 1,
-                            '& .MuiAccordionSummary-content': { alignItems: 'center' }
-                          }}
-                        >
-                          <Avatar 
-                            src={getImageUrl(group.details.image)} 
-                            variant="rounded" 
-                            sx={{ width: 48, height: 48, mr: 2, border: '1px solid #e2e8f0' }} 
-                          />
-                          <Box sx={{ flexGrow: 1 }}>
-                            <Typography variant="subtitle1" fontWeight="800">
-                              {group.details.name}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {group.instances.reduce((acc, inst) => acc + (inst.bikes?.length || 0), 0)} Configurations across {group.instances.length} assignment(s)
-                            </Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
-                            {/* Summarize CC price ranges if possible */}
-                            {(() => {
-                              const allPrices = group.instances.flatMap(i => i.bikes || [])
-                              const minP = Math.min(...allPrices.map(b => b.price))
-                              const maxP = Math.max(...allPrices.map(b => b.price))
-                              return allPrices.length > 0 ? (
-                                <Chip 
-                                  label={minP === maxP ? `₹${minP}` : `₹${minP} - ₹${maxP}`} 
-                                  size="small" 
-                                  sx={{ fontWeight: 800, bgcolor: 'primary.50', color: 'primary.main' }} 
-                                />
-                              ) : null
-                            })()}
-                          </Box>
-                        </AccordionSummary>
-                        <AccordionDetails sx={{ p: 0, borderTop: '1px solid', borderColor: 'divider' }}>
-                          {group.instances.map((instance, iIdx) => {
-                            const bikeCCs = instance.bikes?.map(b => b.cc) || []
-                            const minCC = bikeCCs.length ? Math.min(...bikeCCs) : 0
-                            const maxCC = bikeCCs.length ? Math.max(...bikeCCs) : 0
-                            
-                            const uniqueBrands = new Set(instance.bikes?.map(b => 
-                              b.model_id?.brand_id?.name || b.company_name || 'Generic'
-                            )).size
-
-                            const avgPrice = instance.bikes?.length 
-                              ? instance.bikes.reduce((sum, b) => sum + b.price, 0) / instance.bikes.length 
-                              : 0
-                            const commission = avgPrice * 0.1
-                            const netDealer = avgPrice - commission
-
-                            const isMajor = instance.name?.toLowerCase().includes("major") || 
-                                          group.details.name?.toLowerCase().includes("major")
-
-                            return (
-                              <Box key={iIdx} sx={{ p: 3, borderBottom: iIdx < group.instances.length - 1 ? '1px dashed' : 'none', borderColor: 'divider' }}>
-                                <Grid container spacing={4} alignItems="center">
-                                  {/* Col 1: Specs */}
-                                  <Grid item xs={12} md={3.5}>
-                                    <Stack spacing={1.5}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <Typography variant="caption" fontWeight="800" color="text.secondary">TYPE:</Typography>
-                                        <Chip 
-                                          label={isMajor ? "Major Service" : "General Service"} 
-                                          size="small" 
-                                          color={isMajor ? "error" : "primary"}
-                                          sx={{ fontWeight: 800, height: 20, fontSize: '0.65rem' }} 
-                                        />
-                                      </Box>
-                                      <Box>
-                                        <Typography variant="caption" color="text.secondary" fontWeight="700" display="block">CC RANGE</Typography>
-                                        <Typography variant="body2" fontWeight="800">
-                                          {minCC === maxCC ? `${minCC}CC` : `${minCC}CC - ${maxCC}CC`}
-                                        </Typography>
-                                      </Box>
-                                      <Box>
-                                        <Typography variant="caption" color="text.secondary" fontWeight="700" display="block">BRAND COUNT</Typography>
-                                        <Typography variant="body2" fontWeight="800" sx={{ color: 'primary.main' }}>
-                                          {uniqueBrands} Partner Brands
-                                        </Typography>
-                                      </Box>
-                                    </Stack>
-                                  </Grid>
-
-                                  {/* Col 2: Financials */}
-                                  <Grid item xs={12} md={3.5} sx={{ borderLeft: { md: '1px solid' }, borderRight: { md: '1px solid' }, borderColor: 'divider' }}>
-                                    <Stack spacing={1.5} sx={{ px: { md: 2 } }}>
-                                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <Typography variant="caption" color="text.secondary" fontWeight="700">AVG. PRICE</Typography>
-                                        <Typography variant="body2" fontWeight="900" color="success.main">₹{avgPrice.toLocaleString()}</Typography>
-                                      </Box>
-                                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <Typography variant="caption" color="text.secondary" fontWeight="700">COMMISSION (10%)</Typography>
-                                        <Typography variant="body2" fontWeight="700" color="error.light">-₹{commission.toLocaleString()}</Typography>
-                                      </Box>
-                                      <Divider sx={{ borderStyle: 'dashed' }} />
-                                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <Typography variant="subtitle2" fontWeight="900">DEALER NET</Typography>
-                                        <Typography variant="subtitle2" fontWeight="900" color="primary.main">₹{netDealer.toLocaleString()}</Typography>
-                                      </Box>
-                                    </Stack>
-                                  </Grid>
-
-                                  {/* Col 3: Stats */}
-                                  <Grid item xs={12} md={2.5}>
-                                    <Stack spacing={2}>
-                                      <Box>
-                                        <Typography variant="caption" color="text.secondary" fontWeight="700" display="block" sx={{ mb: 0.5 }}>LIFETIME ORDERS</Typography>
-                                        <Typography variant="h6" fontWeight="900" sx={{ lineHeight: 1 }}>124</Typography>
-                                      </Box>
-                                      <Box>
-                                        <Typography variant="caption" color="text.secondary" fontWeight="700" display="block" sx={{ mb: 0.5 }}>AVG. RATING</Typography>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                          <Typography variant="body2" fontWeight="900">4.8</Typography>
-                                          <Rating value={4.8} readOnly precision={0.1} size="small" icon={<StarIcon fontSize="inherit" color="warning" />} />
-                                        </Box>
-                                      </Box>
-                                    </Stack>
-                                  </Grid>
-
-                                  {/* Quick Actions */}
-                                  <Grid item xs={12} md={2.5}>
-                                    <Stack spacing={2} alignItems={{ xs: 'flex-start', md: 'flex-end' }}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <Typography variant="caption" fontWeight="800">ACTIVE</Typography>
-                                        <Switch size="small" defaultChecked color="success" />
-                                      </Box>
-                                      <Button 
-                                        variant="outlined" 
-                                        size="small" 
-                                        startIcon={<SettingsIcon sx={{ fontSize: 14 }} />}
-                                        onClick={() => navigate(`/edit-services/${instance._id}`)}
-                                        sx={{ fontWeight: 800, borderRadius: 1.5, textTransform: 'none', px: 2 }}
-                                      >
-                                        Edit Pricing
-                                      </Button>
-                                    </Stack>
-                                  </Grid>
-                                </Grid>
-                              </Box>
-                            )
-                          })}
-                        </AccordionDetails>
-                      </Accordion>
-                    ))}
-                  </Box>
-                ) : (
+                {groupedServices.length === 0 && groupedAdditionalServices.length === 0 ? (
                   <Paper variant="outlined" sx={{ textAlign: 'center', py: 10, bgcolor: '#fafafa', borderStyle: 'dashed', borderRadius: 4 }}>
                     <FaTools size={48} style={{ color: '#cbd5e1', marginBottom: 20 }} />
                     <Typography variant="h6" fontWeight="700" color="text.secondary">No Marketplace Exposure</Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>This dealer is not providing any services yet. They won't appear in user searches.</Typography>
-                    <Button
-                      variant="contained"
-                      sx={{ fontWeight: '800', borderRadius: 2, px:4 }}
-                      startIcon={<AddCircleOutlineIcon />}
-                      onClick={() => navigate(`/create-service?dealerId=${dealer._id}`)}
-                    >
-                      Onboard First Service
-                    </Button>
+                    <Stack direction="row" spacing={2} justifyContent="center">
+                      <Button
+                        variant="outlined"
+                        sx={{ fontWeight: '800', borderRadius: 2, px:4 }}
+                        startIcon={<AddCircleOutlineIcon />}
+                        onClick={() => navigate(`/create-additional-service?dealerId=${dealer._id}`)}
+                      >
+                        Onboard Addtl. Service
+                      </Button>
+                      <Button
+                        variant="contained"
+                        sx={{ fontWeight: '800', borderRadius: 2, px:4 }}
+                        startIcon={<AddCircleOutlineIcon />}
+                        onClick={() => navigate(`/create-service?dealerId=${dealer._id}`)}
+                      >
+                        Onboard Major Service
+                      </Button>
+                    </Stack>
                   </Paper>
+                ) : (
+                  <Stack spacing={4}>
+                    {groupedServices.length > 0 && (
+                      <Box>
+                        <Typography variant="overline" color="text.secondary" fontWeight="800" sx={{ mb: 2, display: 'block' }}>MAJOR & GENERAL SERVICES</Typography>
+                        <Stack spacing={2}>
+                          {groupedServices.map((group, gIdx) => (
+                            <Accordion 
+                              key={`major-${gIdx}`} 
+                              elevation={0} 
+                              sx={{ 
+                                border: '1px solid', 
+                                borderColor: 'divider', 
+                                borderRadius: '12px !important',
+                                '&:before': { display: 'none' },
+                                overflow: 'hidden'
+                              }}
+                            >
+                              <AccordionSummary
+                                expandIcon={<ExpandMoreIcon />}
+                                sx={{ 
+                                  bgcolor: '#f8fafc',
+                                  px: 3,
+                                  py: 1,
+                                  '& .MuiAccordionSummary-content': { alignItems: 'center' }
+                                }}
+                              >
+                                <Avatar 
+                                  src={getImageUrl(group.details.image)} 
+                                  variant="rounded" 
+                                  sx={{ width: 48, height: 48, mr: 2, border: '1px solid #e2e8f0' }} 
+                                />
+                                <Box sx={{ flexGrow: 1 }}>
+                                  <Typography variant="subtitle1" fontWeight="800">
+                                    {group.details.name}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {group.instances.reduce((acc, inst) => acc + (inst.bikes?.length || 0), 0)} Configurations across {group.instances.length} assignment(s)
+                                  </Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
+                                  {(() => {
+                                    const allPrices = group.instances.flatMap(i => i.bikes || [])
+                                    const minP = Math.min(...allPrices.map(b => b.price))
+                                    const maxP = Math.max(...allPrices.map(b => b.price))
+                                    return allPrices.length > 0 ? (
+                                      <Chip 
+                                        label={minP === maxP ? `₹${minP}` : `₹${minP} - ₹${maxP}`} 
+                                        size="small" 
+                                        sx={{ fontWeight: 800, bgcolor: 'primary.50', color: 'primary.main' }} 
+                                      />
+                                    ) : null
+                                  })()}
+                                </Box>
+                              </AccordionSummary>
+                              <AccordionDetails sx={{ p: 0, borderTop: '1px solid', borderColor: 'divider' }}>
+                                {group.instances.map((instance, iIdx) => {
+                                  return (
+                                    <Box key={iIdx} sx={{ p: 3, borderBottom: iIdx < group.instances.length - 1 ? '1px dashed' : 'none', borderColor: 'divider' }}>
+                                      <Grid container spacing={4} alignItems="center">
+                                        <Grid item xs={12} md={5}>
+                                           <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontStyle: 'italic' }}>"{instance.description || 'No internal description.'}"</Typography>
+                                           <Chip label={`${instance.bikes?.length || 0} Models Assigned`} size="small" icon={<FaTools />} sx={{ fontWeight: 700 }} />
+                                        </Grid>
+                                        <Grid item xs={12} md={4}>
+                                           <Stack direction="row" spacing={1}>
+                                              <Typography variant="caption" fontWeight="800" color="text.secondary">PRICE RANGE:</Typography>
+                                              <Typography variant="caption" fontWeight="900" color="primary.main">
+                                                 ₹{Math.min(...(instance.bikes?.map(b => b.price) || [0]))} - ₹{Math.max(...(instance.bikes?.map(b => b.price) || [0]))}
+                                              </Typography>
+                                           </Stack>
+                                        </Grid>
+                                        <Grid item xs={12} md={3} sx={{ textAlign: 'right' }}>
+                                          <Button 
+                                            variant="outlined" 
+                                            size="small" 
+                                            onClick={() => navigate(`/edit-services/${instance._id}`)}
+                                            sx={{ fontWeight: 800, borderRadius: 1.5 }}
+                                          >
+                                            Edit Pricing
+                                          </Button>
+                                        </Grid>
+                                      </Grid>
+                                    </Box>
+                                  )
+                                })}
+                              </AccordionDetails>
+                            </Accordion>
+                          ))}
+                        </Stack>
+                      </Box>
+                    )}
+
+                    {groupedAdditionalServices.length > 0 && (
+                      <Box>
+                        <Typography variant="overline" color="text.secondary" fontWeight="800" sx={{ mb: 2, display: 'block' }}>ADDITIONAL SERVICES</Typography>
+                        <Stack spacing={2}>
+                          {groupedAdditionalServices.map((group, gIdx) => (
+                            <Accordion 
+                              key={`addtl-${gIdx}`} 
+                              elevation={0} 
+                              sx={{ 
+                                border: '1px solid', 
+                                borderColor: 'divider', 
+                                borderRadius: '12px !important',
+                                '&:before': { display: 'none' },
+                                overflow: 'hidden'
+                              }}
+                            >
+                              <AccordionSummary
+                                expandIcon={<ExpandMoreIcon />}
+                                sx={{ 
+                                  bgcolor: '#f8fafc',
+                                  px: 3,
+                                  py: 1,
+                                  '& .MuiAccordionSummary-content': { alignItems: 'center' }
+                                }}
+                              >
+                                <Avatar 
+                                  src={getImageUrl(group.details.image)} 
+                                  variant="rounded" 
+                                  sx={{ width: 48, height: 48, mr: 2, border: '1px solid #e2e8f0' }} 
+                                />
+                                <Box sx={{ flexGrow: 1 }}>
+                                  <Typography variant="subtitle1" fontWeight="800">
+                                    {group.details.name}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {group.instances.reduce((acc, inst) => acc + (inst.bikes?.length || 0), 0)} CC Ranges across {group.instances.length} assignment(s)
+                                  </Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
+                                  {(() => {
+                                    const allPrices = group.instances.flatMap(i => i.bikes || [])
+                                    const minP = Math.min(...allPrices.map(b => b.price))
+                                    const maxP = Math.max(...allPrices.map(b => b.price))
+                                    return allPrices.length > 0 ? (
+                                      <Chip 
+                                        label={minP === maxP ? `₹${minP}` : `₹${minP} - ₹${maxP}`} 
+                                        size="small" 
+                                        sx={{ fontWeight: 800, bgcolor: 'success.50', color: 'success.main' }} 
+                                      />
+                                    ) : null
+                                  })()}
+                                </Box>
+                              </AccordionSummary>
+                              <AccordionDetails sx={{ p: 0, borderTop: '1px solid', borderColor: 'divider' }}>
+                                {group.instances.map((instance, iIdx) => {
+                                  return (
+                                    <Box key={iIdx} sx={{ p: 3, borderBottom: iIdx < group.instances.length - 1 ? '1px dashed' : 'none', borderColor: 'divider' }}>
+                                      <Grid container spacing={4} alignItems="center">
+                                        <Grid item xs={12} md={5}>
+                                           <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontStyle: 'italic' }}>"{instance.description || 'No internal description.'}"</Typography>
+                                           <Chip label={`${instance.bikes?.length || 0} CC Ranges`} size="small" icon={<SettingsIcon />} sx={{ fontWeight: 700 }} />
+                                        </Grid>
+                                        <Grid item xs={12} md={4}>
+                                           <Stack direction="row" spacing={1}>
+                                              <Typography variant="caption" fontWeight="800" color="text.secondary">PRICE RANGE:</Typography>
+                                              <Typography variant="caption" fontWeight="900" color="success.main">
+                                                 ₹{Math.min(...(instance.bikes?.map(b => b.price) || [0]))} - ₹{Math.max(...(instance.bikes?.map(b => b.price) || [0]))}
+                                              </Typography>
+                                           </Stack>
+                                        </Grid>
+                                        <Grid item xs={12} md={3} sx={{ textAlign: 'right' }}>
+                                          <Button 
+                                            variant="outlined" 
+                                            size="small" 
+                                            onClick={() => navigate(`/additional-services/edit/${instance._id}`)}
+                                            sx={{ fontWeight: 800, borderRadius: 1.5 }}
+                                          >
+                                            Edit Pricing
+                                          </Button>
+                                        </Grid>
+                                      </Grid>
+                                    </Box>
+                                  )
+                                })}
+                              </AccordionDetails>
+                            </Accordion>
+                          ))}
+                        </Stack>
+                      </Box>
+                    )}
+                  </Stack>
                 )}
               </Box>
             </CustomTabPanel>

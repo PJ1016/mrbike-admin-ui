@@ -418,6 +418,8 @@ export const AaddService = async (serviceData) => {
 // ✅ Updated getServiceList to use the new admin services endpoint and fixed duplicate exports
 export const getServiceList = () =>
   apiRequest("GET", "/service/adminservices", {}, false);
+export const getAdditionalServiceList = () =>
+  apiRequest("GET", "/additional-service/admin/additional-services", {}, false);
 export const getAServiceList = getServiceList;
 export const getServices = getServiceList;
 

@@ -5,6 +5,7 @@ import {
   useLocation,
   Outlet,
   Navigate,
+  useParams,
 } from "react-router-dom";
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -27,11 +28,9 @@ import ProfilePage from "./pages/Auth/ProfilePage";
 // Auth provider removed - using Redux authSlice
 import AddDealer from "./pages/Dealer/Createdealer";
 import Addservices from "./pages/services/CreateService";
-import Addaddservices from "./pages/additionalServices/CreateService";
 import Admins from "./pages/admin/admin";
 import Bookings from "./pages/bookings/bookings";
 import Customers from "./pages/customer/customer";
-import AServices from "./pages/additionalServices/services";
 import DealerList from "./pages/Dealer/Dealers";
 import AddBikeCompany from "./pages/bikes/AddBikeCompany";
 import Bikes from "./pages/bikes/Bikes";
@@ -49,6 +48,7 @@ import ViewDealerDetails from "./components/Dealers/ViewDealerDetails";
 import EditService from "./components/Service/EditService";
 import CreateAddService from "./pages/additionalServices/CreateService";
 import ViewAdditionalService from "./pages/additionalServices/ViewAdditionalService";
+import AdditionalServiceForm from "./components/Additional/AdditionalServiceForm";
 import EditAdditionService from "./pages/additionalServices/EditAdditionService";
 import EditVerifyDeaaaler from "./pages/Dealer/EditVerifyDeaaaler";
 import ViewDealersVerify from "./pages/Dealer/ViewDealersVerify";
@@ -222,10 +222,9 @@ const AppContent = () => {
           />
           <Route path="/dealer-services" element={<DealerServices />} />
           <Route path="/edit-services/:id" element={<EditService />} />
-          <Route path="/additionalservices" element={<AServices />} />
           <Route
             path="/create-additional-service"
-            element={<CreateAddService />}
+            element={<AdditionalServiceForm />}
           />
           <Route
             path="/additional-services/view/:id"
@@ -233,7 +232,7 @@ const AppContent = () => {
           />
           <Route
             path="/additional-services/edit/:id"
-            element={<EditAdditionService />}
+            element={<AdditionalServiceFormWrapper />}
           />
           <Route path="/dealers" element={<DealerList />} />
           <Route path="/dealers-verify" element={<DealerVerify />} />
@@ -242,7 +241,6 @@ const AppContent = () => {
           <Route path="/addBikeCompany" element={<AddBikeCompany />} />
           <Route path="/bikes" element={<Bikes />} />
           <Route path="/create-service" element={<Addservices />} />
-          <Route path="/createaddServices" element={<Addaddservices />} />
           <Route path="/banners" element={<CreateBanner />} />
           <Route path="/bannerList" element={<Banners />} />
           <Route path="/paymentList" element={<PaymentList />} />
@@ -288,6 +286,11 @@ const SidebarLayout = ({ mobileOpen, handleToggleDrawer }) => {
       </Box>
     </Box>
   );
+};
+
+const AdditionalServiceFormWrapper = () => {
+  const { id } = useParams();
+  return <AdditionalServiceForm serviceId={id} />;
 };
 
 export default App;
