@@ -18,8 +18,7 @@ const Login = () => {
       const error = /^\d{10}$/.test(value) ? "" : "Phone number must be 10 digits.";
       if (!error) {
         try {
-          const response = await fetch("https://api.mrbikedoctor.cloud/bikedoctor/adminauth/send-otp", {
-          // const response = await fetch("https://api.mrbikedoctor.cloud/bikedoctor/adminauth/send-otp", {
+          const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || "https://api.mrbikedoctor.cloud/bikedoctor"}/adminauth/send-otp`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ phone: value }),
@@ -50,8 +49,7 @@ const Login = () => {
     }
 
     try {
-      const response = await fetch("https://api.mrbikedoctor.cloud/bikedoctor/adminauth/verify-otp", {
-      // const response = await fetch("https://api.mrbikedoctor.cloud/bikedoctor/adminauth/verify-otp", {
+      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || "https://api.mrbikedoctor.cloud/bikedoctor"}/adminauth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -35,7 +35,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 
-const API_IMAGE_BASE = "https://api.mrbikedoctor.cloud/";
+const API_IMAGE_BASE = process.env.REACT_APP_IMAGE_BASE_URL || "https://api.mrbikedoctor.cloud/";
 
 const BaseAdditionalServiceTable = ({
   tableHeaders,

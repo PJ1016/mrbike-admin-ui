@@ -44,7 +44,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import SettingsIcon from "@mui/icons-material/Settings";
 
-const API_IMAGE_BASE = "https://api.mrbikedoctor.cloud/";
+const API_IMAGE_BASE = process.env.REACT_APP_IMAGE_BASE_URL || "https://api.mrbikedoctor.cloud/";
 
 const ServiceTable = ({
   triggerDownloadExcel,
