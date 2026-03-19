@@ -31,7 +31,6 @@ import Addaddservices from "./pages/additionalServices/CreateService";
 import Admins from "./pages/admin/admin";
 import Bookings from "./pages/bookings/bookings";
 import Customers from "./pages/customer/customer";
-import Services from "./pages/services/services";
 import AServices from "./pages/additionalServices/services";
 import DealerList from "./pages/Dealer/Dealers";
 import AddBikeCompany from "./pages/bikes/AddBikeCompany";
@@ -216,7 +215,6 @@ const AppContent = () => {
             path="/edit-base-additional-service/:id"
             element={<BaseAdditionalServiceForm isEdit={true} />}
           />
-          <Route path="/services" element={<Services />} />
           <Route path="/view-customer/:id" element={<ViewUserDetails />} />
           <Route
             path="/view-service/:id"

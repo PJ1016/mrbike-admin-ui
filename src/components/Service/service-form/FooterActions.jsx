@@ -42,7 +42,7 @@ const FooterActions = ({ isDirty, isSubmitting, navigate }) => {
         <Button
           variant="outlined"
           color="inherit"
-          onClick={() => navigate("/services")}
+          onClick={() => navigate(-1)}
           disabled={isSubmitting}
           sx={{
             borderRadius: "12px",

@@ -509,7 +509,7 @@ const Dashboard = () => {
               {[
                 { label: "View All Bookings", icon: <ShoppingCart fontSize="small" />, route: "/booking", color: "#6366f1" },
                 { label: "Approve Dealers", icon: <Storefront fontSize="small" />, route: "/dealers-verify", color: "#f59e0b" },
-                { label: "Manage Services", icon: <Build fontSize="small" />, route: "/services", color: "#10b981" },
+                { label: "Manage Services", icon: <Build fontSize="small" />, route: "/dealers", color: "#10b981" },
                 { label: "View Customers", icon: <People fontSize="small" />, route: "/customers", color: "#8b5cf6" },
                 { label: "Check Offers", icon: <Redeem fontSize="small" />, route: "/offers", color: "#ec4899" },
               ].map((a, i) => (

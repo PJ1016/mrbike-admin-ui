@@ -76,7 +76,6 @@ const menuConfig = [
     children: [
       { title: "Major Services", path: "/base-services" },
       { title: "Additional Services", path: "/base-additional-services" },
-      { title: "Dealer Services", path: "/services" },
     ],
   },
   {

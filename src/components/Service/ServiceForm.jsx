@@ -355,7 +355,10 @@ const ServiceForm = ({ serviceId, dealerId, onDataLoaded }) => {
       if (res?.status === true || res?.status === 200) {
         setIsDirty(false);
         setAlertInfo({ show: true, message: `Success!`, severity: "success" });
-        setTimeout(() => navigate("/services"), 1500);
+        setTimeout(() => {
+          if (selectedDealer?._id) navigate(`/view-dealer/${selectedDealer._id}`);
+          else navigate("/dealers");
+        }, 1500);
       } else throw new Error(res.message || "Failed");
     } catch (err) {
       setAlertInfo({ show: true, message: err.message, severity: "error" });
@@ -366,7 +369,11 @@ const ServiceForm = ({ serviceId, dealerId, onDataLoaded }) => {
 
   const breadcrumbs = [
     { label: "Dashboard", path: "/" },
-    { label: "Base Services", path: "/base-services" },
+    { label: "Dealers", path: "/dealers" },
+    { 
+      label: selectedDealer?.shopName || "Dealer", 
+      path: selectedDealer?._id ? `/view-dealer/${selectedDealer._id}` : "#" 
+    },
     { label: isEditMode ? "Edit Service" : "Create Service", path: "#" },
   ];
 
@@ -425,8 +432,11 @@ const ServiceForm = ({ serviceId, dealerId, onDataLoaded }) => {
         title={isEditMode ? "Edit Service Configuration" : "New Service Configuration"}
         breadcrumbs={breadcrumbs}
         action={{
-          label: "Back to Services",
-          onClick: () => navigate("/services")
+          label: "Back to Profile",
+          onClick: () => {
+            if (selectedDealer?._id) navigate(`/view-dealer/${selectedDealer._id}`);
+            else navigate(-1);
+          }
         }}
       />
 

@@ -73,7 +73,16 @@ const ServiceConfigurationSection = ({
         <Grid container spacing={4}>
           {/* Select Service Cards */}
           <Grid item xs={12}>
-            <Typography variant="subtitle2" fontWeight="700" sx={{ mb: 2, color: "text.secondary", textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <Typography
+              variant="subtitle2"
+              fontWeight="700"
+              sx={{
+                mb: 2,
+                color: "text.secondary",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
               Select Service
             </Typography>
             <Grid container spacing={2}>
@@ -111,7 +120,9 @@ const ServiceConfigurationSection = ({
                         borderRadius: "20px",
                         border: "2px solid",
                         borderColor: isSelected ? "primary.main" : "divider",
-                        bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.04) : "white",
+                        bgcolor: isSelected
+                          ? alpha(theme.palette.primary.main, 0.04)
+                          : "white",
                         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                         position: "relative",
                         display: "flex",
@@ -120,9 +131,11 @@ const ServiceConfigurationSection = ({
                         textAlign: "center",
                         gap: 2,
                         "&:hover": {
-                          borderColor: isSelected ? "primary.main" : alpha(theme.palette.primary.main, 0.2),
+                          borderColor: isSelected
+                            ? "primary.main"
+                            : alpha(theme.palette.primary.main, 0.2),
                           transform: "translateY(-6px)",
-                          boxShadow: isSelected 
+                          boxShadow: isSelected
                             ? `0 12px 24px ${alpha(theme.palette.primary.main, 0.15)}`
                             : "0 12px 24px rgba(0,0,0,0.06)",
                         },
@@ -156,14 +169,18 @@ const ServiceConfigurationSection = ({
                         sx={{
                           p: 1.5,
                           borderRadius: "16px",
-                          bgcolor: isSelected ? "white" : alpha(theme.palette.primary.main, 0.03),
+                          bgcolor: isSelected
+                            ? "white"
+                            : alpha(theme.palette.primary.main, 0.03),
                           border: "1px solid",
                           borderColor: isSelected ? "divider" : "transparent",
                           transition: "all 0.3s",
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: isSelected ? "0 4px 12px rgba(0,0,0,0.05)" : "none",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: isSelected
+                            ? "0 4px 12px rgba(0,0,0,0.05)"
+                            : "none",
                         }}
                       >
                         <Avatar
@@ -175,7 +192,9 @@ const ServiceConfigurationSection = ({
                             bgcolor: "transparent",
                           }}
                         >
-                          <SettingsIcon sx={{ fontSize: 28, color: "text.secondary" }} />
+                          <SettingsIcon
+                            sx={{ fontSize: 28, color: "text.secondary" }}
+                          />
                         </Avatar>
                       </Box>
                       <Box>
@@ -187,7 +206,11 @@ const ServiceConfigurationSection = ({
                         >
                           {formattedName || service.name}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.8 }}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ opacity: 0.8 }}
+                        >
                           {isSelected ? "Service Selected" : "Click to select"}
                         </Typography>
                       </Box>
@@ -198,128 +221,21 @@ const ServiceConfigurationSection = ({
             </Grid>
 
             {formErrors.base_service_id && (
-              <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
+              <Typography
+                variant="caption"
+                color="error"
+                sx={{ mt: 1, display: "block" }}
+              >
                 {formErrors.base_service_id}
               </Typography>
             )}
           </Grid>
 
-          {/* Assign Dealer and Description Row */}
-          {!(dealerId || new URLSearchParams(window.location.search).get("dealerId")) ? (
-            <>
-              <Grid item xs={12} md={6}>
-                <Typography
-                  variant="subtitle2"
-                  fontWeight="700"
-                  sx={{
-                    mb: 2,
-                    color: "text.secondary",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  Assign Dealer
-                </Typography>
-                <FormControl fullWidth error={!!formErrors.dealer}>
-                  <InputLabel>Choose a Dealer</InputLabel>
-                  <Select
-                    value={selectedDealer?._id || ""}
-                    label="Choose a Dealer"
-                    disabled={true} // Already handled by logic that sets selectedDealer
-                    onChange={(e) => {
-                      const dealer = dealers.find((d) => d._id === e.target.value);
-                      setSelectedDealer(dealer);
-                      setFormErrors((prev) => ({ ...prev, dealer: null }));
-                    }}
-                    sx={{
-                      borderRadius: "16px",
-                      bgcolor: "#fcfcfc",
-                      "& .MuiSelect-select": {
-                        height: "48px",
-                        display: "flex",
-                        alignItems: "center",
-                      },
-                    }}
-                  >
-                    {dealers.map((dealer) => (
-                      <MenuItem
-                        key={dealer._id}
-                        value={dealer._id}
-                        sx={{ py: 1.5, px: 2 }}
-                      >
-                        <Stack direction="row" spacing={2} alignItems="center">
-                          <Avatar
-                            sx={{
-                              width: 38,
-                              height: 38,
-                              bgcolor: alpha(theme.palette.primary.main, 0.08),
-                              color: "primary.main",
-                              borderRadius: "10px",
-                            }}
-                          >
-                            <StorefrontIcon sx={{ fontSize: 20 }} />
-                          </Avatar>
-                          <Box>
-                            <Typography variant="subtitle2" fontWeight="700">
-                              {dealer.shopName || dealer.name || "Unknown Shop"}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {dealer.city || "No City Data"}
-                            </Typography>
-                          </Box>
-                        </Stack>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {formErrors.dealer && (
-                    <Typography
-                      variant="caption"
-                      color="error"
-                      sx={{ mt: 0.5, ml: 1 }}
-                    >
-                      {formErrors.dealer}
-                    </Typography>
-                  )}
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Typography
-                  variant="subtitle2"
-                  fontWeight="700"
-                  sx={{
-                    mb: 2,
-                    color: "text.secondary",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  Dealer Internal Description
-                </Typography>
-                <TextField
-                  fullWidth
-                  multiline
-                  minRows={4}
-                  maxRows={6}
-                  value={formData.description}
-                  placeholder="Internal notes about how this dealer performs the service..."
-                  onChange={(e) => {
-                    setFormData({ ...formData, description: e.target.value });
-                    setFormErrors((prev) => ({ ...prev, description: null }));
-                  }}
-                  error={!!formErrors.description}
-                  helperText={formErrors.description}
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: "16px",
-                      backgroundColor: "#fcfcfc",
-                      p: 2,
-                    },
-                  }}
-                />
-              </Grid>
-            </>
-          ) : (
+          {/* Assign Dealer and Description Rows */}
+          {!(
+            dealerId ||
+            new URLSearchParams(window.location.search).get("dealerId")
+          ) && (
             <Grid item xs={12}>
               <Typography
                 variant="subtitle2"
@@ -331,31 +247,109 @@ const ServiceConfigurationSection = ({
                   letterSpacing: "0.05em",
                 }}
               >
-                Dealer Internal Description
+                Assign Dealer
               </Typography>
-              <TextField
-                fullWidth
-                multiline
-                minRows={4}
-                maxRows={6}
-                value={formData.description}
-                placeholder="Internal notes about how this dealer performs the service..."
-                onChange={(e) => {
-                  setFormData({ ...formData, description: e.target.value });
-                  setFormErrors((prev) => ({ ...prev, description: null }));
-                }}
-                error={!!formErrors.description}
-                helperText={formErrors.description}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
+              <FormControl fullWidth error={!!formErrors.dealer}>
+                <InputLabel>Choose a Dealer</InputLabel>
+                <Select
+                  value={selectedDealer?._id || ""}
+                  label="Choose a Dealer"
+                  disabled={true}
+                  onChange={(e) => {
+                    const dealer = dealers.find(
+                      (d) => d._id === e.target.value,
+                    );
+                    setSelectedDealer(dealer);
+                    setFormErrors((prev) => ({ ...prev, dealer: null }));
+                  }}
+                  sx={{
                     borderRadius: "16px",
-                    backgroundColor: "#fcfcfc",
-                    p: 2,
-                  },
-                }}
-              />
+                    bgcolor: "#fcfcfc",
+                    "& .MuiSelect-select": {
+                      height: "48px",
+                      display: "flex",
+                      alignItems: "center",
+                    },
+                  }}
+                >
+                  {dealers.map((dealer) => (
+                    <MenuItem
+                      key={dealer._id}
+                      value={dealer._id}
+                      sx={{ py: 1.5, px: 2 }}
+                    >
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar
+                          sx={{
+                            width: 38,
+                            height: 38,
+                            bgcolor: alpha(theme.palette.primary.main, 0.08),
+                            color: "primary.main",
+                            borderRadius: "10px",
+                          }}
+                        >
+                          <StorefrontIcon sx={{ fontSize: 20 }} />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="subtitle2" fontWeight="700">
+                            {dealer.shopName || dealer.name || "Unknown Shop"}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {dealer.city || "No City Data"}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </MenuItem>
+                  ))}
+                </Select>
+                {formErrors.dealer && (
+                  <Typography
+                    variant="caption"
+                    color="error"
+                    sx={{ mt: 0.5, ml: 1 }}
+                  >
+                    {formErrors.dealer}
+                  </Typography>
+                )}
+              </FormControl>
             </Grid>
           )}
+
+          <Grid item xs={12}>
+            <Typography
+              variant="subtitle2"
+              fontWeight="700"
+              sx={{
+                mb: 2,
+                color: "text.secondary",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
+              Dealer Internal Description
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              minRows={4}
+              maxRows={6}
+              value={formData.description}
+              placeholder="Internal notes about how this dealer performs the service..."
+              onChange={(e) => {
+                setFormData({ ...formData, description: e.target.value });
+                setFormErrors((prev) => ({ ...prev, description: null }));
+              }}
+              error={!!formErrors.description}
+              helperText={formErrors.description}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "16px",
+                  backgroundColor: "#fcfcfc",
+                  p: 2,
+                },
+              }}
+            />
+          </Grid>
         </Grid>
       </CardContent>
     </Card>
@@ -363,4 +357,3 @@ const ServiceConfigurationSection = ({
 };
 
 export default ServiceConfigurationSection;
-
