@@ -25,12 +25,26 @@ import {
   Chip,
   IconButton,
   Tooltip,
+  Grid,
+  Stack,
+  Skeleton,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import SettingsIcon from "@mui/icons-material/Settings";
+import SearchIcon from "@mui/icons-material/Search";
+import EditIcon from "@mui/icons-material/Edit";
+import BuildIcon from "@mui/icons-material/Build";
+import BusinessIcon from "@mui/icons-material/Business";
+import DirectionsBikeIcon from "@mui/icons-material/DirectionsBike";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 // Helper to form image URLs correctly
 const getImageUrl = (imagePath) => {
@@ -41,7 +55,7 @@ const getImageUrl = (imagePath) => {
   return `${baseUrl}${imagePath}`;
 };
 
-const ServiceForm = ({ serviceId }) => {
+const ServiceForm = ({ serviceId, dealerId, onDataLoaded }) => {
   const navigate = useNavigate();
   const isEditMode = !!serviceId;
   const [isLoading, setIsLoading] = useState(isEditMode);
@@ -66,7 +80,13 @@ const ServiceForm = ({ serviceId }) => {
   const [selectedDealer, setSelectedDealer] = useState(null);
   const [selectedCompanies, setSelectedCompanies] = useState([]);
 
+  // Table Filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [brandFilter, setBrandFilter] = useState("All");
+  const [ccFilter, setCcFilter] = useState("All");
+
   // UI states
+  const [isDirty, setIsDirty] = useState(false);
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [alertInfo, setAlertInfo] = useState({
@@ -74,6 +94,18 @@ const ServiceForm = ({ serviceId }) => {
     message: "",
     severity: "success",
   });
+
+  // Track changes for isDirty
+  useEffect(() => {
+    if (!isLoading) setIsDirty(true);
+  }, [
+    formData,
+    selectedBaseService,
+    selectedDealer,
+    selectedCompanies,
+    pricingRules,
+    bikes,
+  ]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -95,9 +127,9 @@ const ServiceForm = ({ serviceId }) => {
         setCompanies(companiesData);
         setDealers(dealersData);
 
-        // Handle dealer pre-selection from query params
+        // Handle dealer pre-selection from props or query params
         const urlParams = new URLSearchParams(window.location.search);
-        const dealerIdParam = urlParams.get("dealerId");
+        const dealerIdParam = dealerId || urlParams.get("dealerId");
         if (dealerIdParam) {
           const preSelectedDealer = dealersData.find(
             (d) => d._id === dealerIdParam,
@@ -128,16 +160,14 @@ const ServiceForm = ({ serviceId }) => {
               null;
             setSelectedBaseService(loadedBaseService);
 
-            const dealerId =
-              serviceData.dealer || serviceData.dealers
-                ? typeof (serviceData.dealer || serviceData.dealers) ===
-                  "string"
-                  ? serviceData.dealer || serviceData.dealers
-                  : (serviceData.dealer || serviceData.dealers)?._id || ""
-                : "";
+            const loadedDealerId = serviceData.dealer_id
+              ? typeof serviceData.dealer_id === "string"
+                ? serviceData.dealer_id
+                : serviceData.dealer_id._id || ""
+              : "";
 
             const dealerObj =
-              dealersData.find((d) => d._id === dealerId) || null;
+              dealersData.find((d) => d._id === loadedDealerId) || null;
             setSelectedDealer(dealerObj);
 
             const companyIds = (serviceData.companies || []).map((c) =>
@@ -181,7 +211,10 @@ const ServiceForm = ({ serviceId }) => {
                 });
 
                 setBikes(mergedBikes);
+                if (onDataLoaded) onDataLoaded(serviceData);
               }
+            } else {
+              if (onDataLoaded) onDataLoaded(serviceData);
             }
           } else {
             setAlertInfo({
@@ -297,8 +330,8 @@ const ServiceForm = ({ serviceId }) => {
     setPricingRules((prev) => prev.filter((r) => r.id !== ruleId));
   };
 
-  // Calculate effective prices on the fly
-  const calculatedBikes = useMemo(() => {
+  // Calculate effective prices and filter on the fly
+  const allBikesWithPrices = useMemo(() => {
     return bikes.map((bike) => {
       let computedPrice = null;
 
@@ -306,7 +339,6 @@ const ServiceForm = ({ serviceId }) => {
       for (const rule of pricingRules) {
         if (bike.cc >= rule.minCc && bike.cc <= rule.maxCc) {
           computedPrice = rule.price;
-          // Could break here, assuming first matched rule applies
           break;
         }
       }
@@ -327,6 +359,38 @@ const ServiceForm = ({ serviceId }) => {
     });
   }, [bikes, pricingRules]);
 
+  const filteredBikes = useMemo(() => {
+    let result = [...allBikesWithPrices];
+
+    // Apply Search
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (b) =>
+          b.model_name.toLowerCase().includes(q) ||
+          b.variant_name.toLowerCase().includes(q) ||
+          b.company_name.toLowerCase().includes(q),
+      );
+    }
+
+    // Apply Brand Filter
+    if (brandFilter !== "All") {
+      result = result.filter((b) => b.company_name === brandFilter);
+    }
+
+    // Apply CC Filter
+    if (ccFilter !== "All") {
+      const [min, max] = ccFilter.split("-").map(Number);
+      if (max) {
+        result = result.filter((b) => b.cc >= min && b.cc <= max);
+      } else {
+        result = result.filter((b) => b.cc >= min);
+      }
+    }
+
+    return result;
+  }, [allBikesWithPrices, searchQuery, brandFilter, ccFilter]);
+
   // DataGrid Handlers
   const processRowUpdate = (newRow, oldRow) => {
     // Treat empty string or 0 as "clear override"
@@ -341,10 +405,109 @@ const ServiceForm = ({ serviceId }) => {
       ),
     );
 
-    // Note: DataGrid requires we return the updated row object exactly as it will render
-    // before the useMemo triggers again. But because computedPrice relies on useMemo,
-    // returning the raw parsed effectivePrice is enough to satisfy the UI momentarily.
-    return { ...newRow, effectivePrice: newManualPrice };
+    return {
+      ...newRow,
+      effectivePrice: newManualPrice,
+      isManualOverride: true,
+    };
+  };
+
+  const TableToolbar = () => {
+    const brands = ["All", ...new Set(bikes.map((b) => b.company_name))];
+    const ccRanges = [
+      "All",
+      "0-100",
+      "101-150",
+      "151-250",
+      "251-500",
+      "501-1000",
+    ];
+
+    return (
+      <Box
+        sx={{
+          p: 2,
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          bgcolor: "#fcfdfe",
+        }}
+      >
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search bike models..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" color="action" />
+                  </InputAdornment>
+                ),
+                sx: { borderRadius: "10px", bgcolor: "white" },
+              }}
+            />
+          </Grid>
+          <Grid item xs={6} md={3}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Brand</InputLabel>
+              <Select
+                value={brandFilter}
+                label="Brand"
+                onChange={(e) => setBrandFilter(e.target.value)}
+                sx={{ borderRadius: "10px", bgcolor: "white" }}
+              >
+                {brands.map((b) => (
+                  <MenuItem key={b} value={b}>
+                    {b}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={6} md={3}>
+            <FormControl fullWidth size="small">
+              <InputLabel>CC Range</InputLabel>
+              <Select
+                value={ccFilter}
+                label="CC Range"
+                onChange={(e) => setCcFilter(e.target.value)}
+                sx={{ borderRadius: "10px", bgcolor: "white" }}
+              >
+                {ccRanges.map((r) => (
+                  <MenuItem key={r} value={r}>
+                    {r}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <Button
+              fullWidth
+              variant="outlined"
+              color="inherit"
+              size="small"
+              onClick={() => {
+                setSearchQuery("");
+                setBrandFilter("All");
+                setCcFilter("All");
+              }}
+              sx={{
+                borderRadius: "10px",
+                textTransform: "none",
+                fontWeight: 600,
+                py: 0.8,
+              }}
+            >
+              Reset
+            </Button>
+          </Grid>
+        </Grid>
+      </Box>
+    );
   };
 
   const handleProcessRowUpdateError = (error) => {
@@ -353,59 +516,111 @@ const ServiceForm = ({ serviceId }) => {
 
   // DataGrid Columns Definition
   const columns = [
-    { field: "company_name", headerName: "Company", width: 150, flex: 1 },
+    {
+      field: "company_name",
+      headerName: "Company",
+      width: 140,
+      renderCell: (params) => (
+        <Typography variant="body2" fontWeight="700">
+          {params.value}
+        </Typography>
+      ),
+    },
     { field: "model_name", headerName: "Model", width: 180, flex: 1 },
-    { field: "variant_name", headerName: "Variant", width: 180, flex: 1 },
-    { field: "cc", headerName: "CC", width: 100, type: "number" },
+    {
+      field: "variant_name",
+      headerName: "Variant",
+      width: 180,
+      color: "text.secondary",
+    },
+    {
+      field: "cc",
+      headerName: "CC",
+      width: 90,
+      type: "number",
+      renderCell: (params) => (
+        <Chip
+          label={`${params.value} CC`}
+          size="small"
+          variant="outlined"
+          sx={{ fontWeight: 600, fontSize: "0.7rem" }}
+        />
+      ),
+    },
     {
       field: "effectivePrice",
       headerName: "Price (₹)",
-      width: 150,
+      width: 160,
       editable: true,
       type: "number",
+      headerClassName: "price-header",
       renderCell: (params) => {
+        const isOverride = params.row.isManualOverride;
         const hasPrice = params.value !== null && params.value !== undefined;
 
-        if (!hasPrice) {
-          return (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ fontStyle: "italic" }}
-            >
-              --
-            </Typography>
-          );
-        }
-
         return (
-          <Box sx={{ display: "flex", alignItems: "center", width: "100%" }}>
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: params.row.isManualOverride ? "bold" : "normal",
-                color: params.row.isManualOverride
-                  ? "primary.main"
-                  : "text.primary",
-              }}
-            >
-              ₹{params.value}
-            </Typography>
-            {!params.row.isManualOverride &&
-              params.row.computedPrice !== null && (
-                <Chip
-                  label="Auto"
-                  size="small"
-                  variant="outlined"
-                  color="success"
-                  sx={{ ml: 1, height: 20, fontSize: "0.65rem" }}
-                />
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              width: "100%",
+              justifyContent: "space-between",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 800,
+                  color: isOverride ? "primary.main" : "text.primary",
+                }}
+              >
+                {hasPrice ? `₹${params.value}` : "--"}
+              </Typography>
+              {isOverride && (
+                <Tooltip title="Manual Override">
+                  <EditIcon
+                    sx={{
+                      ml: 1,
+                      fontSize: 14,
+                      color: "primary.main",
+                      opacity: 0.7,
+                    }}
+                  />
+                </Tooltip>
               )}
+            </Box>
+            {!isOverride && params.row.computedPrice !== null && (
+              <Chip
+                label="Auto"
+                size="small"
+                sx={{
+                  height: 18,
+                  fontSize: "0.6rem",
+                  bgcolor: "success.lighter",
+                  color: "success.dark",
+                  fontWeight: 800,
+                  border: "1px solid",
+                  borderColor: "success.light",
+                }}
+              />
+            )}
           </Box>
         );
       },
     },
   ];
+
+  // Pricing Distribution Hook
+  const priceDistribution = useMemo(() => {
+    const dist = {};
+    allBikesWithPrices.forEach((b) => {
+      if (b.effectivePrice) {
+        dist[b.effectivePrice] = (dist[b.effectivePrice] || 0) + 1;
+      }
+    });
+    return Object.entries(dist).sort((a, b) => b[1] - a[1]);
+  }, [allBikesWithPrices]);
 
   // ==========================================
 
@@ -420,10 +635,10 @@ const ServiceForm = ({ serviceId }) => {
       errors.companies = "Please select at least one company";
     if (!selectedDealer) errors.dealer = "Please select a dealer";
 
-    const pricedBikes = calculatedBikes.filter(
+    const pricedBikes = allBikesWithPrices.filter(
       (b) => b.effectivePrice !== null && b.effectivePrice > 0,
     );
-    if (pricedBikes.length === 0 && calculatedBikes.length > 0)
+    if (pricedBikes.length === 0 && allBikesWithPrices.length > 0)
       errors.noPrices = "At least one bike must have a valid price";
 
     setFormErrors(errors);
@@ -437,7 +652,7 @@ const ServiceForm = ({ serviceId }) => {
     if (!validate()) return;
     setIsSubmitting(true);
 
-    const bikesForSubmission = calculatedBikes
+    const bikesForSubmission = allBikesWithPrices
       .filter((bike) => bike.effectivePrice !== null && bike.effectivePrice > 0)
       .map((bike) => {
         const bikeObj = {
@@ -467,6 +682,7 @@ const ServiceForm = ({ serviceId }) => {
       }
 
       if (response?.status === true || response?.status === 200) {
+        setIsDirty(false);
         setAlertInfo({
           show: true,
           message: `Admin service ${isEditMode ? "updated" : "added"} successfully!`,
@@ -489,216 +705,301 @@ const ServiceForm = ({ serviceId }) => {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", p: 8 }}>
-        <CircularProgress />
+      <Box sx={{ pb: 10 }}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} lg={8}>
+            <Stack spacing={3}>
+              {[1, 2, 3].map((i) => (
+                <Card
+                  key={i}
+                  sx={{
+                    borderRadius: "16px",
+                    p: 3,
+                    border: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Skeleton
+                    variant="text"
+                    sx={{ width: "30%", mb: 2, height: 32 }}
+                  />
+                  <Skeleton
+                    variant="rectangular"
+                    sx={{ width: "100%", height: 120, borderRadius: "8px" }}
+                  />
+                </Card>
+              ))}
+            </Stack>
+          </Grid>
+          <Grid item xs={12} lg={4}>
+            <Stack spacing={3}>
+              <Card
+                sx={{
+                  borderRadius: "16px",
+                  p: 3,
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <Skeleton
+                  variant="rectangular"
+                  sx={{ width: "100%", height: 200, borderRadius: "12px" }}
+                />
+              </Card>
+              <Card
+                sx={{
+                  borderRadius: "16px",
+                  p: 3,
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <Skeleton variant="text" sx={{ width: "60%", mb: 2 }} />
+                <Skeleton
+                  variant="rectangular"
+                  sx={{ width: "100%", height: 150, borderRadius: "8px" }}
+                />
+              </Card>
+            </Stack>
+          </Grid>
+        </Grid>
       </Box>
     );
   }
 
   return (
-    <Card elevation={3} sx={{ borderRadius: 2, p: { xs: 1, sm: 2 } }}>
-      <CardContent>
-        <Typography
-          variant="h5"
-          sx={{ mb: 4, fontWeight: "bold", color: "text.primary" }}
+    <Box sx={{ pb: 10 }}>
+      {" "}
+      {/* Padding for sticky footer */}
+      {alertInfo.show && alertInfo.severity === "error" && (
+        <Alert
+          severity="error"
+          sx={{ mb: 3, borderRadius: "12px" }}
+          onClose={() => setAlertInfo({ ...alertInfo, show: false })}
         >
-          {isEditMode ? "Edit Admin Service" : "Create Admin Service"}
-        </Typography>
-
-        {alertInfo.show && alertInfo.severity === "error" && (
-          <Alert
-            severity="error"
-            sx={{ mb: 3 }}
-            onClose={() => setAlertInfo({ ...alertInfo, show: false })}
-          >
-            {alertInfo.message}
-          </Alert>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-              gap: 4,
-            }}
-          >
-            {/* LEFT COLUMN */}
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <Autocomplete
-                options={baseServices}
-                getOptionLabel={(option) => option.name || ""}
-                value={selectedBaseService}
-                onChange={(_, newValue) => {
-                  setSelectedBaseService(newValue);
-                  setFormErrors((prev) => ({ ...prev, base_service_id: null }));
-                }}
-                renderOption={(props, option) => (
-                  <Box
-                    component="li"
-                    sx={{ "& > img": { mr: 2, flexShrink: 0 } }}
-                    {...props}
-                  >
-                    <img
-                      loading="lazy"
-                      width="35"
-                      height="35"
-                      src={getImageUrl(option.image)}
-                      alt={option.name}
-                      style={{ borderRadius: "4px", objectFit: "cover" }}
-                    />
-                    {option.name}
-                  </Box>
-                )}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Select Service from Catalog *"
-                    placeholder="Search global service catalog..."
-                    error={!!formErrors.base_service_id}
-                    helperText={formErrors.base_service_id}
-                  />
-                )}
-              />
-
-              <TextField
-                label="Dealer Internal Description *"
-                multiline
-                rows={4}
-                value={formData.description}
-                placeholder="Briefly describe the service for this dealer..."
-                onChange={(e) => {
-                  setFormData({ ...formData, description: e.target.value });
-                  setFormErrors((prev) => ({ ...prev, description: null }));
-                }}
-                error={!!formErrors.description}
-                helperText={formErrors.description}
-              />
-
-              {selectedBaseService && (
-                <Box
-                  sx={{
-                    mt: 2,
-                    p: 2,
-                    bgcolor: "#f1f5f9",
-                    borderRadius: 3,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    textAlign: "center",
-                    position: "relative",
-                  }}
+          {alertInfo.message}
+        </Alert>
+      )}
+      <form onSubmit={handleSubmit}>
+        <Grid container spacing={4}>
+          {/* Service Configuration */}
+          <Grid item xs={12} lg={8}>
+            <Card
+              sx={{
+                mb: 4,
+                borderRadius: "20px",
+                border: "1px solid",
+                borderColor: "divider",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.02)",
+              }}
+            >
+              <CardContent sx={{ p: 4 }}>
+                <Typography
+                  variant="h6"
+                  fontWeight="800"
+                  sx={{ mb: 3, color: "text.primary" }}
                 >
-                  <Chip
-                    label="BASE CATALOG ITEM"
-                    size="small"
-                    sx={{
-                      position: "absolute",
-                      top: -10,
-                      left: 16,
-                      fontWeight: 800,
-                      bgcolor: "primary.main",
-                      color: "white",
-                      fontSize: "0.6rem",
-                    }}
-                  />
-                  <Avatar
-                    src={getImageUrl(selectedBaseService.image)}
-                    alt={selectedBaseService.name}
-                    variant="rounded"
-                    sx={{
-                      width: 140,
-                      height: 100,
-                      mx: "auto",
-                      border: "1px solid #ddd",
-                      mb: 1,
-                      objectFit: "cover",
-                    }}
-                  />
-                  <Typography variant="body1" fontWeight="800">
-                    {selectedBaseService.name}
-                  </Typography>
-                </Box>
-              )}
-            </Box>
+                  Service Configuration
+                </Typography>
 
-            {/* RIGHT COLUMN */}
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <Autocomplete
-                options={dealers}
-                disabled={
-                  !!new URLSearchParams(window.location.search).get("dealerId")
-                }
-                getOptionLabel={(option) => {
-                  if (!option) return "";
-                  const shop = option.shopName || option.name || "Unknown Shop";
-                  const city = option.city ? ` (${option.city})` : "";
-                  return `${shop}${city} - ${option.phone || ""}`;
-                }}
-                value={selectedDealer}
-                onChange={(_, newValue) => {
-                  setSelectedDealer(newValue);
-                  setFormErrors((prev) => ({ ...prev, dealer: null }));
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Assign to Dealer *"
-                    placeholder="Search by shop name, owner, city or phone..."
-                    error={!!formErrors.dealer}
-                    helperText={formErrors.dealer}
-                    InputProps={{
-                      ...params.InputProps,
-                      startAdornment: selectedDealer && (
-                        <Avatar
-                          sx={{
-                            width: 24,
-                            height: 24,
-                            mr: 1,
-                            bgcolor: "primary.main",
-                            fontSize: "0.75rem",
-                          }}
+                <Grid container spacing={3}>
+                  {/* Select Service */}
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth error={!!formErrors.base_service_id}>
+                      <InputLabel>Select Service</InputLabel>
+
+                      <Select
+                        value={selectedBaseService?._id || ""}
+                        label="Select Service"
+                        onChange={(e) => {
+                          const service = baseServices.find(
+                            (s) => s._id === e.target.value,
+                          );
+                          setSelectedBaseService(service);
+                          setFormErrors((prev) => ({
+                            ...prev,
+                            base_service_id: null,
+                          }));
+                        }}
+                        sx={{ borderRadius: "12px" }}
+                      >
+                        {baseServices.map((service) => (
+                          <MenuItem key={service._id} value={service._id}>
+                            <Stack
+                              direction="row"
+                              spacing={2}
+                              alignItems="center"
+                            >
+                              <Avatar
+                                src={getImageUrl(service.image)}
+                                sx={{
+                                  width: 24,
+                                  height: 24,
+                                  borderRadius: "4px",
+                                }}
+                              >
+                                <SettingsIcon sx={{ fontSize: 16 }} />
+                              </Avatar>
+
+                              <Typography variant="body2">
+                                {service.name}
+                              </Typography>
+                            </Stack>
+                          </MenuItem>
+                        ))}
+                      </Select>
+
+                      {formErrors.base_service_id && (
+                        <Typography
+                          variant="caption"
+                          color="error"
+                          sx={{ mt: 0.5, ml: 1.5 }}
                         >
-                          <StorefrontIcon sx={{ fontSize: 16 }} />
-                        </Avatar>
-                      ),
-                    }}
-                  />
-                )}
-              />
+                          {formErrors.base_service_id}
+                        </Typography>
+                      )}
+                    </FormControl>
+                  </Grid>
 
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
+                  {/* Assign Dealer */}
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth error={!!formErrors.dealer}>
+                      <InputLabel>Assign Dealer</InputLabel>
+
+                      <Select
+                        value={selectedDealer?._id || ""}
+                        label="Assign Dealer"
+                        disabled={
+                          !!dealerId ||
+                          !!new URLSearchParams(window.location.search).get(
+                            "dealerId",
+                          )
+                        }
+                        onChange={(e) => {
+                          const dealer = dealers.find(
+                            (d) => d._id === e.target.value,
+                          );
+                          setSelectedDealer(dealer);
+                          setFormErrors((prev) => ({
+                            ...prev,
+                            dealer: null,
+                          }));
+                        }}
+                        sx={{ borderRadius: "12px" }}
+                      >
+                        {dealers.map((dealer) => (
+                          <MenuItem key={dealer._id} value={dealer._id}>
+                            <Stack
+                              direction="row"
+                              spacing={2}
+                              alignItems="center"
+                            >
+                              <StorefrontIcon
+                                sx={{ fontSize: 18, color: "text.secondary" }}
+                              />
+
+                              <Typography variant="body2">
+                                {dealer.shopName ||
+                                  dealer.name ||
+                                  "Unknown Shop"}
+                                {dealer.city ? ` (${dealer.city})` : ""}
+                              </Typography>
+                            </Stack>
+                          </MenuItem>
+                        ))}
+                      </Select>
+
+                      {formErrors.dealer && (
+                        <Typography
+                          variant="caption"
+                          color="error"
+                          sx={{ mt: 0.5, ml: 1.5 }}
+                        >
+                          {formErrors.dealer}
+                        </Typography>
+                      )}
+                    </FormControl>
+                  </Grid>
+
+                  {/* Dealer Description */}
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Dealer Internal Description"
+                      multiline
+                      minRows={6}
+                      value={formData.description}
+                      placeholder="Describe how the dealer performs this service..."
+                      onChange={(e) => {
+                        setFormData({
+                          ...formData,
+                          description: e.target.value,
+                        });
+
+                        setFormErrors((prev) => ({
+                          ...prev,
+                          description: null,
+                        }));
+                      }}
+                      error={!!formErrors.description}
+                      helperText={
+                        formErrors.description ||
+                        "Briefly describe how the dealer performs this service."
+                      }
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: "12px",
+                        },
+                      }}
+                    />
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+
+            {/* Section 2 — Bike Compatibility */}
+            <Card sx={{ mb: 4, borderRadius: "16px" }}>
+              <CardContent sx={{ p: 4 }}>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  sx={{ mb: 3 }}
                 >
                   <Typography
-                    variant="caption"
-                    fontWeight="700"
-                    color="text.secondary"
+                    variant="h6"
+                    fontWeight="800"
+                    sx={{ color: "text.primary", letterSpacing: -0.5 }}
                   >
-                    BIKE COMPATIBILITY *
+                    Bike Compatibility
                   </Typography>
-                  <Box>
+                  <Stack direction="row" spacing={1}>
                     <Button
                       size="small"
                       onClick={() => setSelectedCompanies(companies)}
-                      sx={{ fontSize: "0.7rem", fontWeight: 700 }}
+                      sx={{
+                        borderRadius: "8px",
+                        textTransform: "none",
+                        fontWeight: 700,
+                      }}
                     >
                       Select All
                     </Button>
                     <Button
                       size="small"
-                      color="error"
+                      color="inherit"
                       onClick={() => setSelectedCompanies([])}
-                      sx={{ fontSize: "0.7rem", fontWeight: 700 }}
+                      sx={{
+                        borderRadius: "8px",
+                        textTransform: "none",
+                        fontWeight: 700,
+                      }}
                     >
                       Clear
                     </Button>
-                  </Box>
-                </Box>
+                  </Stack>
+                </Stack>
+
                 <Autocomplete
                   multiple
                   options={companies}
@@ -714,10 +1015,22 @@ const ServiceForm = ({ serviceId }) => {
                       return (
                         <Chip
                           key={key}
-                          variant="outlined"
-                          label={option.name}
+                          label={`${option.name} 🏍`}
                           {...tagProps}
-                          color="primary"
+                          sx={{
+                            borderRadius: "10px",
+                            fontWeight: "700",
+                            bgcolor: "primary.light",
+                            color: "primary.main",
+                            border: "1px solid",
+                            borderColor: "primary.main",
+                            transition: "all 0.2s",
+                            "&:hover": {
+                              bgcolor: "primary.main",
+                              color: "white",
+                              transform: "translateY(-2px)",
+                            },
+                          }}
                         />
                       );
                     })
@@ -725,227 +1038,527 @@ const ServiceForm = ({ serviceId }) => {
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      placeholder="Search companies..."
+                      placeholder="Search and select bike brands..."
+                      variant="outlined"
                       error={!!formErrors.companies}
                       helperText={formErrors.companies}
+                      sx={{
+                        "& .MuiOutlinedInput-root": { borderRadius: "12px" },
+                      }}
                     />
                   )}
                 />
-              </Box>
-            </Box>
-          </Box>
+              </CardContent>
+            </Card>
 
-          {/* BULK PRICING ENGINE & DATAGRID */}
-          {calculatedBikes.length > 0 && (
-            <Box sx={{ mt: 5 }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
-                Bike Pricing Engine
-              </Typography>
+            {/* Pricing Engine */}
+            <Card
+              sx={{
+                mb: 4,
+                borderRadius: "20px",
+                border: "1px solid",
+                borderColor: "primary.light",
+                bgcolor: "rgba(37, 99, 235, 0.01)",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.02)",
+              }}
+            >
+              <CardContent sx={{ p: 4 }}>
+                <Typography
+                  variant="h6"
+                  fontWeight="800"
+                  sx={{ mb: 1, color: "text.primary", letterSpacing: -0.5 }}
+                >
+                  Pricing Engine
+                </Typography>
+                <Alert
+                  icon={<SettingsIcon fontSize="small" />}
+                  severity="info"
+                  sx={{
+                    mb: 4,
+                    borderRadius: "14px",
+                    border: "1px solid",
+                    borderColor: "info.light",
+                    bgcolor: "info.lighter",
+                  }}
+                >
+                  Use the pricing rule engine to automatically apply service
+                  pricing across bikes based on engine CC. You can override
+                  prices manually.
+                </Alert>
 
-              <Alert severity="info" sx={{ mb: 3 }}>
-                Use the <b>Rules Engine</b> to apply bulk pricing across all
-                selected models based on their CC. You can still double-click
-                any cell in the <b>Price (₹)</b> column to manually override the
-                rule.
-              </Alert>
+                <Box
+                  sx={{
+                    p: 3,
+                    bgcolor: "white",
+                    borderRadius: "12px",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    mb: 3,
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    fontWeight="700"
+                    sx={{ mb: 2, color: "text.secondary" }}
+                  >
+                    Bulk Pricing Rule Panel
+                  </Typography>
+                  <Grid container spacing={2} alignItems="flex-end">
+                    <Grid item xs={12} sm={3}>
+                      <TextField
+                        fullWidth
+                        label="Min CC"
+                        type="number"
+                        size="small"
+                        value={newRule.minCc}
+                        onChange={(e) =>
+                          setNewRule({ ...newRule, minCc: e.target.value })
+                        }
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                      <TextField
+                        fullWidth
+                        label="Max CC"
+                        type="number"
+                        size="small"
+                        value={newRule.maxCc}
+                        onChange={(e) =>
+                          setNewRule({ ...newRule, maxCc: e.target.value })
+                        }
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                      <TextField
+                        fullWidth
+                        label="Price (₹)"
+                        type="number"
+                        size="small"
+                        value={newRule.price}
+                        onChange={(e) =>
+                          setNewRule({ ...newRule, price: e.target.value })
+                        }
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">₹</InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        onClick={addPricingRule}
+                        sx={{ borderRadius: "8px", py: 1 }}
+                      >
+                        Apply Rule
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </Box>
 
-              {/* Rules UI */}
+                {pricingRules.length > 0 && (
+                  <Stack
+                    direction="row"
+                    spacing={2}
+                    flexWrap="wrap"
+                    useFlexGap
+                    sx={{ mt: 2 }}
+                  >
+                    {pricingRules.map((rule) => (
+                      <Chip
+                        key={rule.id}
+                        label={`${rule.minCc} CC – ${rule.maxCc} CC → ₹${rule.price}`}
+                        onDelete={() => deletePricingRule(rule.id)}
+                        sx={{
+                          py: 2.5,
+                          px: 1,
+                          borderRadius: "10px",
+                          fontWeight: 700,
+                          bgcolor: "white",
+                          border: "1px solid",
+                          borderColor: "divider",
+                          boxShadow: "0 2px 4px rgba(0,0,0,0.03)",
+                        }}
+                      />
+                    ))}
+                  </Stack>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Pricing Summary Panel */}
+            {priceDistribution.length > 0 && (
               <Card
-                variant="outlined"
                 sx={{
                   mb: 4,
-                  bgcolor: "#f0f9ff",
-                  borderColor: "primary.100",
-                  borderRadius: 3,
+                  borderRadius: "20px",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  bgcolor: "#f8fafc",
                 }}
               >
                 <CardContent sx={{ p: 3 }}>
                   <Typography
-                    variant="subtitle1"
+                    variant="subtitle2"
                     fontWeight="800"
-                    gutterBottom
-                    color="primary.main"
-                    sx={{ display: "flex", alignItems: "center" }}
-                  >
-                    <SettingsIcon sx={{ mr: 1, fontSize: 20 }} /> Bulk Pricing
-                    Rules (CC Basis)
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ display: "block", mb: 3 }}
-                  >
-                    Define pricing for CC ranges to automatically apply prices
-                    to all matching bikes.
-                  </Typography>
-
-                  <Box
                     sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 2,
-                      flexWrap: "wrap",
-                      mb: pricingRules.length > 0 ? 3 : 0,
+                      mb: 2,
+                      textTransform: "uppercase",
+                      letterSpacing: 1,
+                      fontSize: "0.7rem",
                     }}
                   >
-                    <TextField
-                      size="small"
-                      label="Min CC"
-                      type="number"
-                      value={newRule.minCc}
-                      onChange={(e) =>
-                        setNewRule({ ...newRule, minCc: e.target.value })
-                      }
-                      sx={{ width: 100, bgcolor: "white" }}
-                    />
-                    <TextField
-                      size="small"
-                      label="Max CC"
-                      type="number"
-                      value={newRule.maxCc}
-                      onChange={(e) =>
-                        setNewRule({ ...newRule, maxCc: e.target.value })
-                      }
-                      sx={{ width: 100, bgcolor: "white" }}
-                    />
-                    <TextField
-                      size="small"
-                      label="Price"
-                      type="number"
-                      value={newRule.price}
-                      onChange={(e) =>
-                        setNewRule({ ...newRule, price: e.target.value })
-                      }
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">₹</InputAdornment>
-                        ),
-                      }}
-                      sx={{ width: 130, bgcolor: "white" }}
-                    />
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      disableElevation
-                      startIcon={<AddCircleOutlineIcon />}
-                      onClick={addPricingRule}
-                      disabled={
-                        !newRule.minCc || !newRule.maxCc || !newRule.price
-                      }
-                      sx={{ fontWeight: 800, borderRadius: 2 }}
-                    >
-                      Apply Range Rule
-                    </Button>
-                  </Box>
+                    Pricing Distribution Summary
+                  </Typography>
+                  <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
+                    {priceDistribution.map(([price, count]) => (
+                      <Box
+                        key={price}
+                        sx={{
+                          px: 2,
+                          py: 1,
+                          bgcolor: "white",
+                          borderRadius: "12px",
+                          border: "1px solid",
+                          borderColor: "divider",
+                          display: "flex",
+                          alignItems: "center",
+                          boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          fontWeight="800"
+                          color="primary.main"
+                          sx={{ mr: 1 }}
+                        >
+                          ₹{price}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          fontWeight="600"
+                          color="text.secondary"
+                        >
+                          ({count} bikes)
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Stack>
+                </CardContent>
+              </Card>
+            )}
 
-                  {/* Active Rules List */}
-                  {pricingRules.length > 0 && (
-                    <Box
-                      sx={{ display: "flex", flexDirection: "column", gap: 1 }}
-                    >
-                      {pricingRules.map((rule) => (
+            {/* Bike Pricing Table */}
+            <Card
+              sx={{
+                mb: 4,
+                borderRadius: "20px",
+                border: "1px solid",
+                borderColor: "divider",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.02)",
+                overflow: "hidden",
+              }}
+            >
+              <Box sx={{ p: 3, pb: 0 }}>
+                <Typography
+                  variant="h6"
+                  fontWeight="800"
+                  sx={{ color: "text.primary", letterSpacing: -0.5 }}
+                >
+                  Bike Pricing Table
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 0.5 }}
+                >
+                  Manage individual bike pricing. Manual overrides are
+                  highlighted in blue.
+                </Typography>
+              </Box>
+              <CardContent sx={{ p: 0, mt: 2 }}>
+                <Box
+                  sx={{
+                    height: 600,
+                    width: "100%",
+                    "& .MuiDataGrid-root": { border: "none" },
+                    "& .price-header": {
+                      fontWeight: "800 !important",
+                      color: "primary.main",
+                    },
+                  }}
+                >
+                  <DataGrid
+                    rows={filteredBikes}
+                    columns={columns}
+                    processRowUpdate={processRowUpdate}
+                    onProcessRowUpdateError={handleProcessRowUpdateError}
+                    pageSizeOptions={[10, 25, 50, 100]}
+                    initialState={{
+                      pagination: { paginationModel: { pageSize: 50 } },
+                      sorting: {
+                        sortModel: [{ field: "company_name", sort: "asc" }],
+                      },
+                    }}
+                    slots={{ toolbar: TableToolbar }}
+                    disableRowSelectionOnClick
+                    sx={{
+                      "& .MuiDataGrid-columnHeaders": {
+                        bgcolor: "#f8fafc",
+                        color: "text.secondary",
+                        fontWeight: 700,
+                        borderBottom: "1px solid",
+                        borderColor: "divider",
+                      },
+                      "& .MuiDataGrid-cell": {
+                        borderBottom: "1px solid",
+                        borderColor: "#f1f5f9",
+                        "&:hover": { bgcolor: "#f8fafc" },
+                      },
+                      "& .MuiDataGrid-cell--editable": {
+                        bgcolor: "rgba(37, 99, 235, 0.03)",
+                        fontWeight: 700,
+                      },
+                    }}
+                  />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* RIGHT COLUMN (Sticky on Desktop) */}
+          <Grid item xs={12} lg={4}>
+            <Box sx={{ position: { lg: "sticky" }, top: 100 }}>
+              {/* Base Catalog Item */}
+              <Card
+                sx={{
+                  mb: 4,
+                  borderRadius: "20px",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.02)",
+                  overflow: "hidden",
+                }}
+              >
+                <CardContent sx={{ p: 0 }}>
+                  <Typography
+                    variant="caption"
+                    fontWeight="800"
+                    color="text.secondary"
+                    sx={{
+                      p: 3,
+                      pb: 0,
+                      textTransform: "uppercase",
+                      letterSpacing: 1.5,
+                      display: "block",
+                      fontSize: "0.65rem",
+                    }}
+                  >
+                    Base Catalog Item
+                  </Typography>
+                  {selectedBaseService ? (
+                    <Box sx={{ p: 3 }}>
+                      <Box
+                        sx={{
+                          height: 180,
+                          width: "100%",
+                          bgcolor: "#f1f5f9",
+                          borderRadius: "14px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          overflow: "hidden",
+                          mb: 2,
+                          border: "1px solid",
+                          borderColor: "divider",
+                        }}
+                      >
+                        {selectedBaseService.image ? (
+                          <Box
+                            component="img"
+                            src={getImageUrl(selectedBaseService.image)}
+                            alt={selectedBaseService.name}
+                            sx={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                              e.target.nextSibling.style.display = "flex";
+                            }}
+                          />
+                        ) : null}
                         <Box
-                          key={rule.id}
                           sx={{
-                            display: "flex",
+                            display: selectedBaseService.image
+                              ? "none"
+                              : "flex",
+                            flexDirection: "column",
                             alignItems: "center",
-                            p: 1.5,
-                            bgcolor: "background.paper",
-                            borderRadius: 2,
-                            border: "1px solid",
-                            borderColor: "primary.50",
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                            color: "text.secondary",
                           }}
                         >
-                          <Box
-                            sx={{
-                              flexGrow: 1,
-                              display: "flex",
-                              alignItems: "center",
-                            }}
-                          >
-                            <Chip
-                              label={`${rule.minCc} - ${rule.maxCc} CC`}
-                              size="small"
-                              variant="filled"
-                              sx={{
-                                fontWeight: 800,
-                                mr: 2,
-                                bgcolor: "primary.50",
-                                color: "primary.main",
-                              }}
-                            />
-                            <Typography variant="body2" fontWeight="700">
-                              ₹{rule.price}{" "}
-                              <Typography
-                                component="span"
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                / service
-                              </Typography>
-                            </Typography>
-                          </Box>
-                          <Tooltip title="Delete Rule">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => deletePricingRule(rule.id)}
-                              sx={{ opacity: 0.7, "&:hover": { opacity: 1 } }}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                          <BuildIcon
+                            sx={{ fontSize: 40, opacity: 0.3, mb: 1 }}
+                          />
+                          <Typography variant="caption" fontWeight="700">
+                            No Image
+                          </Typography>
                         </Box>
-                      ))}
+                      </Box>
+                      <Typography variant="h6" fontWeight="800">
+                        {selectedBaseService.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {selectedBaseService.description ||
+                          "Premium bike service from our catalog."}
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Box
+                      sx={{
+                        p: 4,
+                        textAlign: "center",
+                        border: "2px dashed",
+                        borderColor: "divider",
+                        borderRadius: "12px",
+                        m: 3,
+                      }}
+                    >
+                      <Typography variant="body2" color="text.secondary">
+                        Select a service to see details
+                      </Typography>
                     </Box>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Data Grid table */}
-              <Box sx={{ height: 600, width: "100%" }}>
-                <DataGrid
-                  rows={calculatedBikes} // The resolved prices
-                  columns={columns}
-                  processRowUpdate={processRowUpdate}
-                  onProcessRowUpdateError={handleProcessRowUpdateError}
-                  pageSizeOptions={[10, 25, 50, 100]}
-                  initialState={{
-                    pagination: { paginationModel: { pageSize: 50 } },
-                    sorting: {
-                      sortModel: [{ field: "company_name", sort: "asc" }],
-                    },
-                  }}
-                  disableRowSelectionOnClick
+              {/* Pricing Preview */}
+              <Card
+                sx={{
+                  borderRadius: "20px",
+                  bgcolor: "#1e293b",
+                  color: "white",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+                }}
+              >
+                <CardContent sx={{ p: 3 }}>
+                  <Typography
+                    variant="subtitle2"
+                    fontWeight="800"
+                    sx={{
+                      mb: 2,
+                      color: "rgba(255,255,255,0.5)",
+                      textTransform: "uppercase",
+                      letterSpacing: 1.5,
+                      fontSize: "0.65rem",
+                    }}
+                  >
+                    Pricing Preview
+                  </Typography>
+                  <Stack spacing={2}>
+                    {allBikesWithPrices.slice(0, 3).length > 0 ? (
+                      allBikesWithPrices.slice(0, 5).map((bike) => (
+                        <Stack
+                          key={bike.id}
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="center"
+                        >
+                          <Typography variant="body2" fontWeight="500">
+                            {bike.model_name} {bike.cc}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            fontWeight="800"
+                            sx={{ color: "primary.light" }}
+                          >
+                            ₹{bike.effectivePrice || "--"}
+                          </Typography>
+                        </Stack>
+                      ))
+                    ) : (
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "rgba(255,255,255,0.4)" }}
+                      >
+                        Configure brands and rules to see preview
+                      </Typography>
+                    )}
+                    {allBikesWithPrices.length > 5 && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "rgba(255,255,255,0.4)",
+                          textAlign: "center",
+                        }}
+                      >
+                        + {allBikesWithPrices.length - 5} more bikes
+                      </Typography>
+                    )}
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Box>
+          </Grid>
+        </Grid>
+
+        {/* Footer Actions */}
+        <Box
+          sx={{
+            position: "fixed",
+            bottom: 0,
+            left: { lg: 280 }, // Account for sidebar
+            right: 0,
+            bgcolor: "white",
+            borderTop: "1px solid",
+            borderColor: "divider",
+            p: 2,
+            px: 4,
+            zIndex: 1000,
+            boxShadow: "0 -8px 30px rgba(0,0,0,0.08)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            {isDirty && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                <Box
                   sx={{
-                    bgcolor: "background.paper",
-                    "& .MuiDataGrid-columnHeaders": { bgcolor: "#f8f9fa" },
-                    "& .MuiDataGrid-cell--editable": {
-                      bgcolor: "action.hover",
-                      cursor: "pointer",
-                      "&:hover": { bgcolor: "action.selected" },
-                    },
+                    width: 10,
+                    height: 10,
+                    borderRadius: "50%",
+                    bgcolor: "primary.main",
+                    animation: "pulse 2s infinite",
                   }}
                 />
-              </Box>
-
-              {formErrors.noPrices && (
-                <Typography color="error" variant="body2" sx={{ mt: 2 }}>
-                  {formErrors.noPrices}
+                <Typography
+                  variant="body2"
+                  fontWeight="700"
+                  color="text.primary"
+                >
+                  Unsaved changes
                 </Typography>
-              )}
-            </Box>
-          )}
-
-          <Box
-            sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 2 }}
-          >
+              </Box>
+            )}
+          </Box>
+          <Stack direction="row" spacing={2}>
             <Button
               variant="outlined"
               color="inherit"
               onClick={() => navigate("/services")}
               disabled={isSubmitting}
+              sx={{
+                borderRadius: "12px",
+                px: 4,
+                fontWeight: 700,
+                textTransform: "none",
+              }}
             >
               Cancel
             </Button>
@@ -953,34 +1566,51 @@ const ServiceForm = ({ serviceId }) => {
               type="submit"
               variant="contained"
               color="primary"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isDirty}
+              sx={{
+                borderRadius: "12px",
+                px: 6,
+                fontWeight: 800,
+                textTransform: "none",
+                boxShadow: (theme) =>
+                  `0 4px 14px ${theme.palette.primary.main}40`,
+              }}
               startIcon={
                 isSubmitting ? (
                   <CircularProgress size={20} color="inherit" />
                 ) : null
               }
             >
-              {isSubmitting
-                ? "Saving..."
-                : isEditMode
-                  ? "Update Service"
-                  : "Create Service"}
+              {isSubmitting ? "Saving Changes..." : "Save Changes"}
             </Button>
-          </Box>
-        </form>
-      </CardContent>
+          </Stack>
+        </Box>
 
+        <style>
+          {`
+            @keyframes pulse {
+              0% { transform: scale(0.95); opacity: 1; }
+              70% { transform: scale(1.1); opacity: 0.7; }
+              100% { transform: scale(0.95); opacity: 1; }
+            }
+          `}
+        </style>
+      </form>
       <Snackbar
         open={alertInfo.show && alertInfo.severity === "success"}
         autoHideDuration={2000}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
         onClose={() => setAlertInfo({ ...alertInfo, show: false })}
       >
-        <Alert severity="success" variant="filled">
+        <Alert
+          severity="success"
+          variant="filled"
+          sx={{ borderRadius: "12px" }}
+        >
           {alertInfo.message}
         </Alert>
       </Snackbar>
-    </Card>
+    </Box>
   );
 };
 

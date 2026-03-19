@@ -71,7 +71,7 @@ const GlobalSearch = () => {
       renderInput={(params) => (
         <TextField
           {...params}
-          placeholder="Search ID, Dealer, or Service..."
+          placeholder="Search dealer, service, or bike model..."
           size="small"
           sx={{
             width: { xs: 200, sm: 300, md: 450 },
