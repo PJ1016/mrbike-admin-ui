@@ -7,7 +7,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import React, { useEffect } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   ThemeProvider,
   createTheme,
@@ -145,6 +145,7 @@ function App() {
 const AppContent = () => {
   const dispatch = useDispatch();
   const location = useLocation();
+  const { token } = useSelector((state) => state.auth);
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
   const handleToggleDrawer = () => {
@@ -154,8 +155,10 @@ const AppContent = () => {
   const hideNavbar = location.pathname.toLowerCase() === "/login";
 
   useEffect(() => {
-    dispatch(fetchGlobalSearchData());
-  }, [dispatch]);
+    if (token) {
+      dispatch(fetchGlobalSearchData());
+    }
+  }, [dispatch, token]);
 
   return (
     <>
