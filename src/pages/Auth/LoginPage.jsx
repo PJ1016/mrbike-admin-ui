@@ -15,7 +15,8 @@ import {
 import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useDispatch } from 'react-redux';
+import { setCredentials } from '../../redux/slices/authSlice';
 import TwoWheelerIcon from '@mui/icons-material/TwoWheeler';
 
 const allowedAdmins = [
@@ -24,7 +25,7 @@ const allowedAdmins = [
 ];
 
 const LoginPage = () => {
-  const { login } = useAuth();
+  const dispatch = useDispatch();
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const theme = useTheme();
@@ -36,7 +37,7 @@ const LoginPage = () => {
       const email = decoded.email;
 
       if (allowedAdmins.includes(email)) {
-        login(decoded, credentialResponse.credential);
+        dispatch(setCredentials({ user: decoded, token: credentialResponse.credential }));
         navigate("/");
       } else {
         setError("Access denied. You are not authorized to access this portal.");

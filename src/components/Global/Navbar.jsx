@@ -7,12 +7,14 @@ import img2 from "../../assets2/img/logos/logo-small.png"
 import img3 from "../../assets/img/profiles/avatar-07.jpg"
 import GlobalSearch from "./GlobalSearch"
 
-import { useAuth } from '../../context/AuthContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '../../redux/slices/authSlice';
 
 const Navbar = ({ handleToggleDrawer }) => {
   const navigate = useNavigate()
   const [anchorEl, setAnchorEl] = useState(null)
-  const { user, logout } = useAuth();
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
   
   const handleOpenUserMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -24,7 +26,7 @@ const Navbar = ({ handleToggleDrawer }) => {
 
   function handleLogout() {
     handleCloseUserMenu();
-    logout();
+    dispatch(logout());
     navigate("/login")
   }
 

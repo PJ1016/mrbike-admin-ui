@@ -10,10 +10,10 @@ import {
   Divider,
   Grid,
 } from "@mui/material";
-import { useAuth } from "../../context/AuthContext";
+import { useSelector } from "react-redux";
 
 const ProfilePage = () => {
-  const { user } = useAuth();
+  const { user } = useSelector((state) => state.auth);
 
   if (!user) return null;
 

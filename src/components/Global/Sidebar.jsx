@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { logout } from "../../redux/slices/authSlice";
 import {
   Drawer,
   List,
@@ -140,6 +142,7 @@ const menuConfig = [
 const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [openMenus, setOpenMenus] = useState({});
 
   const handleMenuClick = (title, path, hasChildren) => {
@@ -152,7 +155,7 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("adminToken");
+    dispatch(logout());
     navigate("/login");
   };
 

@@ -24,7 +24,7 @@ import LoginPage from "./pages/Auth/LoginPage";
 import ProtectedRoute from "./components/Auth/ProtectedRoute";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import ProfilePage from "./pages/Auth/ProfilePage";
-import { AuthProvider } from "./context/AuthContext";
+// Auth provider removed - using Redux authSlice
 import AddDealer from "./pages/Dealer/Createdealer";
 import Addservices from "./pages/services/CreateService";
 import Addaddservices from "./pages/additionalServices/CreateService";
@@ -131,14 +131,12 @@ const theme = createTheme({
 
 function App() {
   return (
-    <AuthProvider>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Router basename="/">
-          <AppContent />
-        </Router>
-      </ThemeProvider>
-    </AuthProvider>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Router basename="/">
+        <AppContent />
+      </Router>
+    </ThemeProvider>
   );
 }
 
