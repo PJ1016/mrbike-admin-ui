@@ -7,9 +7,12 @@ import img2 from "../../assets2/img/logos/logo-small.png"
 import img3 from "../../assets/img/profiles/avatar-07.jpg"
 import GlobalSearch from "./GlobalSearch"
 
+import { useAuth } from '../../context/AuthContext';
+
 const Navbar = ({ handleToggleDrawer }) => {
   const navigate = useNavigate()
   const [anchorEl, setAnchorEl] = useState(null)
+  const { user, logout } = useAuth();
   
   const handleOpenUserMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -21,7 +24,7 @@ const Navbar = ({ handleToggleDrawer }) => {
 
   function handleLogout() {
     handleCloseUserMenu();
-    localStorage.removeItem("adminToken")
+    logout();
     navigate("/login")
   }
 
@@ -72,15 +75,15 @@ const Navbar = ({ handleToggleDrawer }) => {
             <Stack direction="row" spacing={1.5} alignItems="center">
               <Box sx={{ display: { xs: "none", sm: "block" }, textAlign: "right" }}>
                 <Typography variant="body2" sx={{ fontWeight: 700, color: "neutral.800" }}>
-                  John Smith
+                  {user?.name || "Admin User"}
                 </Typography>
                 <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontWeight: 600 }}>
                   Administrator
                 </Typography>
               </Box>
               <Avatar 
-                alt="Admin User" 
-                src={img3} 
+                alt={user?.name || "Admin User"} 
+                src={user?.picture || img3} 
                 sx={{ 
                   width: 40, 
                   height: 40, 
@@ -104,8 +107,8 @@ const Navbar = ({ handleToggleDrawer }) => {
               mt: 1.5,
               borderRadius: "12px",
               border: "1px solid #f1f5f9",
-              boxShadow: "var(--shadow-lg)",
-              minWidth: 180,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+              minWidth: 220,
               overflow: 'visible',
               '&:before': {
                 content: '""',
@@ -122,6 +125,15 @@ const Navbar = ({ handleToggleDrawer }) => {
             },
           }}
         >
+          <Box sx={{ px: 2, py: 1.5 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+              {user?.name || "Admin User"}
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+              {user?.email || "No email available"}
+            </Typography>
+          </Box>
+          <Divider sx={{ my: 1, opacity: 0.6 }} />
           <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/profile'); }} sx={{ py: 1.2, px: 2, borderRadius: "8px", mx: 0.5 }}>
             <ListItemIcon>
               <PersonIcon fontSize="small" sx={{ color: "primary.main" }} />

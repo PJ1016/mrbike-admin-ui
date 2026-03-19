@@ -20,8 +20,11 @@ import "./App.css";
 import AddAdmin from "./pages/admin/AddAdmin";
 import Sidebar from "./components/Global/Sidebar";
 import Navbar from "./components/Global/Navbar";
-import Login from "./pages/Login";
+import LoginPage from "./pages/Auth/LoginPage";
+import ProtectedRoute from "./components/Auth/ProtectedRoute";
 import Dashboard from "./pages/Dashboard/Dashboard";
+import ProfilePage from "./pages/Auth/ProfilePage";
+import { AuthProvider } from "./context/AuthContext";
 import AddDealer from "./pages/Dealer/Createdealer";
 import Addservices from "./pages/services/CreateService";
 import Addaddservices from "./pages/additionalServices/CreateService";
@@ -126,23 +129,16 @@ const theme = createTheme({
   },
 });
 
-const ProtectedRoutes = ({ children }) => {
-  const token = localStorage.getItem("adminToken");
-
-  if (!token) {
-    return <Navigate to={"/login"} />;
-  }
-  return children;
-};
-
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Router basename="/">
-        <AppContent />
-      </Router>
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Router basename="/">
+          <AppContent />
+        </Router>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 
@@ -167,15 +163,15 @@ const AppContent = () => {
     <>
       {!hideNavbar && <Navbar handleToggleDrawer={handleToggleDrawer} />}
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route
           element={
-            <ProtectedRoutes>
+            <ProtectedRoute>
               <SidebarLayout
                 mobileOpen={mobileOpen}
                 handleToggleDrawer={handleToggleDrawer}
               />
-            </ProtectedRoutes>
+            </ProtectedRoute>
           }
         >
           <Route path="/addadmin" element={<AddAdmin />} />
@@ -256,6 +252,8 @@ const AppContent = () => {
           <Route path="/approve" element={<DealerPayoutList />} />
           <Route path="/add-offer" element={<Offer />} />
           <Route path="/all-tickets" element={<AllTicket />} />
+
+          <Route path="/profile" element={<ProfilePage />} />
           <Route
             path="/all-tickets/view-ticket/:ticketId"
             element={<NewTicket />}
