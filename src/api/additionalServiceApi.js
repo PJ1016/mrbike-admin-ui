@@ -2,7 +2,7 @@ import axios from "axios"
 import Swal from "sweetalert2"
 
 // const API_BASE_URL = "http://localhost:8001/bikedoctor"
-const API_BASE_URL = "https://api.mrbikedoctor.cloud/bikedoctor"
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://api.mrbikedoctor.cloud/bikedoctor"
 
 const getAuthToken = () => localStorage.getItem("adminToken")
 
