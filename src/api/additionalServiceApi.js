@@ -98,16 +98,20 @@ export const updateBaseAdditionalService = async (id, payload) => {
 }
 
 // Delete a base additional service
-export const deleteBaseAdditionalService = async (id) => {
+export const deleteBaseAdditionalService = async (id, params = {}) => {
   try {
-    const response = await axios.delete(
-      `${API_BASE_URL}/base-additional-service/${id}`,
-      {
-        headers: {
-          token: getAuthToken(),
-        },
-      }
-    )
+    const { force, deactivate } = params
+    let url = `/base-additional-service/${id}`
+    const query = []
+    if (force) query.push("force=true")
+    if (deactivate) query.push("deactivate=true")
+    if (query.length > 0) url += `?${query.join("&")}`
+
+    const response = await axios.delete(`${API_BASE_URL}${url}`, {
+      headers: {
+        token: getAuthToken(),
+      },
+    })
     return response.data
   } catch (error) {
     console.error("Error deleting base additional service:", error.response?.data || error.message)
