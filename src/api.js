@@ -893,9 +893,14 @@ export const updateBaseService = async (serviceId, serviceData) => {
   }
 };
 
-export const deleteBaseService = async (serviceId, force = false) => {
+export const deleteBaseService = async (serviceId, force = false, deactivate = false) => {
   try {
-    const url = `${API_BASE_URL}/service/admin/base-services/${serviceId}${force ? "?force=true" : ""}`;
+    let url = `${API_BASE_URL}/service/admin/base-services/${serviceId}`;
+    const params = [];
+    if (force) params.push("force=true");
+    if (deactivate) params.push("deactivate=true");
+    if (params.length > 0) url += `?${params.join("&")}`;
+
     const response = await axios.delete(url, {
       headers: {
         token: getAuthToken(),

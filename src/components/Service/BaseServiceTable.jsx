@@ -54,6 +54,7 @@ const BaseServiceTable = ({
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState(null);
   const [isReferencedError, setIsReferencedError] = useState(false);
+  const [canDeactivateError, setCanDeactivateError] = useState(false);
   const [referencingDetails, setReferencingDetails] = useState([]);
 
   const getImageUrl = (path) => {
@@ -78,24 +79,27 @@ const BaseServiceTable = ({
     setDeleteDialogOpen(true);
     setActionError(null);
     setIsReferencedError(false);
+    setCanDeactivateError(false);
     setReferencingDetails([]);
   };
 
-  const handleConfirmDelete = async (force = false) => {
+  const handleConfirmDelete = async (force = false, deactivate = false) => {
     if (!serviceToDelete) return;
     setActionLoading(true);
     setActionError(null);
-    if (!force) {
+    if (!force && !deactivate) {
       setIsReferencedError(false);
+      setCanDeactivateError(false);
       setReferencingDetails([]);
     }
     
     try {
-      const response = await deleteBaseService(serviceToDelete._id, force);
+      const response = await deleteBaseService(serviceToDelete._id, force, deactivate);
       if (response && response.status === true) {
         setDeleteDialogOpen(false);
         setServiceToDelete(null);
         setIsReferencedError(false);
+        setCanDeactivateError(false);
         setReferencingDetails([]);
         if (onServiceDeleted) onServiceDeleted();
       }
@@ -107,8 +111,13 @@ const BaseServiceTable = ({
       if (errorData?.isReferenced) {
         setIsReferencedError(true);
         setReferencingDetails(errorData.referencingDetails || []);
+        setCanDeactivateError(false);
+      } else if (errorData?.canDeactivate) {
+        setCanDeactivateError(true);
+        setIsReferencedError(false);
       } else {
         setIsReferencedError(false);
+        setCanDeactivateError(false);
       }
     } finally {
       setActionLoading(false);
@@ -338,7 +347,7 @@ const BaseServiceTable = ({
         </DialogTitle>
         <DialogContent sx={{ pb: 1 }}>
           {actionError && (
-            <Alert severity={isReferencedError ? "warning" : "error"} sx={{ mb: 2 }}>
+            <Alert severity={isReferencedError || canDeactivateError ? "warning" : "error"} sx={{ mb: 2 }}>
               {actionError}
             </Alert>
           )}
@@ -359,9 +368,11 @@ const BaseServiceTable = ({
           )}
 
           <Typography variant="body2" color="text.secondary">
-            {isReferencedError 
-              ? `Note: Force deleting will also remove this service from the ${referencingDetails.length} dealers listed above. This is only possible if there are NO bookings.`
-              : `Are you sure you want to permanently delete the service "${serviceToDelete?.name}"? This action cannot be undone.`
+            {canDeactivateError
+              ? "Instead of deleting, you can deactivate this service. It will be hidden from new bookings, but your existing booking records will remain safe."
+              : isReferencedError 
+                ? `Note: Force deleting will also remove this service from the ${referencingDetails.length} dealers listed above. This is only possible if there are NO bookings.`
+                : `Are you sure you want to permanently delete the service "${serviceToDelete?.name}"? This action cannot be undone.`
             }
           </Typography>
         </DialogContent>
@@ -372,12 +383,24 @@ const BaseServiceTable = ({
             color="inherit"
             onClick={() => setDeleteDialogOpen(false)}
             disabled={actionLoading}
-            sx={{ fontWeight: "bold" } }
+            sx={{ fontWeight: "bold" }}
           >
             Cancel
           </Button>
           
-          {isReferencedError ? (
+          {canDeactivateError ? (
+            <Button
+              variant="contained"
+              size="small"
+              color="primary"
+              onClick={() => handleConfirmDelete(false, true)}
+              disabled={actionLoading}
+              startIcon={actionLoading ? <CircularProgress size={16} color="inherit" /> : null}
+              sx={{ fontWeight: "bold" }}
+            >
+              Deactivate Instead
+            </Button>
+          ) : isReferencedError ? (
             <Button
               variant="contained"
               size="small"
