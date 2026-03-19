@@ -42,7 +42,7 @@ import {
   Close as CloseIcon,
   Person as PersonIcon,
 } from "@mui/icons-material";
-import { deleteCustomer } from "../../api";
+import { useDeleteCustomerMutation } from "../../redux/services/customerApi";
 
 const API_IMAGE_BASE = "https://api.mrbikedoctor.cloud/";
 
@@ -56,8 +56,9 @@ const CustomerTable = ({ datas, loading, onRefresh }) => {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState(null);
+  
+  const [deleteCustomer, { isLoading: actionLoading }] = useDeleteCustomerMutation();
 
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === "asc";
@@ -139,19 +140,16 @@ const CustomerTable = ({ datas, loading, onRefresh }) => {
 
   const handleConfirmDelete = async () => {
     if (!selectedCustomer) return;
-    setActionLoading(true);
     setActionError(null);
     try {
-      await deleteCustomer(selectedCustomer._id);
+      await deleteCustomer(selectedCustomer._id).unwrap();
       setProfileDialogOpen(false);
       setConfirmDelete(false);
-      if (onRefresh) onRefresh();
+      // No need to manually refresh, RTK Query tag invalidation handles it!
     } catch (error) {
-      const msg = error?.response?.data?.message || "Failed to delete customer.";
+      const msg = error?.data?.message || "Failed to delete customer.";
       setActionError(msg);
       setConfirmDelete(false);
-    } finally {
-      setActionLoading(false);
     }
   };
 

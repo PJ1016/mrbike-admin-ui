@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useSelector, useDispatch } from "react-redux";
 import {
   Box,
   Typography,
@@ -25,64 +24,15 @@ import {
   Person as PersonIcon,
   EmojiEvents as RewardIcon,
 } from "@mui/icons-material";
-import { getCustomerById, getCustomerList } from "../../api";
-import { selectUserById, fetchGlobalSearchData } from "../../redux/slices/searchSlice";
+import { useGetCustomerByIdQuery } from "../../redux/services/customerApi";
 
 const ViewUserDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
-  
-  // Use Redux state as primary source
-  const userFromStore = useSelector((state) => selectUserById(state, id));
-  
-  const [user, setUser] = useState(userFromStore || null);
-  const [loading, setLoading] = useState(!userFromStore);
 
   const IMAGE_BASE_URL = process.env.REACT_APP_IMAGE_BASE_URL || "https://api.mrbikedoctor.cloud/";
 
-  useEffect(() => {
-    // If we already have the user from store, we're good
-    if (userFromStore) {
-      setUser(userFromStore);
-      setLoading(false);
-      return;
-    }
-
-    const fetchUser = async () => {
-      setLoading(true);
-      try {
-        console.log("Fetching user with ID:", id);
-        
-        // Try direct fetch first
-        try {
-          const response = await getCustomerById(id);
-          if (response.status === 200 || response.success) {
-            setUser(response.data);
-            setLoading(false);
-            return;
-          }
-        } catch (e) {
-          console.warn("Direct fetch failed, trying list fallback...");
-        }
-
-        // Fallback: Fetch everything and find (in case single-view is missing)
-        const listRes = await getCustomerList();
-        const found = (listRes.data || listRes).find(u => u._id === id || u.customerId === id);
-        
-        if (found) {
-          setUser(found);
-          // Also trigger search data refresh to populate store for next time
-          dispatch(fetchGlobalSearchData());
-        }
-      } catch (error) {
-        console.error("Error fetching user details:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUser();
-  }, [id, userFromStore, dispatch]);
+  const { data: user, isLoading: loading } = useGetCustomerByIdQuery(id);
 
   if (loading) {
     return (

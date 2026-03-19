@@ -1,30 +1,10 @@
-import { useState, useEffect } from "react";
 import { Box, Typography } from "@mui/material";
 import { PeopleAlt as PeopleIcon } from "@mui/icons-material";
 import CustomerTable from "../../components/Customers/customers";
-import { getCustomerList } from "../../api";
+import { useGetCustomersQuery } from "../../redux/services/customerApi";
 
 const CustomersPage = () => {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refresh, setRefresh] = useState(false);
-
-  useEffect(() => {
-    const fetchCustomers = async () => {
-      setLoading(true);
-      try {
-        const response = await getCustomerList();
-        if (response.status === 200) {
-          setData(response.data);
-        }
-      } catch (error) {
-        console.error("Error fetching customer list:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCustomers();
-  }, [refresh]);
+  const { data: customers = [], isLoading: loading, refetch } = useGetCustomersQuery();
 
   return (
     <div className="page-wrapper">
@@ -44,9 +24,9 @@ const CustomersPage = () => {
           </Box>
 
           <CustomerTable
-            datas={data}
+            datas={customers}
             loading={loading}
-            onRefresh={() => setRefresh((prev) => !prev)}
+            onRefresh={refetch}
           />
         </Box>
       </div>
