@@ -893,16 +893,14 @@ export const updateBaseService = async (serviceId, serviceData) => {
   }
 };
 
-export const deleteBaseService = async (serviceId) => {
+export const deleteBaseService = async (serviceId, force = false) => {
   try {
-    const response = await axios.delete(
-      `${API_BASE_URL}/service/admin/base-services/${serviceId}`,
-      {
-        headers: {
-          token: getAuthToken(),
-        },
+    const url = `${API_BASE_URL}/service/admin/base-services/${serviceId}${force ? "?force=true" : ""}`;
+    const response = await axios.delete(url, {
+      headers: {
+        token: getAuthToken(),
       },
-    );
+    });
 
     return response.data;
   } catch (error) {

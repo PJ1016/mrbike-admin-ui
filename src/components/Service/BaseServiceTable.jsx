@@ -53,6 +53,8 @@ const BaseServiceTable = ({
   const [serviceToDelete, setServiceToDelete] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState(null);
+  const [isReferencedError, setIsReferencedError] = useState(false);
+  const [referencingDetails, setReferencingDetails] = useState([]);
 
   const getImageUrl = (path) => {
     if (!path) return null;
@@ -75,22 +77,39 @@ const BaseServiceTable = ({
     setServiceToDelete(service);
     setDeleteDialogOpen(true);
     setActionError(null);
+    setIsReferencedError(false);
+    setReferencingDetails([]);
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = async (force = false) => {
     if (!serviceToDelete) return;
     setActionLoading(true);
     setActionError(null);
+    if (!force) {
+      setIsReferencedError(false);
+      setReferencingDetails([]);
+    }
+    
     try {
-      const response = await deleteBaseService(serviceToDelete._id);
+      const response = await deleteBaseService(serviceToDelete._id, force);
       if (response && response.status === true) {
         setDeleteDialogOpen(false);
         setServiceToDelete(null);
+        setIsReferencedError(false);
+        setReferencingDetails([]);
         if (onServiceDeleted) onServiceDeleted();
       }
     } catch (error) {
-      const msg = error?.response?.data?.message || "Could not delete base service";
+      const errorData = error?.response?.data;
+      const msg = errorData?.message || "Could not delete base service";
       setActionError(msg);
+      
+      if (errorData?.isReferenced) {
+        setIsReferencedError(true);
+        setReferencingDetails(errorData.referencingDetails || []);
+      } else {
+        setIsReferencedError(false);
+      }
     } finally {
       setActionLoading(false);
     }
@@ -319,10 +338,31 @@ const BaseServiceTable = ({
         </DialogTitle>
         <DialogContent sx={{ pb: 1 }}>
           {actionError && (
-            <Alert severity="error" sx={{ mb: 2 }}>{actionError}</Alert>
+            <Alert severity={isReferencedError ? "warning" : "error"} sx={{ mb: 2 }}>
+              {actionError}
+            </Alert>
           )}
+          
+          {isReferencedError && referencingDetails.length > 0 && (
+            <Box sx={{ mb: 2, p: 1.5, bgcolor: "#fff8f0", borderRadius: 1, border: "1px solid #ffe7cc" }}>
+              <Typography variant="caption" sx={{ fontWeight: "bold", display: "block", mb: 1, color: "#995a00" }}>
+                REFERENCED BY:
+              </Typography>
+              <Box sx={{ maxHeight: 120, overflowY: "auto" }}>
+                {referencingDetails.map((ref, idx) => (
+                  <Typography key={idx} variant="caption" sx={{ display: "block", color: "text.secondary" }}>
+                    • {ref.dealerName} ({ref.serviceId})
+                  </Typography>
+                ))}
+              </Box>
+            </Box>
+          )}
+
           <Typography variant="body2" color="text.secondary">
-            Are you sure you want to permanently delete the service <b>"{serviceToDelete?.name}"</b>? This action cannot be undone.
+            {isReferencedError 
+              ? `Note: Force deleting will also remove this service from the ${referencingDetails.length} dealers listed above. This is only possible if there are NO bookings.`
+              : `Are you sure you want to permanently delete the service "${serviceToDelete?.name}"? This action cannot be undone.`
+            }
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
@@ -332,21 +372,36 @@ const BaseServiceTable = ({
             color="inherit"
             onClick={() => setDeleteDialogOpen(false)}
             disabled={actionLoading}
-            sx={{ fontWeight: "bold" }}
+            sx={{ fontWeight: "bold" } }
           >
             Cancel
           </Button>
-          <Button
-            variant="contained"
-            size="small"
-            color="error"
-            onClick={handleConfirmDelete}
-            disabled={actionLoading}
-            startIcon={actionLoading ? <CircularProgress size={16} color="inherit" /> : null}
-            sx={{ fontWeight: "bold" }}
-          >
-            Yes, Delete
-          </Button>
+          
+          {isReferencedError ? (
+            <Button
+              variant="contained"
+              size="small"
+              color="warning"
+              onClick={() => handleConfirmDelete(true)}
+              disabled={actionLoading}
+              startIcon={actionLoading ? <CircularProgress size={16} color="inherit" /> : null}
+              sx={{ fontWeight: "bold" }}
+            >
+              Force Cascading Delete
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              size="small"
+              color="error"
+              onClick={() => handleConfirmDelete(false)}
+              disabled={actionLoading}
+              startIcon={actionLoading ? <CircularProgress size={16} color="inherit" /> : null}
+              sx={{ fontWeight: "bold" }}
+            >
+              Yes, Delete
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </Box>
