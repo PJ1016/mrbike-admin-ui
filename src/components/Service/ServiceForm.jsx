@@ -32,6 +32,8 @@ import BaseCatalogPreview from "./service-form/BaseCatalogPreview";
 import PricingPreviewPanel from "./service-form/PricingPreviewPanel";
 import FooterActions from "./service-form/FooterActions";
 
+const EMPTY_ARRAY = [];
+
 const getImageUrl = (imagePath) => {
   if (!imagePath) return "";
   if (imagePath.startsWith("http")) return imagePath;
@@ -74,11 +76,11 @@ const ServiceForm = ({ serviceId, dealerId, onDataLoaded }) => {
   });
 
   // --- RTK Query Hooks ---
-  const { data: baseServices = [], isLoading: loadingBS } =
+  const { data: baseServices = EMPTY_ARRAY, isLoading: loadingBS } =
     useGetBaseServicesQuery();
-  const { data: companies = [], isLoading: loadingComp } =
+  const { data: companies = EMPTY_ARRAY, isLoading: loadingComp } =
     useGetBikeCompaniesQuery();
-  const { data: dealers = [], isLoading: loadingDeal } = useGetDealersQuery();
+  const { data: dealers = EMPTY_ARRAY, isLoading: loadingDeal } = useGetDealersQuery();
 
   const { data: editData, isFetching: loadingEdit } =
     useGetAdminServiceByIdQuery(serviceId, {
@@ -89,7 +91,7 @@ const ServiceForm = ({ serviceId, dealerId, onDataLoaded }) => {
     () => selectedCompanies.map((c) => c._id),
     [selectedCompanies],
   );
-  const { data: fetchedBikes = [] } = useGetBikesByCompaniesQuery(
+  const { data: fetchedBikes = EMPTY_ARRAY } = useGetBikesByCompaniesQuery(
     selectedCompanyIds,
     {
       skip: selectedCompanyIds.length === 0,
@@ -141,19 +143,24 @@ const ServiceForm = ({ serviceId, dealerId, onDataLoaded }) => {
         base_service_id: bId,
         description: data.description || "",
       }));
-      setSelectedBaseService(baseServices.find((s) => s._id === bId) || null);
+      const foundBase = baseServices.find((s) => s._id === bId) || null;
+      if (selectedBaseService !== foundBase) setSelectedBaseService(foundBase);
 
       const dIdLoaded = data.dealer_id
         ? typeof data.dealer_id === "string"
           ? data.dealer_id
           : data.dealer_id._id
         : "";
-      setSelectedDealer(dealers.find((d) => d._id === dIdLoaded) || null);
+      const foundDealer = dealers.find((d) => d._id === dIdLoaded) || null;
+      if (selectedDealer?._id !== foundDealer?._id) setSelectedDealer(foundDealer);
 
       const cIds = (data.companies || []).map((c) =>
         typeof c === "string" ? c : c._id,
       );
-      setSelectedCompanies(companies.filter((c) => cIds.includes(c._id)));
+      const filteredCompanies = companies.filter((c) => cIds.includes(c._id));
+      const currentIds = selectedCompanies.map((c) => c._id).sort().join(",");
+      const newIds = filteredCompanies.map((c) => c._id).sort().join(",");
+      if (currentIds !== newIds) setSelectedCompanies(filteredCompanies);
 
       if (onDataLoaded) onDataLoaded(data);
     } else if (!isEditMode && dealers.length) {
@@ -161,7 +168,7 @@ const ServiceForm = ({ serviceId, dealerId, onDataLoaded }) => {
       const dIdParam = dealerId || urlParams.get("dealerId");
       if (dIdParam) {
         const preD = dealers.find((d) => d._id === dIdParam);
-        if (preD) setSelectedDealer(preD);
+        if (preD && selectedDealer?._id !== preD._id) setSelectedDealer(preD);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
