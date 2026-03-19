@@ -27,6 +27,7 @@ import axios from "axios";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import SettingsIcon from "@mui/icons-material/Settings";
+import PageHeader from "../Global/PageHeader";
 
 const AI_API_URL =
   process.env.REACT_APP_AI_API_URL || "http://localhost:8001/ai/generate";
@@ -301,32 +302,14 @@ const BaseServiceForm = ({ isEdit = false }) => {
     <div className="page-wrapper">
       <div className="content container-fluid">
         <Box sx={{ py: 1 }}>
-          {/* Header & Breadcrumbs matching Bookings */}
-          <Box sx={{ mb: 4 }}>
-            <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "center" }} spacing={2}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                <SettingsIcon sx={{ color: "#2e83ff", fontSize: 32 }} />
-                <Box>
-                  <Typography variant="h4" fontWeight="700" color="text.primary">
-                    {isEdit ? "Edit Base Service" : "Add Base Service"}
-                  </Typography>
-                  <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-                    <Typography color="text.secondary" variant="body2">
-                      Dashboard
-                    </Typography>
-                    <Link to="/base-services" style={{ textDecoration: 'none', color: 'inherit' }}>
-                      <Typography color="text.secondary" variant="body2" sx={{ '&:hover': { color: 'primary.main', textDecoration: 'underline' } }}>
-                        Services
-                      </Typography>
-                    </Link>
-                    <Typography color="text.primary" variant="body2" fontWeight="500">
-                      {isEdit ? "Edit" : "Add"}
-                    </Typography>
-                  </Breadcrumbs>
-                </Box>
-              </Box>
-            </Stack>
-          </Box>
+          <PageHeader
+            title={isEdit ? "Edit Base Service" : "Add Base Service"}
+            breadcrumbs={[
+              { label: "Dashboard", path: "/" },
+              { label: "Services", path: "/base-services" },
+              { label: isEdit ? "Edit" : "Add", path: "#" },
+            ]}
+          />
 
           <Box sx={{ width: "100%", maxWidth: "800px" }}>
             <Card

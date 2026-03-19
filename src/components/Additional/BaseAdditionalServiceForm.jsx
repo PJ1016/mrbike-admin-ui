@@ -19,6 +19,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import SaveIcon from '@mui/icons-material/Save'
 import { createBaseAdditionalService, getBaseAdditionalServiceById, updateBaseAdditionalService } from '../../api/additionalServiceApi'
+import PageHeader from '../Global/PageHeader'
 
 // Helper to form image URLs correctly
 const getImageUrl = (imagePath) => {
@@ -153,36 +154,14 @@ const BaseAdditionalServiceForm = ({ isEdit = false }) => {
     <div className="page-wrapper">
       <div className="content container-fluid">
         <Box sx={{ py: 1 }}>
-          <Box sx={{ mb: 4 }}>
-            <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2}>
-              <Box>
-                <Typography variant="h4" fontWeight="700" color="text.primary">
-                  {isEdit ? 'Edit' : 'Create'} Base Service
-                </Typography>
-                <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-                  <Typography color="text.secondary" variant="body2">Dashboard</Typography>
-                  <Link to="/base-additional-services" style={{ textDecoration: 'none', color: 'inherit' }}>
-                    <Typography color="text.secondary" variant="body2" sx={{ '&:hover': { color: 'primary.main' } }}>
-                      Base Additional Services
-                    </Typography>
-                  </Link>
-                  <Typography color="text.primary" variant="body2" fontWeight="500">
-                    {isEdit ? 'Edit' : 'Create'}
-                  </Typography>
-                </Breadcrumbs>
-              </Box>
-
-              <Button
-                variant="outlined"
-                color="inherit"
-                startIcon={<ArrowBackIcon />}
-                onClick={() => navigate(-1)}
-                sx={{ fontWeight: 'bold', borderColor: 'divider', '&:hover': { bgcolor: 'grey.100' } }}
-              >
-                Back
-              </Button>
-            </Stack>
-          </Box>
+          <PageHeader
+            title={`${isEdit ? 'Edit' : 'Create'} Base Additional Service`}
+            breadcrumbs={[
+              { label: "Dashboard", path: "/" },
+              { label: "Additional Services", path: "/base-additional-services" },
+              { label: isEdit ? "Edit" : "Create", path: "#" },
+            ]}
+          />
 
           <Card elevation={3} sx={{ borderRadius: 2 }}>
             <CardContent sx={{ p: { xs: 2, sm: 4 } }}>

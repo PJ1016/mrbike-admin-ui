@@ -367,7 +367,7 @@ const ServiceForm = ({ serviceId, dealerId, onDataLoaded }) => {
   const breadcrumbs = [
     { label: "Dashboard", path: "/" },
     { label: "Base Services", path: "/base-services" },
-    { label: "Manage Service", path: "#" },
+    { label: isEditMode ? "Edit Service" : "Create Service", path: "#" },
   ];
 
   if (isLoading)
@@ -422,7 +422,7 @@ const ServiceForm = ({ serviceId, dealerId, onDataLoaded }) => {
   return (
     <Box sx={{ pb: 12, px: { xs: 2, lg: 4 } }}>
       <PageHeader
-        title="Service Management"
+        title={isEditMode ? "Edit Service Configuration" : "New Service Configuration"}
         breadcrumbs={breadcrumbs}
         action={{
           label: "Back to Services",
