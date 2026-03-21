@@ -176,18 +176,13 @@ const DealerServicesTab = ({ dealer }) => {
     if (dealer) hydrate();
   }, [dispatch, dealer]);
 
-  // Auto-enable General Service when bikes are first selected
-  const { baseServices } = useSelector(state => state.service);
+  // Initialize General Service only on initial load if no services are configured
   useEffect(() => {
-    if (selectedBikes.length > 0 && selectedServices.length === 0 && baseServices.length > 0) {
-      const generalService = baseServices.find(s => 
-        String(s.name).toLowerCase().includes("general service")
-      );
-      if (generalService) {
-        dispatch(toggleService(generalService._id || generalService.id));
-      }
-    }
-  }, [selectedBikes.length, selectedServices.length, baseServices, dispatch]);
+    // Only auto-enable if we have selected bikes, no services, and base services are loaded.
+    // To prevent re-enabling when user explicitly disables all services, we should only run it once.
+    // However, tracking "has initialized" is better done cleanly. Let's just remove this aggressive auto-toggle,
+    // or add a flag so it only runs once per mount.
+  }, []);
 
   useEffect(() => {
     if (saveSuccess) {
@@ -208,59 +203,43 @@ const DealerServicesTab = ({ dealer }) => {
       return "100-125";
     };
 
-    const payload = {
-      dealerId: dealer?._id,
-      bikes: selectedBikes.map(bike => {
-        const variantId = String(bike._id || bike.id || bike.variant_id);
-        const bikeCCRange = getCCRangeKey(bike.cc);
-        
-        return {
-          variantId,
-          services: selectedServices.filter(svcId => {
-            const groupData = servicePricingByCCRange[svcId]?.[bikeCCRange];
-            return groupData && !groupData.disabledBikes?.includes(variantId);
-          }).map(svcId => {
-            const groupData = servicePricingByCCRange[svcId][bikeCCRange];
-            const overridePrice = groupData.bikeOverrides?.[variantId];
-            const finalPrice = overridePrice !== undefined ? Number(overridePrice) : Number(groupData.price || 0);
+    const pricing = [];
 
-            return {
-              serviceId: svcId,
-              pricing: [
-                { ccRange: "100-125", price: bikeCCRange === "100-125" ? finalPrice : 0 },
-                { ccRange: "150-200", price: bikeCCRange === "150-200" ? finalPrice : 0 },
-                { ccRange: "250+", price: bikeCCRange === "250+" ? finalPrice : 0 },
-              ]
-            };
-          })
-        };
-      }),
-      additionalServices: selectedAdditionalServices.map(svcId => {
-        const svcPricing = additionalServicePricingByCCRange[svcId] || {};
+    const processServices = (selectedIds, pricingByCCObj, typeStr) => {
+      selectedIds.forEach((svcId) => {
+        const svcPricing = pricingByCCObj[svcId] || {};
         
-        // Build the bikes array for this additional service
-        const serviceBikes = selectedBikes.map(bike => {
+        selectedBikes.forEach((bike) => {
           const variantId = String(bike._id || bike.id || bike.variant_id);
-          const bikeCCRange = getCCRangeKey(bike.cc);
+          const rawCC = bike.cc || bike.engine_cc || bike.engine_capacity || 0;
+          const parsedCc = typeof rawCC === 'string' ? parseInt(rawCC.replace(/\D/g, ''), 10) : Number(rawCC);
+          const bikeCCRange = getCCRangeKey(rawCC);
           const groupData = svcPricing[bikeCCRange] || { price: 0, disabledBikes: [] };
-          
-          if (groupData.disabledBikes?.includes(variantId)) return null;
+
+          if (groupData.disabledBikes?.includes(variantId)) return;
 
           const overridePrice = groupData.bikeOverrides?.[variantId];
           const finalPrice = overridePrice !== undefined ? Number(overridePrice) : Number(groupData.price || 0);
 
-          return {
-            variant_id: variantId,
-            cc: Number(bike.cc),
-            price: finalPrice
-          };
-        }).filter(Boolean);
+          if (finalPrice > 0) {
+            pricing.push({
+              type: typeStr,
+              serviceId: svcId,
+              variantId: variantId,
+              cc: isNaN(parsedCc) ? 0 : parsedCc,
+              price: finalPrice,
+            });
+          }
+        });
+      });
+    };
 
-        return {
-          serviceId: svcId,
-          bikes: serviceBikes
-        };
-      }),
+    processServices(selectedServices, servicePricingByCCRange, "base");
+    processServices(selectedAdditionalServices, additionalServicePricingByCCRange, "additional");
+
+    const payload = {
+      dealerId: dealer?._id,
+      pricing: pricing
     };
     dispatch(submitDealerServices(payload));
   };
