@@ -79,7 +79,7 @@ const DealerServicesTab = ({ dealer }) => {
           };
 
           res.pricing.forEach(item => {
-            const { type, serviceId, cc, price, variantId, bikeName } = item;
+            const { type, serviceId, cc, price, variantId, companyName, modelName, bikeName } = item;
             const ccKey = getCCRangeKeyFromNum(cc);
             
             // Reconstruct bike object for the editor
@@ -88,6 +88,8 @@ const DealerServicesTab = ({ dealer }) => {
                 _id: variantId,
                 variant_id: variantId,
                 variant_name: bikeName || "Unknown Bike",
+                company_name: companyName,
+                model_name: modelName,
                 cc: cc,
                 engine_cc: cc
               });
