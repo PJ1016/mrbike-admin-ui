@@ -965,125 +965,6 @@ const VendorDealerDetails = () => {
                         </Box>
                       </Stack>
                     </Box>
-
-                    <Card
-                      elevation={0}
-                      sx={{
-                        p: 3,
-                        bgcolor: "primary.50",
-                        borderRadius: 3,
-                        border: "1px solid",
-                        borderColor: "primary.100",
-                      }}
-                    >
-                      <Typography
-                        variant="subtitle2"
-                        fontWeight="800"
-                        color="primary.main"
-                        sx={{ mb: 2, display: "flex", alignItems: "center" }}
-                      >
-                        <VerifiedIcon sx={{ mr: 1, fontSize: 18 }} />{" "}
-                        VERIFICATION STATUS
-                      </Typography>
-                      <Stack spacing={1.5}>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <Typography variant="body2" fontWeight="600">
-                            Merchant Identity
-                          </Typography>
-                          {dealer.documentVerification?.face === "verified" &&
-                          dealer.documentVerification?.aadharFront ===
-                            "verified" &&
-                          dealer.documentVerification?.pan === "verified" ? (
-                            <Chip
-                              icon={
-                                <FaCheckCircle style={{ color: "white" }} />
-                              }
-                              label="VERIFIED"
-                              color="success"
-                              size="small"
-                              sx={{ fontWeight: 800, fontSize: "0.6rem" }}
-                            />
-                          ) : (
-                            <Chip
-                              label="PENDING"
-                              color="warning"
-                              size="small"
-                              sx={{ fontWeight: 800, fontSize: "0.6rem" }}
-                            />
-                          )}
-                        </Box>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <Typography variant="body2" fontWeight="600">
-                            Onboarding Docs
-                          </Typography>
-                          {dealer.documentVerification?.shop === "verified" ? (
-                            <Chip
-                              icon={
-                                <FaCheckCircle style={{ color: "white" }} />
-                              }
-                              label="APPROVED"
-                              color="success"
-                              size="small"
-                              sx={{ fontWeight: 800, fontSize: "0.6rem" }}
-                            />
-                          ) : (
-                            <Chip
-                              label="INCOMPLETE"
-                              color="error"
-                              size="small"
-                              sx={{ fontWeight: 800, fontSize: "0.6rem" }}
-                            />
-                          )}
-                        </Box>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <Typography variant="body2" fontWeight="600">
-                            Bank Verification
-                          </Typography>
-                          {dealer.documentVerification?.passbook ===
-                          "verified" ? (
-                            <Chip
-                              icon={
-                                <FaCheckCircle style={{ color: "white" }} />
-                              }
-                              label="VERIFIED"
-                              color="success"
-                              size="small"
-                              sx={{ fontWeight: 800, fontSize: "0.6rem" }}
-                            />
-                          ) : (
-                            <Chip
-                              label="UNVERIFIED"
-                              variant="outlined"
-                              color="error"
-                              size="small"
-                              sx={{
-                                fontWeight: 800,
-                                fontSize: "0.6rem",
-                                bgcolor: "white",
-                              }}
-                            />
-                          )}
-                        </Box>
-                      </Stack>
-                    </Card>
                   </Grid>
                 </Grid>
               </Box>
@@ -1150,11 +1031,12 @@ const VendorDealerDetails = () => {
                       ACTIVE DEALER SERVICES
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Currently active pricing that is visible to customers in the marketplace.
+                      Currently active pricing that is visible to customers in
+                      the marketplace.
                     </Typography>
                   </Box>
                 </Box>
-                
+
                 <DealerServicesView dealerId={id} />
               </Box>
             </CustomTabPanel>
