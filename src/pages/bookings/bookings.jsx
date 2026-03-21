@@ -115,24 +115,28 @@ const Bookings = () => {
         value: total,
         color: "#6366f1",
         icon: <DownloadIcon />,
+        targetStatus: "All",
       },
       {
         label: "Confirmed/Active",
         value: confirmed,
         color: "#10b981",
         icon: <CheckCircleIcon />,
+        targetStatus: "Confirmed",
       },
       {
         label: "Pending",
         value: pending,
         color: "#f59e0b",
         icon: <PendingIcon />,
+        targetStatus: "Pending",
       },
       {
         label: "Cancelled",
         value: cancelled,
         color: "#ef4444",
         icon: <CancelIcon />,
+        targetStatus: "Cancelled",
       },
       {
         label: "Est. Revenue",
@@ -259,12 +263,24 @@ const Bookings = () => {
                 >
                   <Card
                     elevation={0}
+                    onClick={() =>
+                      stat.targetStatus && setStatusFilter(stat.targetStatus)
+                    }
                     sx={{
                       borderRadius: 4,
                       border: "1px solid #e2e8f0",
                       height: "100%",
-                      transition: "transform 0.2s",
-                      "&:hover": { transform: "translateY(-4px)" },
+                      transition: "all 0.2s",
+                      cursor: stat.targetStatus ? "pointer" : "default",
+                      "&:hover": {
+                        transform: "translateY(-4px)",
+                        boxShadow: stat.targetStatus
+                          ? "0 4px 20px -4px rgba(0,0,0,0.1)"
+                          : "none",
+                        borderColor: stat.targetStatus
+                          ? stat.color
+                          : "#e2e8f0",
+                      },
                     }}
                   >
                     <CardContent sx={{ p: 3 }}>
