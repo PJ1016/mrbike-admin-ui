@@ -915,3 +915,13 @@ export const deleteBaseService = async (serviceId, force = false, deactivate = f
     throw error;
   }
 };
+
+// --- Dealer Services Configuration ---
+
+// ✅ Fetch all base additional services
+export const getBaseAdditionalServiceList = () =>
+  apiRequest("GET", "/base-additional-service", {}, false);
+
+// ✅ Save dealer services configuration
+export const saveDealerServices = (payload) =>
+  apiRequest("POST", "/dealer/services", payload, true, true);
