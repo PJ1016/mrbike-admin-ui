@@ -841,8 +841,6 @@ export const getDealerById = async (id) => {
   return res?.data || res;
 };
 
-export const getDealerServices = () =>
-  apiRequest("GET", "/service/dealer/services", {}, false);
 
 export const getBaseServiceList = () =>
   apiRequest("GET", "/service/admin/base-services", {}, false);
@@ -925,3 +923,7 @@ export const getBaseAdditionalServiceList = () =>
 // ✅ Save dealer services configuration
 export const saveDealerServices = (payload) =>
   apiRequest("POST", "/dealer/services", payload, true, true);
+
+// ✅ Fetch dealer services configuration
+export const getDealerServices = (dealerId) =>
+  apiRequest("GET", `/dealer/services?dealerId=${dealerId}`, {}, false, true);

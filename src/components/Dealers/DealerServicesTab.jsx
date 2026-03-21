@@ -19,11 +19,12 @@ import AdditionalServicesSection from "./AdditionalServicesSection";
 import { fetchCompanies } from "../../redux/slices/bikeSlice";
 import { fetchBaseServices, fetchAdditionalServices } from "../../redux/slices/serviceSlice";
 import { 
-  submitDealerServices, 
-  resetSaveStatus, 
-  setCCRangePrice, 
+  submitDealerServices,
+  resetSaveStatus,
   toggleService, 
-  toggleAdditionalService 
+  toggleAdditionalService,
+  hydrateDealerState,
+  resetSelection
 } from "../../redux/slices/dealerServiceSlice";
 
 const DealerServicesTab = ({ dealer }) => {
@@ -58,115 +59,84 @@ const DealerServicesTab = ({ dealer }) => {
     // Hydrate existing dealer configuration
     const hydrate = async () => {
       try {
-        const { getServiceList, getAdditionalServiceList, getDealerById } = await import("../../api");
-        const [servicesRes, addServicesRes] = await Promise.all([
-          getServiceList(),
-          getAdditionalServiceList()
-        ]);
+        const { getDealerServices } = await import("../../api");
+        const res = await getDealerServices(dealer?._id || dealer?.id);
 
-        if (servicesRes?.status && Array.isArray(servicesRes.data)) {
-          const dealerId = dealer?._id || dealer?.id;
-          const dealerBase = servicesRes.data.filter(s => {
-            const sid = s.dealer_id?._id || s.dealer_id || s.dealer?._id || s.dealer;
-            return String(sid) === String(dealerId);
-          });
+        if (res?.status && Array.isArray(res.pricing)) {
+          console.log("BikeDoctor: Hydrating dealer services", res.pricing.length);
+          
+          const selectedBikesMap = new Map();
+          const selectedServices = new Set();
+          const selectedAdditionalServices = new Set();
+          const servicePricingByCCRange = {};
+          const additionalServicePricingByCCRange = {};
 
-          // Extract selected bikes and services from base services configuration
-          const bikeMap = new Map();
-          const svcPricing = {};
-          const selectedSvcIds = [];
+          const getCCRangeKeyFromNum = (ccNum) => {
+            const n = Number(ccNum);
+            if (n >= 250) return "250+";
+            if (n >= 150) return "150-200";
+            return "100-125";
+          };
 
-          dealerBase.forEach(record => {
-            const baseSvcId = record.base_service_id?._id || record.base_service_id;
-            if (baseSvcId) {
-              selectedSvcIds.push(baseSvcId);
-              svcPricing[baseSvcId] = {};
+          res.pricing.forEach(item => {
+            const { type, serviceId, cc, price, variantId, bikeName } = item;
+            const ccKey = getCCRangeKeyFromNum(cc);
+            
+            // Reconstruct bike object for the editor
+            if (variantId && !selectedBikesMap.has(variantId)) {
+              selectedBikesMap.set(variantId, {
+                _id: variantId,
+                variant_id: variantId,
+                variant_name: bikeName || "Unknown Bike",
+                cc: cc,
+                engine_cc: cc
+              });
+            }
+
+            if (type === "base") {
+              const sId = String(serviceId);
+              selectedServices.add(sId);
+              if (!servicePricingByCCRange[sId]) servicePricingByCCRange[sId] = {};
               
-              if (Array.isArray(record.bikes)) {
-                record.bikes.forEach(b => {
-                  const ccKey = getCCRangeKey(b.cc);
-                  const bikeId = b.bike_id?._id || b.bike_id;
-                  
-                  if (!svcPricing[baseSvcId][ccKey]) {
-                    svcPricing[baseSvcId][ccKey] = { price: b.price || 0, disabledBikes: [], bikeOverrides: {} };
-                  } else if (b.price && b.price !== svcPricing[baseSvcId][ccKey].price) {
-                    // Detect mismatch and set as override
-                    if (bikeId) {
-                      svcPricing[baseSvcId][ccKey].bikeOverrides[bikeId] = b.price;
-                    }
-                  }
-                  // We also need the bike object. Since we don't have full variant data here, 
-                  // we'll rely on Section 1 selection or wait for fetch filter.
-                  // But we can at least set the price.
-                });
+              if (!servicePricingByCCRange[sId][ccKey]) {
+                servicePricingByCCRange[sId][ccKey] = { 
+                  price: Number(price), 
+                  disabledBikes: [], 
+                  bikeOverrides: {} 
+                };
+              } else if (Number(price) !== servicePricingByCCRange[sId][ccKey].price) {
+                // If this price is different from the first one we set for this CC range, it's an override
+                servicePricingByCCRange[sId][ccKey].bikeOverrides[variantId] = Number(price);
+              }
+            } else if (type === "additional") {
+              const sId = String(serviceId);
+              selectedAdditionalServices.add(sId);
+              if (!additionalServicePricingByCCRange[sId]) additionalServicePricingByCCRange[sId] = {};
+              
+              if (!additionalServicePricingByCCRange[sId][ccKey]) {
+                additionalServicePricingByCCRange[sId][ccKey] = { 
+                  price: Number(price), 
+                  disabledBikes: [], 
+                  bikeOverrides: {} 
+                };
+              } else if (Number(price) !== additionalServicePricingByCCRange[sId][ccKey].price) {
+                additionalServicePricingByCCRange[sId][ccKey].bikeOverrides[variantId] = Number(price);
               }
             }
           });
 
-          // Since our new slice structure uses setCCRangePrice, we'll dispatch those
-          selectedSvcIds.forEach(id => {
-            dispatch(toggleService(id));
-            if (svcPricing[id]) {
-              Object.keys(svcPricing[id]).forEach(cc => {
-                dispatch(setCCRangePrice({ serviceId: id, ccRange: cc, price: svcPricing[id][cc].price }));
-              });
-            }
-          });
-        }
-
-        // Similar hydration for additional services...
-        if (addServicesRes?.status && Array.isArray(addServicesRes.data)) {
-           const dealerId = dealer?._id || dealer?.id;
-           const dealerAddtl = addServicesRes.data.filter(s => {
-             const sid = s.dealer_id?._id || s.dealer_id || s.dealer?._id || s.dealer;
-             return String(sid) === String(dealerId);
-           });
-
-           dealerAddtl.forEach(record => {
-             const baseAddtlId = record.base_additional_service_id?._id || record.base_additional_service_id;
-             if (baseAddtlId) {
-               dispatch(toggleAdditionalService(baseAddtlId));
-                if (Array.isArray(record.bikes)) {
-                  record.bikes.forEach(b => {
-                    const ccKey = getCCRangeKey(b.cc);
-                    const bikeId = b.bike_id?._id || b.bike_id;
-
-                    // Always set the CC group price first
-                    dispatch(setCCRangePrice({
-                      serviceId: baseAddtlId,
-                      ccRange: ccKey,
-                      price: b.price || 0,
-                      isAdditional: true
-                    }));
-
-                    // If we have a bike ID and it's already in a group (implying we've seen this CC before),
-                    // but the price differs, set it as an override.
-                    // Wait, hydration logic for Additional is a bit different because we dispatch directly.
-                    // We'll rely on the fact that if multiple bikes in same CC have different prices,
-                    // the LATEST one will be the group price.
-                    // Actually, let's just use the same pattern as Base Services for consistency.
-                  });
-
-                  // Re-run to set overrides
-                  record.bikes.forEach(b => {
-                    const ccKey = getCCRangeKey(b.cc);
-                    const bikeId = b.bike_id?._id || b.bike_id;
-                    // (Logic simplified: if we want to be perfect we'd buffer like Base Services)
-                    // For now, let's just make sure overrides can be set manually.
-                  });
-                } else if (record.price) {
-                  // Fallback for flat pricing
-                  ["100-125", "150-200", "250+"].forEach(cc => {
-                    dispatch(setCCRangePrice({ 
-                      serviceId: baseAddtlId, 
-                      ccRange: cc, 
-                      price: record.price, 
-                      isAdditional: true 
-                    }));
-                  });
-               }
-             }
-           });
+          // Dispatch full state update at once
+          dispatch(hydrateDealerState({
+            selectedBikes: Array.from(selectedBikesMap.values()),
+            selectedCompanies: res.companies || [],
+            selectedServices: Array.from(selectedServices),
+            selectedAdditionalServices: Array.from(selectedAdditionalServices),
+            servicePricingByCCRange,
+            additionalServicePricingByCCRange
+          }));
+        } else {
+          // If no services found, clear the state for this dealer
+          dispatch(resetSelection());
         }
       } catch (err) {
         console.error("Hydration failed", err);
@@ -174,6 +144,10 @@ const DealerServicesTab = ({ dealer }) => {
     };
 
     if (dealer) hydrate();
+
+    return () => {
+      dispatch(resetSelection());
+    };
   }, [dispatch, dealer]);
 
   // Initialize General Service only on initial load if no services are configured

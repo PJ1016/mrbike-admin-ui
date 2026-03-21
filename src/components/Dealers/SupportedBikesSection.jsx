@@ -16,29 +16,32 @@ import {
 import { Search as SearchIcon, TwoWheeler as BikeIcon } from "@mui/icons-material";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBikesByCompany } from "../../redux/slices/bikeSlice";
-import { addSelectedBike, removeSelectedBike } from "../../redux/slices/dealerServiceSlice";
+import { addSelectedBike, removeSelectedBike, setSelectedCompanies } from "../../redux/slices/dealerServiceSlice";
 
 const SupportedBikesSection = () => {
   const dispatch = useDispatch();
   const { companies, bikes, loading: bikesLoading } = useSelector((state) => state.bike);
-  const { selectedBikes } = useSelector((state) => state.dealerService);
-  const [selectedCompany, setSelectedCompany] = useState(null);
+  const { selectedBikes, selectedCompanies } = useSelector((state) => state.dealerService);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const handleCompanyChange = (event, newValue) => {
-    setSelectedCompany(newValue);
-    if (newValue) {
-      const companyId = newValue._id || newValue.id;
-      if (companyId) {
-        dispatch(fetchBikesByCompany([companyId]));
+  // Auto-fetch bikes when companies are pre-filled/selected
+  React.useEffect(() => {
+    if (selectedCompanies.length > 0) {
+      const companyIds = selectedCompanies.map(c => c._id || c.id).filter(Boolean);
+      if (companyIds.length > 0) {
+        dispatch(fetchBikesByCompany(companyIds));
       }
     }
+  }, [dispatch, selectedCompanies]);
+
+  const handleCompanyChange = (event, newValue) => {
+    dispatch(setSelectedCompanies(newValue));
   };
 
   const filteredBikes = bikes.filter((bike) => {
     const modelName = bike.model_name || bike.model_id?.model_name || "";
     const variantName = bike.variant_name || "";
-    const companyName = bike.company_name || bike.company_id?.name || selectedCompany?.name || "";
+    const companyName = bike.company_name || bike.company_id?.name || "";
     const fullName = `${companyName} ${modelName} ${variantName}`.toLowerCase();
     return fullName.includes(searchTerm.toLowerCase());
   });
@@ -71,14 +74,15 @@ const SupportedBikesSection = () => {
                 COMPANY
               </Typography>
               <Autocomplete
+                multiple
                 options={companies}
                 getOptionLabel={(option) => option.name || ""}
-                value={selectedCompany}
+                value={selectedCompanies}
                 onChange={handleCompanyChange}
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    placeholder="Select a company..."
+                    placeholder={selectedCompanies.length > 0 ? "" : "Select companies..."}
                     variant="outlined"
                     sx={{
                       "& .MuiOutlinedInput-root": {
@@ -91,7 +95,7 @@ const SupportedBikesSection = () => {
               />
             </Box>
 
-            {selectedCompany && (
+            {selectedCompanies.length > 0 && (
               <Box>
                 <Typography variant="subtitle2" fontWeight="700" color="text.secondary" sx={{ mb: 1 }}>
                   SEARCH VARIANTS
@@ -121,7 +125,7 @@ const SupportedBikesSection = () => {
         </Grid>
 
         <Grid item xs={12} lg={7}>
-          {selectedCompany ? (
+          {selectedCompanies.length > 0 ? (
             <Box>
               <Typography variant="subtitle2" fontWeight="700" color="text.secondary" sx={{ mb: 1 }}>
                 VARIANTS ({filteredBikes.length} available)
@@ -201,7 +205,7 @@ const SupportedBikesSection = () => {
               }}
             >
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                Select a company to view models
+                Select companies to view models
               </Typography>
             </Box>
           )}
@@ -231,7 +235,7 @@ const SupportedBikesSection = () => {
               <Chip
                 key={bike._id || bike.id || bike.variant_id || `selected-${index}`}
                 icon={<BikeIcon fontSize="small" />}
-                label={`${bike.company_name || bike.company_id?.name || selectedCompany?.name || ""} ${bike.model_name || bike.model_id?.model_name || ""} ${bike.variant_name || ""}`.trim() || `Bike ${bike.cc}cc`}
+                label={`${bike.company_name || bike.company_id?.name || ""} ${bike.model_name || bike.model_id?.model_name || ""} ${bike.variant_name || ""}`.trim() || `Bike ${bike.cc}cc`}
                 onDelete={() => dispatch(removeSelectedBike(String(bike._id || bike.id || bike.variant_id)))}
                 color="primary"
                 variant="filled"

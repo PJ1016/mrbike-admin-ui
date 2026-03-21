@@ -17,6 +17,7 @@ const dealerServiceSlice = createSlice({
   name: 'dealerService',
   initialState: {
     selectedBikes: [], // Array of variant objects
+    selectedCompanies: [], // Array of company objects for the dropdown
     selectedServices: [], // Array of base service IDs
     selectedAdditionalServices: [], // Array of additional service IDs
     // { [serviceId]: { [ccRange]: { price: 0, disabledBikes: [] } } }
@@ -125,6 +126,25 @@ const dealerServiceSlice = createSlice({
         state[target][serviceId][ccRange].disabledBikes.push(variantId);
       }
     },
+    hydrateDealerState: (state, action) => {
+      const { 
+        selectedBikes, 
+        selectedCompanies, 
+        selectedServices, 
+        selectedAdditionalServices, 
+        servicePricingByCCRange, 
+        additionalServicePricingByCCRange 
+      } = action.payload;
+      state.selectedBikes = selectedBikes || [];
+      state.selectedCompanies = selectedCompanies || [];
+      state.selectedServices = selectedServices || [];
+      state.selectedAdditionalServices = selectedAdditionalServices || [];
+      state.servicePricingByCCRange = servicePricingByCCRange || {};
+      state.additionalServicePricingByCCRange = additionalServicePricingByCCRange || {};
+    },
+    setSelectedCompanies: (state, action) => {
+      state.selectedCompanies = action.payload;
+    },
     resetSelection: (state) => {
         state.selectedBikes = [];
         state.selectedServices = [];
@@ -164,6 +184,8 @@ export const {
     setCCRangePrice,
     setBikeOverridePrice,
     toggleBikeInCCRange,
+    hydrateDealerState,
+    setSelectedCompanies,
     resetSelection,
     resetSaveStatus 
 } = dealerServiceSlice.actions;
