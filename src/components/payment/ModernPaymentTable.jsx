@@ -63,28 +63,30 @@ const ModernPaymentTable = ({ data = [], onRowClick, loading }) => {
     {
       field: "booking_id",
       headerName: "Booking ID",
-      width: 150,
+      width: 250,
       valueGetter: (params, row) =>
         row.booking_id?._id || row.booking_id || "N/A",
       renderCell: (params) => (
-        <Typography
-          variant="body2"
-          fontWeight={600}
-          color="primary"
-          sx={{
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {params.value}
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", height: "100%" }}>
+          <Typography
+            variant="body2"
+            fontWeight={600}
+            color="primary"
+            sx={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {params.value}
+          </Typography>
+        </Box>
       ),
     },
     {
       field: "user_name",
       headerName: "Customer",
-      width: 250,
+      width: 280,
       valueGetter: (params, row) =>
         row.user_id
           ? `${row.user_id.first_name || ""} ${row.user_id.last_name || ""}`.trim()
@@ -96,15 +98,22 @@ const ModernPaymentTable = ({ data = [], onRowClick, loading }) => {
           justifyContent="center"
           height="100%"
         >
-          <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.2 }}>
+          <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.1 }}>
             {params.value}
           </Typography>
           <Typography
             variant="caption"
             color="text.secondary"
-            sx={{ lineHeight: 1.2 }}
+            sx={{ lineHeight: 1.1 }}
           >
-            {params.api.getRow(params.id).user_id?.email || ""}
+            {params.api.getRow(params.id).user_id?.email || "No email"}
+          </Typography>
+          <Typography
+            variant="caption"
+            color="primary"
+            sx={{ lineHeight: 1.1, fontWeight: 500 }}
+          >
+            {params.api.getRow(params.id).user_id?.phone || "No phone"}
           </Typography>
         </Stack>
       ),
@@ -238,7 +247,7 @@ const ModernPaymentTable = ({ data = [], onRowClick, loading }) => {
         columns={columns}
         getRowId={(row) => row._id}
         loading={loading}
-        rowHeight={70}
+        rowHeight={85}
         pageSizeOptions={[10, 25, 50]}
         initialState={{
           pagination: {
