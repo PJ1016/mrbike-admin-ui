@@ -16,6 +16,7 @@ import {
   Divider,
 } from "@mui/material";
 import { getDealerServices } from "../../api";
+import { getCCDisplayName } from "../../constants/bikeConstants";
 
 const DealerServicesView = ({ dealerId }) => {
   const [loading, setLoading] = useState(true);
@@ -67,12 +68,6 @@ const DealerServicesView = ({ dealerId }) => {
     );
   }
 
-  // Helper to get CC range display name
-  const getCCDisplayName = (cc) => {
-    if (cc >= 250) return "250+ CC";
-    if (cc >= 150) return "150-200 CC";
-    return "100-125 CC";
-  };
 
   // Group by serviceId
   const grouped = pricingData.reduce((acc, item) => {

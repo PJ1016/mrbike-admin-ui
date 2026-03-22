@@ -26,6 +26,7 @@ import {
   hydrateDealerState,
   resetSelection
 } from "../../redux/slices/dealerServiceSlice";
+import { getCCRangeKey } from "../../constants/bikeConstants";
 
 const DealerServicesTab = ({ dealer }) => {
   const dispatch = useDispatch();
@@ -42,13 +43,6 @@ const DealerServicesTab = ({ dealer }) => {
 
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
-  // CC Range helper for initialization
-  const getCCRangeKey = (cc) => {
-    const n = Number(cc);
-    if (n >= 250) return "250+";
-    if (n >= 150) return "150-200";
-    return "100-125";
-  };
 
   useEffect(() => {
     // Master data fetch
@@ -71,16 +65,10 @@ const DealerServicesTab = ({ dealer }) => {
           const servicePricingByCCRange = {};
           const additionalServicePricingByCCRange = {};
 
-          const getCCRangeKeyFromNum = (ccNum) => {
-            const n = Number(ccNum);
-            if (n >= 250) return "250+";
-            if (n >= 150) return "150-200";
-            return "100-125";
-          };
 
           res.pricing.forEach(item => {
             const { type, serviceId, cc, price, variantId, companyName, modelName, bikeName } = item;
-            const ccKey = getCCRangeKeyFromNum(cc);
+            const ccKey = getCCRangeKey(cc);
             
             // Reconstruct bike object for the editor
             if (variantId && !selectedBikesMap.has(variantId)) {
@@ -172,12 +160,6 @@ const DealerServicesTab = ({ dealer }) => {
   }, [saveSuccess, error, dispatch]);
 
   const handleSave = () => {
-    const getCCRangeKey = (cc) => {
-      const n = Number(cc);
-      if (n >= 250) return "250+";
-      if (n >= 150) return "150-200";
-      return "100-125";
-    };
 
     const pricing = [];
 

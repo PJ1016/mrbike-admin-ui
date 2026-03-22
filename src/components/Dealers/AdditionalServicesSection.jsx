@@ -25,12 +25,7 @@ import {
 } from "@mui/icons-material";
 import { useDispatch, useSelector } from "react-redux";
 import { setCCRangePrice, toggleBikeInCCRange, toggleAdditionalService, setBikeOverridePrice } from "../../redux/slices/dealerServiceSlice";
-
-const CC_RANGES = [
-  { label: "100-125cc", key: "100-125", min: 0, max: 149 },
-  { label: "150-200cc", key: "150-200", min: 150, max: 249 },
-  { label: "250cc+", key: "250+", min: 250, max: 9999 },
-];
+import { CC_RANGES } from "../../constants/bikeConstants";
 
 const AdditionalServicesSection = () => {
   const dispatch = useDispatch();
