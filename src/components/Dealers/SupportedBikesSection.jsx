@@ -16,7 +16,7 @@ import {
 import { Search as SearchIcon, TwoWheeler as BikeIcon } from "@mui/icons-material";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBikesByCompany } from "../../redux/slices/bikeSlice";
-import { addSelectedBike, removeSelectedBike, setSelectedCompanies } from "../../redux/slices/dealerServiceSlice";
+import { addSelectedBike, removeSelectedBike, setSelectedCompanies, setSelectedBikes } from "../../redux/slices/dealerServiceSlice";
 
 const SupportedBikesSection = () => {
   const dispatch = useDispatch();
@@ -57,6 +57,33 @@ const SupportedBikesSection = () => {
       dispatch(removeSelectedBike(String(bikeId)));
     } else {
       dispatch(addSelectedBike(bike));
+    }
+  };
+
+  const isAllSelected = filteredBikes.length > 0 && filteredBikes.every(bike => 
+    selectedBikes.some(sb => String(sb._id || sb.id || sb.variant_id) === String(bike._id || bike.id || bike.variant_id))
+  );
+
+  const isSomeSelected = !isAllSelected && filteredBikes.some(bike => 
+    selectedBikes.some(sb => String(sb._id || sb.id || sb.variant_id) === String(bike._id || bike.id || bike.variant_id))
+  );
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      // Add all filtered bikes that are not already selected
+      const newBikes = [...selectedBikes];
+      filteredBikes.forEach(bike => {
+        const bikeId = String(bike._id || bike.id || bike.variant_id);
+        if (!newBikes.some(sb => String(sb._id || sb.id || sb.variant_id) === bikeId)) {
+          newBikes.push(bike);
+        }
+      });
+      dispatch(setSelectedBikes(newBikes));
+    } else {
+      // Remove all filtered bikes from selectedBikes
+      const filteredIds = filteredBikes.map(bike => String(bike._id || bike.id || bike.variant_id));
+      const newBikes = selectedBikes.filter(sb => !filteredIds.includes(String(sb._id || sb.id || sb.variant_id)));
+      dispatch(setSelectedBikes(newBikes));
     }
   };
 
@@ -127,9 +154,26 @@ const SupportedBikesSection = () => {
         <Grid item xs={12} lg={7}>
           {selectedCompanies.length > 0 ? (
             <Box>
-              <Typography variant="subtitle2" fontWeight="700" color="text.secondary" sx={{ mb: 1 }}>
-                VARIANTS ({filteredBikes.length} available)
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, pr: 1 }}>
+                <Typography variant="subtitle2" fontWeight="700" color="text.secondary">
+                  VARIANTS ({filteredBikes.length} available)
+                </Typography>
+                {filteredBikes.length > 0 && (
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={isAllSelected}
+                        indeterminate={isSomeSelected}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        sx={{ py: 0 }}
+                      />
+                    }
+                    label={<Typography variant="caption" fontWeight="600" color="text.secondary">Select All</Typography>}
+                    sx={{ m: 0 }}
+                  />
+                )}
+              </Box>
               <Paper
                 variant="outlined"
                 sx={{
