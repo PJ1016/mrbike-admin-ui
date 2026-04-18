@@ -4,7 +4,6 @@ import {
   Typography,
   Autocomplete,
   TextField,
-  Chip,
   Grid,
   Stack,
   FormControlLabel,
@@ -13,21 +12,35 @@ import {
   Paper,
   Skeleton,
 } from "@mui/material";
-import { Search as SearchIcon, TwoWheeler as BikeIcon } from "@mui/icons-material";
+import { Search as SearchIcon } from "@mui/icons-material";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBikesByCompany } from "../../redux/slices/bikeSlice";
-import { addSelectedBike, removeSelectedBike, setSelectedCompanies, setSelectedBikes } from "../../redux/slices/dealerServiceSlice";
+import {
+  addSelectedBike,
+  removeSelectedBike,
+  setSelectedCompanies,
+  setSelectedBikes,
+} from "../../redux/slices/dealerServiceSlice";
+import SelectedBikesSummary from "./SelectedBikes/SelectedBikesSummary";
 
 const SupportedBikesSection = () => {
   const dispatch = useDispatch();
-  const { companies, bikes, loading: bikesLoading } = useSelector((state) => state.bike);
-  const { selectedBikes, selectedCompanies } = useSelector((state) => state.dealerService);
+  const {
+    companies,
+    bikes,
+    loading: bikesLoading,
+  } = useSelector((state) => state.bike);
+  const { selectedBikes, selectedCompanies } = useSelector(
+    (state) => state.dealerService,
+  );
   const [searchTerm, setSearchTerm] = useState("");
 
   // Auto-fetch bikes when companies are pre-filled/selected
   React.useEffect(() => {
     if (selectedCompanies.length > 0) {
-      const companyIds = selectedCompanies.map(c => c._id || c.id).filter(Boolean);
+      const companyIds = selectedCompanies
+        .map((c) => c._id || c.id)
+        .filter(Boolean);
       if (companyIds.length > 0) {
         dispatch(fetchBikesByCompany(companyIds));
       }
@@ -38,13 +51,16 @@ const SupportedBikesSection = () => {
     dispatch(setSelectedCompanies(newValue));
   };
 
-  const filteredBikes = bikes.filter((bike) => {
-    const modelName = bike.model_name || bike.model_id?.model_name || "";
-    const variantName = bike.variant_name || "";
-    const companyName = bike.company_name || bike.company_id?.name || "";
-    const fullName = `${companyName} ${modelName} ${variantName}`.toLowerCase();
-    return fullName.includes(searchTerm.toLowerCase());
-  });
+  const filteredBikes = React.useMemo(() => {
+    return bikes.filter((bike) => {
+      const modelName = bike.model_name || bike.model_id?.model_name || "";
+      const variantName = bike.variant_name || "";
+      const companyName = bike.company_name || bike.company_id?.name || "";
+      const fullName =
+        `${companyName} ${modelName} ${variantName}`.toLowerCase();
+      return fullName.includes(searchTerm.toLowerCase());
+    });
+  }, [bikes, searchTerm]);
 
   const handleToggleBike = (bike) => {
     const bikeId = bike._id || bike.id || bike.variant_id;
@@ -52,7 +68,9 @@ const SupportedBikesSection = () => {
       console.warn("BikeDoctor: Selected bike has no ID", bike);
       return;
     }
-    const isSelected = selectedBikes.find((b) => String(b._id || b.id || b.variant_id) === String(bikeId));
+    const isSelected = selectedBikes.find(
+      (b) => String(b._id || b.id || b.variant_id) === String(bikeId),
+    );
     if (isSelected) {
       dispatch(removeSelectedBike(String(bikeId)));
     } else {
@@ -60,36 +78,60 @@ const SupportedBikesSection = () => {
     }
   };
 
-  const isAllSelected = filteredBikes.length > 0 && filteredBikes.every(bike => 
-    selectedBikes.some(sb => String(sb._id || sb.id || sb.variant_id) === String(bike._id || bike.id || bike.variant_id))
-  );
+  const isAllSelected =
+    filteredBikes.length > 0 &&
+    filteredBikes.every((bike) =>
+      selectedBikes.some(
+        (sb) =>
+          String(sb._id || sb.id || sb.variant_id) ===
+          String(bike._id || bike.id || bike.variant_id),
+      ),
+    );
 
-  const isSomeSelected = !isAllSelected && filteredBikes.some(bike => 
-    selectedBikes.some(sb => String(sb._id || sb.id || sb.variant_id) === String(bike._id || bike.id || bike.variant_id))
-  );
+  const isSomeSelected =
+    !isAllSelected &&
+    filteredBikes.some((bike) =>
+      selectedBikes.some(
+        (sb) =>
+          String(sb._id || sb.id || sb.variant_id) ===
+          String(bike._id || bike.id || bike.variant_id),
+      ),
+    );
 
   const handleSelectAll = (checked) => {
     if (checked) {
       // Add all filtered bikes that are not already selected
       const newBikes = [...selectedBikes];
-      filteredBikes.forEach(bike => {
+      filteredBikes.forEach((bike) => {
         const bikeId = String(bike._id || bike.id || bike.variant_id);
-        if (!newBikes.some(sb => String(sb._id || sb.id || sb.variant_id) === bikeId)) {
+        if (
+          !newBikes.some(
+            (sb) => String(sb._id || sb.id || sb.variant_id) === bikeId,
+          )
+        ) {
           newBikes.push(bike);
         }
       });
       dispatch(setSelectedBikes(newBikes));
     } else {
       // Remove all filtered bikes from selectedBikes
-      const filteredIds = filteredBikes.map(bike => String(bike._id || bike.id || bike.variant_id));
-      const newBikes = selectedBikes.filter(sb => !filteredIds.includes(String(sb._id || sb.id || sb.variant_id)));
+      const filteredIds = filteredBikes.map((bike) =>
+        String(bike._id || bike.id || bike.variant_id),
+      );
+      const newBikes = selectedBikes.filter(
+        (sb) => !filteredIds.includes(String(sb._id || sb.id || sb.variant_id)),
+      );
       dispatch(setSelectedBikes(newBikes));
     }
   };
 
   return (
     <Box>
-      <Typography variant="h6" fontWeight="800" sx={{ color: "primary.main", mb: 3 }}>
+      <Typography
+        variant="h6"
+        fontWeight="800"
+        sx={{ color: "primary.main", mb: 3 }}
+      >
         1. Supported Bikes
       </Typography>
 
@@ -97,7 +139,12 @@ const SupportedBikesSection = () => {
         <Grid item xs={12} lg={5}>
           <Stack spacing={3}>
             <Box>
-              <Typography variant="subtitle2" fontWeight="700" color="text.secondary" sx={{ mb: 1 }}>
+              <Typography
+                variant="subtitle2"
+                fontWeight="700"
+                color="text.secondary"
+                sx={{ mb: 1 }}
+              >
                 COMPANY
               </Typography>
               <Autocomplete
@@ -109,7 +156,9 @@ const SupportedBikesSection = () => {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    placeholder={selectedCompanies.length > 0 ? "" : "Select companies..."}
+                    placeholder={
+                      selectedCompanies.length > 0 ? "" : "Select companies..."
+                    }
                     variant="outlined"
                     sx={{
                       "& .MuiOutlinedInput-root": {
@@ -124,7 +173,12 @@ const SupportedBikesSection = () => {
 
             {selectedCompanies.length > 0 && (
               <Box>
-                <Typography variant="subtitle2" fontWeight="700" color="text.secondary" sx={{ mb: 1 }}>
+                <Typography
+                  variant="subtitle2"
+                  fontWeight="700"
+                  color="text.secondary"
+                  sx={{ mb: 1 }}
+                >
                   SEARCH VARIANTS
                 </Typography>
                 <TextField
@@ -154,8 +208,20 @@ const SupportedBikesSection = () => {
         <Grid item xs={12} lg={7}>
           {selectedCompanies.length > 0 ? (
             <Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, pr: 1 }}>
-                <Typography variant="subtitle2" fontWeight="700" color="text.secondary">
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 1,
+                  pr: 1,
+                }}
+              >
+                <Typography
+                  variant="subtitle2"
+                  fontWeight="700"
+                  color="text.secondary"
+                >
                   VARIANTS ({filteredBikes.length} available)
                 </Typography>
                 {filteredBikes.length > 0 && (
@@ -169,7 +235,15 @@ const SupportedBikesSection = () => {
                         sx={{ py: 0 }}
                       />
                     }
-                    label={<Typography variant="caption" fontWeight="600" color="text.secondary">Select All</Typography>}
+                    label={
+                      <Typography
+                        variant="caption"
+                        fontWeight="600"
+                        color="text.secondary"
+                      >
+                        Select All
+                      </Typography>
+                    }
                     sx={{ m: 0 }}
                   />
                 )}
@@ -189,14 +263,23 @@ const SupportedBikesSection = () => {
                 {bikesLoading ? (
                   <Stack spacing={1} sx={{ p: 1 }}>
                     {[1, 2, 3, 4].map((i) => (
-                      <Skeleton key={i} variant="rectangular" height={40} sx={{ borderRadius: 1.5 }} />
+                      <Skeleton
+                        key={i}
+                        variant="rectangular"
+                        height={40}
+                        sx={{ borderRadius: 1.5 }}
+                      />
                     ))}
                   </Stack>
                 ) : filteredBikes.length > 0 ? (
                   <Grid container>
                     {filteredBikes.map((bike, index) => {
                       const bikeId = bike._id || bike.id || bike.variant_id;
-                      const isSelected = !!selectedBikes.find((b) => String(b._id || b.id || b.variant_id) === String(bikeId));
+                      const isSelected = !!selectedBikes.find(
+                        (b) =>
+                          String(b._id || b.id || b.variant_id) ===
+                          String(bikeId),
+                      );
                       return (
                         <Grid item xs={12} key={bikeId || `variant-${index}`}>
                           <FormControlLabel
@@ -208,8 +291,15 @@ const SupportedBikesSection = () => {
                               />
                             }
                             label={
-                              <Typography variant="body2" fontWeight={isSelected ? 600 : 400}>
-                                {bike.model_name || bike.model_id?.model_name || "Unknown Model"} - {bike.variant_name || "Standard"} ({bike.cc} CC)
+                              <Typography
+                                variant="body2"
+                                fontWeight={isSelected ? 600 : 400}
+                              >
+                                {bike.model_name ||
+                                  bike.model_id?.model_name ||
+                                  "Unknown Model"}{" "}
+                                - {bike.variant_name || "Standard"} ({bike.cc}{" "}
+                                CC)
                               </Typography>
                             }
                             sx={{
@@ -248,7 +338,11 @@ const SupportedBikesSection = () => {
                 bgcolor: "#f8fafc",
               }}
             >
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ fontWeight: 500 }}
+              >
                 Select companies to view models
               </Typography>
             </Box>
@@ -256,48 +350,8 @@ const SupportedBikesSection = () => {
         </Grid>
       </Grid>
 
-      {/* Selected Items */}
-      {selectedBikes.length > 0 && (
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="subtitle2" fontWeight="700" color="text.secondary" sx={{ mb: 1.5 }}>
-            SELECTED BIKES ({selectedBikes.length})
-          </Typography>
-          <Box
-            sx={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 1.5,
-              p: 2,
-              borderRadius: 4,
-              bgcolor: "#fcfdfe",
-              border: "1px solid",
-              borderColor: "#e1e8ef",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.02)"
-            }}
-          >
-            {selectedBikes.map((bike, index) => (
-              <Chip
-                key={bike._id || bike.id || bike.variant_id || `selected-${index}`}
-                icon={<BikeIcon fontSize="small" />}
-                label={`${bike.company_name || bike.company_id?.name || ""} ${bike.model_name || bike.model_id?.model_name || ""} ${bike.variant_name || ""}`.trim() || `Bike ${bike.cc}cc`}
-                onDelete={() => dispatch(removeSelectedBike(String(bike._id || bike.id || bike.variant_id)))}
-                color="primary"
-                variant="filled"
-                sx={{
-                  borderRadius: 2,
-                  fontWeight: 700,
-                  bgcolor: "primary.main",
-                  color: "white",
-                  "& .MuiChip-deleteIcon": {
-                    color: "rgba(255,255,255,0.7)",
-                    "&:hover": { color: "white" },
-                  },
-                }}
-              />
-            ))}
-          </Box>
-        </Box>
-      )}
+      {/* Optimized Selected Items */}
+      <SelectedBikesSummary bikes={selectedBikes} />
     </Box>
   );
 };

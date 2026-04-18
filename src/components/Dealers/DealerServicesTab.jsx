@@ -44,11 +44,14 @@ const DealerServicesTab = ({ dealer }) => {
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
 
+  const { companies } = useSelector((state) => state.bike);
+  const { baseServices, additionalServices } = useSelector((state) => state.service);
+
   useEffect(() => {
-    // Master data fetch
-    dispatch(fetchCompanies());
-    dispatch(fetchBaseServices());
-    dispatch(fetchAdditionalServices());
+    // Master data fetch - only if not already loaded
+    if (companies.length === 0) dispatch(fetchCompanies());
+    if (baseServices.length === 0) dispatch(fetchBaseServices());
+    if (additionalServices.length === 0) dispatch(fetchAdditionalServices());
 
     // Hydrate existing dealer configuration
     const hydrate = async () => {
@@ -57,20 +60,17 @@ const DealerServicesTab = ({ dealer }) => {
         const res = await getDealerServices(dealer?._id || dealer?.id);
 
         if (res?.status && Array.isArray(res.pricing)) {
-          console.log("BikeDoctor: Hydrating dealer services", res.pricing.length);
-          
+          // ... hydration logic ...
           const selectedBikesMap = new Map();
-          const selectedServices = new Set();
-          const selectedAdditionalServices = new Set();
+          const selectedServicesSet = new Set();
+          const selectedAdditionalServicesSet = new Set();
           const servicePricingByCCRange = {};
           const additionalServicePricingByCCRange = {};
-
 
           res.pricing.forEach(item => {
             const { type, serviceId, cc, price, variantId, companyName, modelName, bikeName } = item;
             const ccKey = getCCRangeKey(cc);
             
-            // Reconstruct bike object for the editor
             if (variantId && !selectedBikesMap.has(variantId)) {
               selectedBikesMap.set(variantId, {
                 _id: variantId,
@@ -85,60 +85,48 @@ const DealerServicesTab = ({ dealer }) => {
 
             if (type === "base") {
               const sId = String(serviceId);
-              selectedServices.add(sId);
+              selectedServicesSet.add(sId);
               if (!servicePricingByCCRange[sId]) servicePricingByCCRange[sId] = {};
-              
               if (!servicePricingByCCRange[sId][ccKey]) {
-                servicePricingByCCRange[sId][ccKey] = { 
-                  price: Number(price), 
-                  disabledBikes: [], 
-                  bikeOverrides: {} 
-                };
+                servicePricingByCCRange[sId][ccKey] = { price: Number(price), disabledBikes: [], bikeOverrides: {} };
               } else if (Number(price) !== servicePricingByCCRange[sId][ccKey].price) {
-                // If this price is different from the first one we set for this CC range, it's an override
                 servicePricingByCCRange[sId][ccKey].bikeOverrides[variantId] = Number(price);
               }
             } else if (type === "additional") {
               const sId = String(serviceId);
-              selectedAdditionalServices.add(sId);
+              selectedAdditionalServicesSet.add(sId);
               if (!additionalServicePricingByCCRange[sId]) additionalServicePricingByCCRange[sId] = {};
-              
               if (!additionalServicePricingByCCRange[sId][ccKey]) {
-                additionalServicePricingByCCRange[sId][ccKey] = { 
-                  price: Number(price), 
-                  disabledBikes: [], 
-                  bikeOverrides: {} 
-                };
+                additionalServicePricingByCCRange[sId][ccKey] = { price: Number(price), disabledBikes: [], bikeOverrides: {} };
               } else if (Number(price) !== additionalServicePricingByCCRange[sId][ccKey].price) {
                 additionalServicePricingByCCRange[sId][ccKey].bikeOverrides[variantId] = Number(price);
               }
             }
           });
 
-          // Dispatch full state update at once
           dispatch(hydrateDealerState({
             selectedBikes: Array.from(selectedBikesMap.values()),
             selectedCompanies: res.companies || [],
-            selectedServices: Array.from(selectedServices),
-            selectedAdditionalServices: Array.from(selectedAdditionalServices),
+            selectedServices: Array.from(selectedServicesSet),
+            selectedAdditionalServices: Array.from(selectedAdditionalServicesSet),
             servicePricingByCCRange,
             additionalServicePricingByCCRange
           }));
         } else {
-          // If no services found, clear the state for this dealer
           dispatch(resetSelection());
         }
       } catch (err) {
-        console.error("Hydration failed", err);
+        console.error("BikeDoctor: Hydration failed", err);
       }
     };
 
+    // Only hydrate if we don't have selected bikes or if the dealer changed
+    // In a production app, we might want a more robust check (e.g., currentDealerId in state)
+    // For now, we'll keep the hydration on dealer change.
     if (dealer) hydrate();
 
-    return () => {
-      dispatch(resetSelection());
-    };
-  }, [dispatch, dealer]);
+    // REMOVED: dispatch(resetSelection()) on unmount to persist state when switching tabs
+  }, [dispatch, dealer, companies.length, baseServices.length, additionalServices.length]);
 
   // Initialize General Service only on initial load if no services are configured
   useEffect(() => {
