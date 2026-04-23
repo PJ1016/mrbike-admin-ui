@@ -287,6 +287,21 @@ const DealerForm = () => {
       {renderGridRow([
         <TextField
           fullWidth
+          label="Owner Name"
+          name="ownerName"
+          value={formData.ownerName}
+          onChange={handleChange}
+          required
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <PersonIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+        />,
+        <TextField
+          fullWidth
           label="Shop Name"
           name="shopName"
           value={formData.shopName}
@@ -315,6 +330,8 @@ const DealerForm = () => {
             ),
           }}
         />,
+      ])}
+      {renderGridRow([
         <TextField
           fullWidth
           label="Shop Contact"
@@ -330,8 +347,6 @@ const DealerForm = () => {
             ),
           }}
         />,
-      ])}
-      {renderGridRow([
         <TextField
           fullWidth
           label="Alternative Number"
@@ -361,6 +376,8 @@ const DealerForm = () => {
             ),
           }}
         />,
+      ])}
+      {renderGridRow([
         <TextField
           fullWidth
           label="Shop No. / Building"
@@ -369,8 +386,6 @@ const DealerForm = () => {
           onChange={handleChange}
           required
         />,
-      ])}
-      {renderGridRow([
         <Autocomplete
           fullWidth
           freeSolo
@@ -404,6 +419,8 @@ const DealerForm = () => {
           onChange={handleChange}
           required
         />,
+      ])}
+      {renderGridRow([
         <TextField
           fullWidth
           label="Shop City"
@@ -412,9 +429,6 @@ const DealerForm = () => {
           onChange={handleChange}
           required
         />,
-      ])}
-
-      {renderGridRow([
         <TextField
           fullWidth
           label="Commission (%)"
@@ -436,7 +450,6 @@ const DealerForm = () => {
             endAdornment: <InputAdornment position="end">%</InputAdornment>,
           }}
         />,
-        <div />,
       ])}
       <Divider sx={{ mb: 3 }}>
         <Chip label="Economics & Location" size="small" />
@@ -461,7 +474,7 @@ const DealerForm = () => {
 
   const renderStep1 = () => (
     <Box>
-      {/* Owner Information */}
+      {/* Identity Documents */}
       <Typography
         variant="h5"
         sx={{
@@ -472,24 +485,9 @@ const DealerForm = () => {
           borderBottom: "2px solid #eef2f6",
         }}
       >
-        Owner Information
+        Identity &amp; Documents
       </Typography>
       {renderGridRow([
-        <TextField
-          fullWidth
-          label="Owner Name"
-          name="ownerName"
-          value={formData.ownerName}
-          onChange={handleChange}
-          required
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <PersonIcon color="action" />
-              </InputAdornment>
-            ),
-          }}
-        />,
         <TextField
           fullWidth
           label="Aadhar Card No."
@@ -506,6 +504,7 @@ const DealerForm = () => {
           onChange={handleChange}
           required
         />,
+        <div />,
       ])}
 
       {/* Bank Information */}

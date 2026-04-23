@@ -313,22 +313,10 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
                 tax: dealerData.tax,
                 latitude: dealerData.latitude,
                 longitude: dealerData.longitude,
-                personalEmail: dealerData.personalEmail,
-                personalPhone: dealerData.personalPhone,
-                alternatePhone: dealerData.alternatePhone,
-                shopState: dealerData.shopState,
-                shopCity: dealerData.shopCity,
-                shopPinCode: dealerData.shopPinCode || '',
                 accountHolderName: dealerData.bankDetails?.accountHolderName || '',
                 ifscCode: dealerData.bankDetails?.ifscCode || '',
                 bankName: dealerData.bankDetails?.bankName || '',
                 accountNumber: dealerData.bankDetails?.accountNumber || '',
-                permanentAddress: dealerData.permanentAddress?.address || "",
-                presentAddress: dealerData.presentAddress?.address || '',
-                permanentState: dealerData.permanentAddress?.state || "",
-                permanentCity: dealerData.permanentAddress?.city || "",
-                presentState: dealerData.presentAddress?.state || "",
-                presentCity: dealerData.presentAddress?.city || "",
                 aadharCardNo: dealerData.aadharCardNo || '',
                 panCardNo: dealerData.panCardNo || '',
                 gstNumber: dealerData.gstNumber || ''
@@ -350,22 +338,10 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
             tax: '',
             latitude: '',
             longitude: '',
-            personalEmail: '',
-            personalPhone: '',
-            alternatePhone: '',
-            shopState: 'Madhya Pradesh',
-            shopCity: 'Indore',
-            shopPinCode: '',
             accountHolderName: '',
             ifscCode: '',
             bankName: '',
             accountNumber: '',
-            permanentAddress: "",
-            presentAddress: '',
-            permanentState: "",
-            permanentCity: "",
-            presentState: "",
-            presentCity: "",
             aadharCardNo: '',
             panCardNo: '',
             gstNumber: ''
@@ -406,21 +382,6 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
             ...prev,
             [name]: value,
         }));
-
-        if (
-            (name === "personalPhone" && value === formData.alternatePhone) ||
-            (name === "alternatePhone" && value === formData.personalPhone)
-        ) {
-            setErrors((prev) => ({
-                ...prev,
-                alternatePhone: "Alternate phone must be different from personal phone",
-            }));
-        } else {
-            setErrors((prev) => ({
-                ...prev,
-                alternatePhone: undefined,
-            }));
-        }
     };
 
     // Form validation
@@ -465,24 +426,12 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
             "state",
             "latitude",
             "longitude",
-            "personalEmail",
-            "personalPhone",
-            "alternatePhone",
-            "shopState",
-            "shopCity",
-            "shopPinCode",
+            "comission",
+            "tax",
             "accountHolderName",
             "ifscCode",
             "bankName",
             "accountNumber",
-            "permanentAddress",
-            "presentAddress",
-            "permanentState",
-            "permanentCity",
-            "presentState",
-            "presentCity",
-            "comission",
-            "tax",
             "aadharCardNo",
             "panCardNo",
             "gstNumber"
@@ -548,6 +497,18 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
                             <div className="mb-3 w-100">
                                 <div className="d-flex gap-3">
                                     <div className="flex-fill input-block">
+                                        <label className="form-control-label">Owner Name<em style={{ color: "red" }}>*</em></label>
+                                        <input
+                                            type="text"
+                                            className={`form-control ${errors.ownerName ? 'is-invalid' : ''}`}
+                                            name="ownerName"
+                                            value={formData.ownerName}
+                                            onChange={handleChange}
+                                            placeholder="Enter shop owner name"
+                                        />
+                                        {errors.ownerName && <div className="invalid-feedback">{errors.ownerName}</div>}
+                                    </div>
+                                    <div className="flex-fill input-block">
                                         <label className="form-control-label">Shop Name<em style={{ color: "red" }}>*</em></label>
                                         <input
                                             className={`form-control ${errors.shopName ? 'is-invalid' : ''}`}
@@ -601,11 +562,6 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
                                             maxLength="10"
                                         />
                                     </div>
-                                </div>
-                            </div>
-
-                            <div className="mb-3 w-100">
-                                <div className="d-flex gap-3">
                                     <div className="flex-fill input-block">
                                         <label className="form-control-label">Shop Pincode<em style={{ color: "red" }}>*</em></label>
                                         <input
@@ -619,6 +575,11 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
                                         />
                                         {errors.shopPincode && <div className="invalid-feedback">{errors.shopPincode}</div>}
                                     </div>
+                                </div>
+                            </div>
+
+                            <div className="mb-3 w-100">
+                                <div className="d-flex gap-3">
                                     <div className="flex-fill input-block">
                                         <label className="form-control-label">Shop No. / Building<em style={{ color: "red" }}>*</em></label>
                                         <input
@@ -630,11 +591,6 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
                                             placeholder="e.g. Shop 5B, Ground Floor"
                                         />
                                     </div>
-                                </div>
-                            </div>
-
-                            <div className="mb-3 w-100">
-                                <div className="d-flex gap-3">
                                     <div className="flex-fill input-block">
                                         <label className="form-control-label">Locality / Area<em style={{ color: "red" }}>*</em></label>
                                         <input
@@ -657,6 +613,11 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
                                             placeholder="State"
                                         />
                                     </div>
+                                </div>
+                            </div>
+
+                            <div className="mb-3 w-100">
+                                <div className="d-flex gap-3">
                                     <div className="flex-fill input-block">
                                         <label className="form-control-label">Shop City<em style={{ color: "red" }}>*</em></label>
                                         <input
@@ -668,11 +629,6 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
                                             placeholder="City"
                                         />
                                     </div>
-                                </div>
-                            </div>
-
-                            <div className="mb-3 w-100">
-                                <div className="d-flex gap-3">
                                     <div className="flex-fill input-block">
                                         <label className="form-control-label">Commission (%)<em style={{ color: "red" }}>*</em></label>
                                         <input
@@ -826,109 +782,8 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
                                 </div>
                             </div>
 
-                            <div className="text-center mt-4">
-                                <h4>Personal Details</h4>
-                            </div>
-
-                            <div className="row">
-                                <div className="col-md-6 input-block mb-3">
-                                    <label className="form-control-label">Personal Email<em style={{ color: "red" }}>*</em></label>
-                                    <input
-                                        className={`form-control ${errors.personalEmail ? 'is-invalid' : ''}`}
-                                        name="personalEmail"
-                                        type="email"
-                                        placeholder='Enter you personal email'
-                                        value={formData.personalEmail}
-                                        onChange={handleChange}
-                                    />
-                                    {errors.personalEmail && <div className="invalid-feedback">{errors.personalEmail}</div>}
-                                </div>
-                                <div className="col-md-3 input-block mb-3">
-                                    <label className="form-control-label">Personal Phone<em style={{ color: "red" }}>*</em></label>
-                                    <input
-                                        className={`form-control ${errors.personalPhone ? 'is-invalid' : ''}`}
-                                        name="personalPhone"
-                                        type="tel"
-                                        value={formData.personalPhone}
-                                        onChange={handleChange}
-                                        placeholder='Enter you personal contact details'
-                                        maxLength="10"
-                                    />
-                                    {errors.personalPhone && <div className="invalid-feedback">{errors.personalPhone}</div>}
-                                </div>
-                                <div className="col-md-3 input-block mb-3">
-                                    <label className="form-control-label">Alternate Phone<em style={{ color: "red" }}>*</em></label>
-                                    <input
-                                        className={`form-control ${errors.alternatePhone ? 'is-invalid' : ''}`}
-                                        name="alternatePhone"
-                                        type="tel"
-                                        value={formData.alternatePhone}
-                                        onChange={handleChange}
-                                        placeholder='Enter you alternate contact details'
-                                        maxLength="10"
-                                    />
-                                    {errors.alternatePhone && <div className="invalid-feedback">{errors.alternatePhone}</div>}
-                                </div>
-                                <div className="input-block mb-3 col-md-6">
-                                    <label className="form-control-label">Permanent Address<em style={{ color: "red" }}>*</em></label>
-                                    <input
-                                        className={`form-control ${errors.permanentAddress ? 'is-invalid' : ''}`}
-                                        name="permanentAddress"
-                                        type="text"
-                                        value={formData.permanentAddress}
-                                        onChange={handleChange}
-                                    />
-                                    {errors.permanentAddress && <div className="invalid-feedback">{errors.permanentAddress}</div>}
-                                </div>
-                                <div className="input-block mb-3 col-md-6">
-                                    <StateCitySelect
-                                        value={formData}
-                                        onChange={handleChange}
-                                        stateName="permanentState"
-                                        cityName="permanentCity"
-                                        errors={errors}
-                                        stateLabel="Permanent State"
-                                        cityLabel="Permanent City"
-                                    />
-                                </div>
-                                <div className="input-block mb-3 col-md-6">
-                                    <label className="form-control-label">Present Address<em style={{ color: "red" }}>*</em></label>
-                                    <input
-                                        className={`form-control ${errors.presentAddress ? 'is-invalid' : ''}`}
-                                        name="presentAddress"
-                                        type="text"
-                                        value={formData.presentAddress}
-                                        onChange={handleChange}
-                                    />
-                                    {errors.presentAddress && <div className="invalid-feedback">{errors.presentAddress}</div>}
-                                    <div className="input-block col-md-12">
-                                        <div className="form-check">
-                                            <input
-                                                className="form-check-input"
-                                                type="checkbox"
-                                                id="sameAsPermanent"
-                                                name="sameAsPermanent"
-                                                checked={sameAsPermanent}
-                                                onChange={handleChange}
-                                            />
-                                            <label className="form-check-label" htmlFor="sameAsPermanent">
-                                                Present Address is same as Permanent Address
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="input-block mb-3 col-md-6">
-                                    <StateCitySelect
-                                        value={formData}
-                                        onChange={handleChange}
-                                        stateName="presentState"
-                                        cityName="presentCity"
-                                        errors={errors}
-                                        disabled={sameAsPermanent}
-                                        stateLabel="Present State"
-                                        cityLabel="Present City"
-                                    />
-                                </div>
+                            <div className="text-center mt-5 mb-4">
+                                <h4>Identity &amp; Documents</h4>
                             </div>
 
                             <div className="row">
