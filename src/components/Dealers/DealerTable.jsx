@@ -532,10 +532,9 @@ const UserTable = ({
                 <Stack spacing={2} sx={{ mt: 1 }}>
                   {[
                     { label: "Owner Name", value: selectedDealer.ownerName || "N/A", icon: <PersonIcon sx={{ fontSize: 18 }} /> },
-                    { label: "Owner Phone", value: selectedDealer.phone || "N/A", icon: <PhoneIcon sx={{ fontSize: 18 }} /> },
-                    { label: "Owner Email", value: selectedDealer.personalEmail || selectedDealer.email || "N/A", icon: <EmailIcon sx={{ fontSize: 18 }} /> },
-                    { label: "Shop Contact", value: selectedDealer.shopContact || selectedDealer.phone || "N/A", icon: <PhoneIcon sx={{ fontSize: 18 }} /> },
-                    { label: "Shop Email", value: selectedDealer.shopEmail || "N/A", icon: <EmailIcon sx={{ fontSize: 18 }} /> },
+                    { label: "Shop Contact", value: selectedDealer.phone || "N/A", icon: <PhoneIcon sx={{ fontSize: 18 }} /> },
+                    { label: "Alt. Number", value: selectedDealer.alternatePhone || "N/A", icon: <PhoneIcon sx={{ fontSize: 18 }} /> },
+                    { label: "Shop Email", value: selectedDealer.email || "N/A", icon: <EmailIcon sx={{ fontSize: 18 }} /> },
                   ].map((row, i) => (
                     <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                       <Box sx={{ color: "text.secondary" }}>{row.icon}</Box>
@@ -576,8 +575,12 @@ const UserTable = ({
                 <Box sx={{ mt: 1, display: "flex", gap: 2 }}>
                   <LocationIcon color="primary" />
                   <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedDealer.permanentAddress?.address || selectedDealer.fullAddress || "Address not provided"}</Typography>
-                    <Typography variant="body2" color="text.secondary">{selectedDealer.permanentAddress?.city || selectedDealer.city || "N/A"}, {selectedDealer.permanentAddress?.state || selectedDealer.state || "N/A"} - {selectedDealer.shopPincode || "N/A"}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {[selectedDealer.shopNumber, selectedDealer.locality].filter(Boolean).join(", ") || selectedDealer.fullAddress || "Address not provided"}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {selectedDealer.city || "N/A"}, {selectedDealer.state || "N/A"} - {selectedDealer.shopPincode || "N/A"}
+                    </Typography>
                   </Box>
                 </Box>
               </Grid>

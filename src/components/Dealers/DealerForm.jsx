@@ -417,22 +417,6 @@ const DealerForm = () => {
       {renderGridRow([
         <TextField
           fullWidth
-          label="Shop State"
-          name="state"
-          value={formData.state}
-          onChange={handleChange}
-          required
-        />,
-        <TextField
-          fullWidth
-          label="Shop City"
-          name="city"
-          value={formData.city}
-          onChange={handleChange}
-          required
-        />,
-        <TextField
-          fullWidth
           label="Commission (%)"
           name="comission"
           value={formData.comission}
@@ -442,8 +426,6 @@ const DealerForm = () => {
             endAdornment: <InputAdornment position="end">%</InputAdornment>,
           }}
         />,
-      ])}
-      {renderGridRow([
         <TextField
           fullWidth
           label="Tax (%)"
@@ -454,7 +436,6 @@ const DealerForm = () => {
             endAdornment: <InputAdornment position="end">%</InputAdornment>,
           }}
         />,
-        <div />,
         <div />,
       ])}
       <Divider sx={{ mb: 3 }}>

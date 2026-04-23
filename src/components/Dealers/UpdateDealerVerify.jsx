@@ -301,7 +301,10 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
                 shopName: dealerData.shopName,
                 email: dealerData.email,
                 phone: dealerData.phone,
+                alternatePhone: dealerData.alternatePhone || '',
                 shopPincode: dealerData.shopPincode,
+                shopNumber: dealerData.shopNumber || '',
+                locality: dealerData.locality || '',
                 ownerName: dealerData.ownerName,
                 fullAddress: dealerData.fullAddress,
                 city: dealerData.city,
@@ -335,7 +338,10 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
             shopName: '',
             email: '',
             phone: '',
+            alternatePhone: '',
             shopPincode: '',
+            shopNumber: '',
+            locality: '',
             ownerName: '',
             fullAddress: '',
             city: '',
@@ -449,7 +455,10 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
             "shopName",
             "email",
             "phone",
+            "alternatePhone",
             "shopPincode",
+            "shopNumber",
+            "locality",
             "ownerName",
             "fullAddress",
             "city",
@@ -580,6 +589,18 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
                                         />
                                         {errors.phone && <div className="invalid-feedback">{errors.phone}</div>}
                                     </div>
+                                    <div className="flex-fill input-block">
+                                        <label className="form-control-label">Alternative Number</label>
+                                        <input
+                                            type="tel"
+                                            className="form-control"
+                                            name="alternatePhone"
+                                            value={formData.alternatePhone}
+                                            onChange={handleChange}
+                                            placeholder="Enter alternative number"
+                                            maxLength="10"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
@@ -599,16 +620,15 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
                                         {errors.shopPincode && <div className="invalid-feedback">{errors.shopPincode}</div>}
                                     </div>
                                     <div className="flex-fill input-block">
-                                        <label className="form-control-label">Owner Name<em style={{ color: "red" }}>*</em></label>
+                                        <label className="form-control-label">Shop No. / Building<em style={{ color: "red" }}>*</em></label>
                                         <input
+                                            className="form-control"
                                             type="text"
-                                            className={`form-control ${errors.ownerName ? 'is-invalid' : ''}`}
-                                            name="ownerName"
-                                            value={formData.ownerName}
+                                            name="shopNumber"
+                                            value={formData.shopNumber}
                                             onChange={handleChange}
-                                            placeholder="Enter shop owner name"
+                                            placeholder="e.g. Shop 5B, Ground Floor"
                                         />
-                                        {errors.ownerName && <div className="invalid-feedback">{errors.ownerName}</div>}
                                     </div>
                                 </div>
                             </div>
@@ -616,26 +636,38 @@ const DealerForm = ({ dealerData, dealerId, isEdit, isVerified, showApprovalDial
                             <div className="mb-3 w-100">
                                 <div className="d-flex gap-3">
                                     <div className="flex-fill input-block">
-                                        <label className="form-control-label">Full Address<em style={{ color: "red" }}>*</em></label>
+                                        <label className="form-control-label">Locality / Area<em style={{ color: "red" }}>*</em></label>
                                         <input
-                                            className={`form-control ${errors.fullAddress ? 'is-invalid' : ''}`}
+                                            className="form-control"
                                             type="text"
-                                            name="fullAddress"
-                                            value={formData.fullAddress}
+                                            name="locality"
+                                            value={formData.locality}
                                             onChange={handleChange}
-                                            placeholder="Enter full address of the shop"
+                                            placeholder="e.g. Atmakur, Kurnool"
                                         />
-                                        {errors.fullAddress && <div className="invalid-feedback">{errors.fullAddress}</div>}
                                     </div>
-                                    <StateCitySelect
-                                        value={formData}
-                                        onChange={handleChange}
-                                        stateName="state"
-                                        cityName="city"
-                                        errors={errors}
-                                        stateLabel="Shop State"
-                                        cityLabel="Shop City"
-                                    />
+                                    <div className="flex-fill input-block">
+                                        <label className="form-control-label">Shop State<em style={{ color: "red" }}>*</em></label>
+                                        <input
+                                            className="form-control"
+                                            type="text"
+                                            name="state"
+                                            value={formData.state}
+                                            onChange={handleChange}
+                                            placeholder="State"
+                                        />
+                                    </div>
+                                    <div className="flex-fill input-block">
+                                        <label className="form-control-label">Shop City<em style={{ color: "red" }}>*</em></label>
+                                        <input
+                                            className="form-control"
+                                            type="text"
+                                            name="city"
+                                            value={formData.city}
+                                            onChange={handleChange}
+                                            placeholder="City"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 

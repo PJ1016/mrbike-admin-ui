@@ -648,19 +648,9 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                   {[
                     { label: "Shop Name", value: selectedDealer.shopName },
                     { label: "Owner Name", value: selectedDealer.ownerName },
-                    { label: "Gender", value: selectedDealer.gender },
-                    { label: "Phone", value: selectedDealer.phone },
-                    { label: "Shop Phone", value: selectedDealer.shopContact },
-                    {
-                      label: "Personal Email",
-                      value:
-                        selectedDealer.personalEmail || selectedDealer.email,
-                    },
-                    { label: "Shop Email", value: selectedDealer.shopEmail },
-                    {
-                      label: "Alt. Phone",
-                      value: selectedDealer.alternatePhone,
-                    },
+                    { label: "Shop Email", value: selectedDealer.email },
+                    { label: "Shop Contact", value: selectedDealer.phone },
+                    { label: "Alt. Phone", value: selectedDealer.alternatePhone },
                     {
                       label: "Commission",
                       value:
@@ -675,18 +665,9 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                           ? `${selectedDealer.tax}%`
                           : null,
                     },
-                    { label: "Holiday", value: selectedDealer.holiday },
                     {
                       label: "Shop Pincode",
                       value: selectedDealer.shopPincode,
-                    },
-                    {
-                      label: "Opening Date",
-                      value: selectedDealer.shopOpeningDate
-                        ? new Date(
-                            selectedDealer.shopOpeningDate,
-                          ).toLocaleDateString("en-GB")
-                        : null,
                     },
                   ].map((item) => (
                     <Box key={item.label} sx={{ display: "flex", mb: 0.75 }}>
@@ -727,19 +708,24 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                   </Box>
                   {[
                     {
+                      label: "Shop No.",
+                      value: selectedDealer.shopNumber,
+                    },
+                    {
+                      label: "Locality",
+                      value: selectedDealer.locality,
+                    },
+                    {
+                      label: "City",
+                      value: selectedDealer.city,
+                    },
+                    {
+                      label: "State",
+                      value: selectedDealer.state,
+                    },
+                    {
                       label: "Full Address",
-                      value:
-                        selectedDealer.fullAddress ||
-                        selectedDealer.permanentAddress?.address ||
-                        selectedDealer.presentAddress?.address,
-                    },
-                    {
-                      label: "City / State",
-                      value: `${selectedDealer.city || selectedDealer.permanentAddress?.city || selectedDealer.presentAddress?.city || "N/A"}, ${selectedDealer.state || selectedDealer.permanentAddress?.state || selectedDealer.presentAddress?.state || "N/A"}`,
-                    },
-                    {
-                      label: "Present Addr.",
-                      value: selectedDealer.presentAddress?.address,
+                      value: selectedDealer.fullAddress,
                     },
                     {
                       label: "GPS",
