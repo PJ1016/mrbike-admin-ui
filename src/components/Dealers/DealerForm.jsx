@@ -7,7 +7,6 @@ import {
   Button,
   Typography,
   TextField,
-  Grid,
   Paper,
   Stack,
   FormControl,
@@ -18,8 +17,6 @@ import {
   Divider,
   Chip,
   IconButton,
-  FormControlLabel,
-  Checkbox,
   CircularProgress,
 } from "@mui/material";
 import {
@@ -41,9 +38,7 @@ import { useNavigate } from "react-router-dom";
 
 const steps = [
   "Shop Details",
-  "Personal Profile",
-  "Bank Information",
-  "Documents",
+  "Owner, Bank & Documents",
 ];
 
 const STATE_CITY_DATA = {
@@ -81,7 +76,6 @@ const DealerForm = () => {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sameAsPermanent, setSameAsPermanent] = useState(false);
   const [previewUrls, setPreviewUrls] = useState([]);
   const [panCardFront, setPanCardFront] = useState(null);
   const [panPreview, setPanPreview] = useState(null);
@@ -107,18 +101,8 @@ const DealerForm = () => {
     longitude: "",
     // Personal Details
     ownerName: "",
-    personalEmail: "",
-    personalPhone: "",
-    alternatePhone: "",
     aadharCardNo: "",
     panCardNo: "",
-    shopPinCode: "",
-    permanentAddress: "",
-    permanentState: "Telangana",
-    permanentCity: "Hyderabad",
-    presentAddress: "",
-    presentState: "Telangana",
-    presentCity: "Hyderabad",
     // Bank Details
     accountHolderName: "",
     bankName: "",
@@ -127,32 +111,12 @@ const DealerForm = () => {
   });
 
   const handleChange = (e) => {
-    const { name, value, checked } = e.target;
-    if (name === "sameAsPermanent") {
-      setSameAsPermanent(checked);
-      if (checked) {
-        setFormData((prev) => ({
-          ...prev,
-          presentAddress: prev.permanentAddress,
-          presentState: prev.permanentState,
-          presentCity: prev.permanentCity,
-        }));
-      }
-    } else {
-      setFormData((prev) => {
-        const updated = { ...prev, [name]: value };
-        if (name === "state") updated.city = "";
-        if (name === "permanentState") updated.permanentCity = "";
-        if (name === "presentState") updated.presentCity = "";
-
-        if (sameAsPermanent) {
-          if (name === "permanentAddress") updated.presentAddress = value;
-          if (name === "permanentState") updated.presentState = value;
-          if (name === "permanentCity") updated.presentCity = value;
-        }
-        return updated;
-      });
-    }
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+      if (name === "state") updated.city = "";
+      return updated;
+    });
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
@@ -469,6 +433,7 @@ const DealerForm = () => {
 
   const renderStep1 = () => (
     <Box>
+      {/* Owner Information */}
       <Typography
         variant="h5"
         sx={{
@@ -499,45 +464,6 @@ const DealerForm = () => {
         />,
         <TextField
           fullWidth
-          label="Personal Email"
-          name="personalEmail"
-          value={formData.personalEmail}
-          onChange={handleChange}
-          required
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <EmailIcon color="action" />
-              </InputAdornment>
-            ),
-          }}
-        />,
-        <TextField
-          fullWidth
-          label="Personal Phone"
-          name="personalPhone"
-          value={formData.personalPhone}
-          onChange={handleChange}
-          required
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <PhoneIcon color="action" />
-              </InputAdornment>
-            ),
-          }}
-        />,
-      ])}
-      {renderGridRow([
-        <TextField
-          fullWidth
-          label="Alternate Phone"
-          name="alternatePhone"
-          value={formData.alternatePhone}
-          onChange={handleChange}
-        />,
-        <TextField
-          fullWidth
           label="Aadhar Card No."
           name="aadharCardNo"
           value={formData.aadharCardNo}
@@ -553,145 +479,15 @@ const DealerForm = () => {
           required
         />,
       ])}
-      {renderGridRow([
-        <TextField
-          fullWidth
-          label="Global PIN Code"
-          name="shopPinCode"
-          value={formData.shopPinCode}
-          onChange={handleChange}
-          required
-        />,
-        <FormControl fullWidth required>
-          <InputLabel>Permanent State</InputLabel>
-          <Select
-            name="permanentState"
-            value={formData.permanentState}
-            label="Permanent State"
-            onChange={handleChange}
-          >
-            {Object.keys(STATE_CITY_DATA).map((s) => (
-              <MenuItem key={s} value={s}>
-                {s}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>,
-        <FormControl fullWidth required disabled={!formData.permanentState}>
-          <InputLabel>Permanent City</InputLabel>
-          <Select
-            name="permanentCity"
-            value={formData.permanentCity}
-            label="Permanent City"
-            onChange={handleChange}
-          >
-            {(STATE_CITY_DATA[formData.permanentState] || []).map((c) => (
-              <MenuItem key={c} value={c}>
-                {c}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>,
-      ])}
-      <Grid container spacing={3} sx={{ mb: 2 }}>
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="Permanent Address"
-            name="permanentAddress"
-            multiline
-            rows={2}
-            value={formData.permanentAddress}
-            onChange={handleChange}
-            required
-            sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                name="sameAsPermanent"
-                checked={sameAsPermanent}
-                onChange={handleChange}
-                color="primary"
-              />
-            }
-            label="Present Address is same as Permanent Address"
-            sx={{
-              "& .MuiFormControlLabel-label": {
-                fontWeight: 500,
-                color: "#475467",
-              },
-            }}
-          />
-        </Grid>
-      </Grid>
-      {!sameAsPermanent && (
-        <>
-          <Grid container spacing={3} sx={{ mb: 2 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Present Address"
-                name="presentAddress"
-                multiline
-                rows={2}
-                value={formData.presentAddress}
-                onChange={handleChange}
-                required
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-              />
-            </Grid>
-          </Grid>
-          {renderGridRow([
-            <FormControl fullWidth required>
-              <InputLabel>Present State</InputLabel>
-              <Select
-                name="presentState"
-                value={formData.presentState}
-                label="Present State"
-                onChange={handleChange}
-                sx={{ borderRadius: 2 }}
-              >
-                {Object.keys(STATE_CITY_DATA).map((s) => (
-                  <MenuItem key={s} value={s}>
-                    {s}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>,
-            <FormControl fullWidth required disabled={!formData.presentState}>
-              <InputLabel>Present City</InputLabel>
-              <Select
-                name="presentCity"
-                value={formData.presentCity}
-                label="Present City"
-                onChange={handleChange}
-                sx={{ borderRadius: 2 }}
-              >
-                {(STATE_CITY_DATA[formData.presentState] || []).map((c) => (
-                  <MenuItem key={c} value={c}>
-                    {c}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>,
-            <Box />, // Empty Box for 3rd column
-          ])}
-        </>
-      )}
-    </Box>
-  );
 
-  const renderStep2 = () => (
-    <Box>
+      {/* Bank Information */}
       <Typography
         variant="h5"
         sx={{
           color: "#2e83ff",
           fontWeight: 800,
           mb: 3,
+          mt: 5,
           pb: 1,
           borderBottom: "2px solid #eef2f6",
         }}
@@ -750,17 +546,15 @@ const DealerForm = () => {
         <div />,
         <div />,
       ])}
-    </Box>
-  );
 
-  const renderStep3 = () => (
-    <Box>
+      {/* Documents & Verification */}
       <Typography
         variant="h5"
         sx={{
           color: "#2e83ff",
           fontWeight: 800,
           mb: 3,
+          mt: 5,
           pb: 1,
           borderBottom: "2px solid #eef2f6",
         }}
@@ -992,8 +786,6 @@ const DealerForm = () => {
 
       {activeStep === 0 && renderStep0()}
       {activeStep === 1 && renderStep1()}
-      {activeStep === 2 && renderStep2()}
-      {activeStep === 3 && renderStep3()}
 
       <Stack
         direction="row"
