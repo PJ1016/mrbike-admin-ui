@@ -35,6 +35,7 @@ import {
 import Swal from "sweetalert2";
 import { addDealer } from "../../api";
 import { useNavigate } from "react-router-dom";
+import LocationPicker from "../Common/LocationPicker";
 
 const steps = [
   "Shop Details",
@@ -90,7 +91,6 @@ const DealerForm = () => {
     shopName: "",
     email: "",
     phone: "",
-    password: "",
     shopPincode: "",
     fullAddress: "",
     state: "Telangana",
@@ -312,22 +312,6 @@ const DealerForm = () => {
       {renderGridRow([
         <TextField
           fullWidth
-          label="Password"
-          name="password"
-          type="password"
-          value={formData.password}
-          onChange={handleChange}
-          required
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <LockIcon color="action" />
-              </InputAdornment>
-            ),
-          }}
-        />,
-        <TextField
-          fullWidth
           label="Shop Pincode"
           name="shopPincode"
           value={formData.shopPincode}
@@ -341,6 +325,20 @@ const DealerForm = () => {
           value={formData.fullAddress}
           onChange={handleChange}
           required
+        />,
+        <TextField
+          fullWidth
+          label="Alternative Number"
+          name="alternatePhone"
+          value={formData.alternatePhone}
+          onChange={handleChange}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <PhoneIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
         />,
       ])}
       {renderGridRow([
@@ -386,9 +384,6 @@ const DealerForm = () => {
           }}
         />,
       ])}
-      <Divider sx={{ mb: 3 }}>
-        <Chip label="Economics & Location" size="small" />
-      </Divider>
       {renderGridRow([
         <TextField
           fullWidth
@@ -400,34 +395,26 @@ const DealerForm = () => {
             endAdornment: <InputAdornment position="end">%</InputAdornment>,
           }}
         />,
-        <TextField
-          fullWidth
-          label="Latitude"
-          name="latitude"
-          value={formData.latitude}
-          onChange={handleChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <LocationIcon fontSize="small" color="disabled" />
-              </InputAdornment>
-            ),
-          }}
-        />,
-        <TextField
-          fullWidth
-          label="Longitude"
-          name="longitude"
-          value={formData.longitude}
-          onChange={handleChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <LocationIcon fontSize="small" color="disabled" />
-              </InputAdornment>
-            ),
-          }}
-        />,
+        <div />,
+        <div />,
+      ])}
+      <Divider sx={{ mb: 3 }}>
+        <Chip label="Economics & Location" size="small" />
+      </Divider>
+      
+      {renderGridRow([
+        <Box sx={{ gridColumn: "span 3" }}>
+          <LocationPicker
+            value={{ lat: formData.latitude, lng: formData.longitude }}
+            onChange={(newVal) => {
+              setFormData((prev) => ({
+                ...prev,
+                latitude: newVal.lat,
+                longitude: newVal.lng,
+              }));
+            }}
+          />
+        </Box>,
       ])}
     </Box>
   );
@@ -479,24 +466,6 @@ const DealerForm = () => {
           onChange={handleChange}
           required
         />,
-      ])}
-      {renderGridRow([
-        <TextField
-          fullWidth
-          label="Alternative Number"
-          name="alternatePhone"
-          value={formData.alternatePhone}
-          onChange={handleChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <PhoneIcon color="action" />
-              </InputAdornment>
-            ),
-          }}
-        />,
-        <div />,
-        <div />,
       ])}
 
       {/* Bank Information */}
