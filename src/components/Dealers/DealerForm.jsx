@@ -103,6 +103,7 @@ const DealerForm = () => {
     ownerName: "",
     aadharCardNo: "",
     panCardNo: "",
+    alternatePhone: "",
     // Bank Details
     accountHolderName: "",
     bankName: "",
@@ -478,6 +479,24 @@ const DealerForm = () => {
           onChange={handleChange}
           required
         />,
+      ])}
+      {renderGridRow([
+        <TextField
+          fullWidth
+          label="Alternative Number"
+          name="alternatePhone"
+          value={formData.alternatePhone}
+          onChange={handleChange}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <PhoneIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+        />,
+        <div />,
+        <div />,
       ])}
 
       {/* Bank Information */}
