@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Box,
   Stepper,
@@ -9,15 +10,12 @@ import {
   TextField,
   Paper,
   Stack,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   InputAdornment,
   Divider,
-  Chip,
   IconButton,
   CircularProgress,
+  Autocomplete,
+  Chip,
 } from "@mui/material";
 import {
   Storefront as ShopIcon,
@@ -30,48 +28,13 @@ import {
   LocationOn as LocationIcon,
   Email as EmailIcon,
   Phone as PhoneIcon,
-  Lock as LockIcon,
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import { addDealer } from "../../api";
 import { useNavigate } from "react-router-dom";
 import LocationPicker from "../Common/LocationPicker";
 
-const steps = [
-  "Shop Details",
-  "Owner, Bank & Documents",
-];
-
-const STATE_CITY_DATA = {
-  "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore"],
-  "Arunachal Pradesh": ["Itanagar", "Tawang", "Ziro"],
-  Assam: ["Guwahati", "Silchar", "Dibrugarh"],
-  Bihar: ["Patna", "Gaya", "Bhagalpur"],
-  Chhattisgarh: ["Raipur", "Bilaspur", "Durg"],
-  Goa: ["Panaji", "Margao", "Mapusa"],
-  Gujarat: ["Ahmedabad", "Surat", "Vadodara", "Rajkot"],
-  Haryana: ["Gurgaon", "Faridabad", "Panipat", "Ambala"],
-  "Himachal Pradesh": ["Shimla", "Manali", "Dharamshala"],
-  Jharkhand: ["Ranchi", "Jamshedpur", "Dhanbad"],
-  Karnataka: ["Bengaluru", "Mysuru", "Mangaluru"],
-  Kerala: ["Thiruvananthapuram", "Kochi", "Kozhikode"],
-  "Madhya Pradesh": ["Indore", "Bhopal", "Jabalpur", "Gwalior"],
-  Maharashtra: ["Mumbai", "Pune", "Nagpur", "Nashik"],
-  Manipur: ["Imphal"],
-  Meghalaya: ["Shillong"],
-  Mizoram: ["Aizawl"],
-  Nagaland: ["Kohima", "Dimapur"],
-  Odisha: ["Bhubaneswar", "Cuttack", "Rourkela"],
-  Punjab: ["Ludhiana", "Amritsar", "Jalandhar"],
-  Rajasthan: ["Jaipur", "Jodhpur", "Udaipur", "Kota"],
-  Sikkim: ["Gangtok"],
-  "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli"],
-  Telangana: ["Hyderabad", "Warangal", "Nizamabad"],
-  Tripura: ["Agartala"],
-  "Uttar Pradesh": ["Lucknow", "Kanpur", "Varanasi", "Agra"],
-  Uttarakhand: ["Dehradun", "Haridwar", "Nainital"],
-  "West Bengal": ["Kolkata", "Asansol", "Siliguri"],
-};
+const steps = ["Shop Details", "Owner, Bank & Documents"];
 
 const DealerForm = () => {
   const navigate = useNavigate();
@@ -92,9 +55,10 @@ const DealerForm = () => {
     email: "",
     phone: "",
     shopPincode: "",
-    fullAddress: "",
-    state: "Telangana",
-    city: "Hyderabad",
+    shopNumber: "",
+    locality: "",
+    state: "",
+    city: "",
     comission: "",
     tax: "",
     latitude: "",
@@ -110,6 +74,64 @@ const DealerForm = () => {
     accountNumber: "",
     ifscCode: "",
   });
+
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [localities, setLocalities] = useState([]);
+
+  useEffect(() => {
+    const lookupPincode = async () => {
+      if (
+        formData.shopPincode.length === 6 &&
+        /^\d+$/.test(formData.shopPincode)
+      ) {
+        setPincodeLoading(true);
+        try {
+          const response = await axios.get(
+            `https://api.postalpincode.in/pincode/${formData.shopPincode}`,
+          );
+          if (response.data[0].Status === "Success") {
+            const postOffices = response.data[0].PostOffice || [];
+            if (postOffices.length > 0) {
+              const { District, State } = postOffices[0];
+              const areaNames = postOffices
+                .map((po) => po.Name)
+                .filter(Boolean);
+
+              setLocalities(areaNames);
+              setFormData((prev) => ({
+                ...prev,
+                state: State,
+                city: District,
+                locality:
+                  prev.locality ||
+                  (areaNames.length === 1 ? areaNames[0] : prev.locality),
+              }));
+
+              Swal.fire({
+                icon: "success",
+                title: "Location Found",
+                text: `${District}, ${State} (${areaNames.length} localities found)`,
+                timer: 2000,
+                showConfirmButton: false,
+                toast: true,
+                position: "top-end",
+              });
+            }
+          } else {
+            setLocalities([]);
+          }
+        } catch (err) {
+          console.error("Pincode lookup failed", err);
+          setLocalities([]);
+        } finally {
+          setPincodeLoading(false);
+        }
+      } else {
+        setLocalities([]);
+      }
+    };
+    lookupPincode();
+  }, [formData.shopPincode]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -312,22 +334,6 @@ const DealerForm = () => {
       {renderGridRow([
         <TextField
           fullWidth
-          label="Shop Pincode"
-          name="shopPincode"
-          value={formData.shopPincode}
-          onChange={handleChange}
-          required
-        />,
-        <TextField
-          fullWidth
-          label="Full Shop Address"
-          name="fullAddress"
-          value={formData.fullAddress}
-          onChange={handleChange}
-          required
-        />,
-        <TextField
-          fullWidth
           label="Alternative Number"
           name="alternatePhone"
           value={formData.alternatePhone}
@@ -340,38 +346,91 @@ const DealerForm = () => {
             ),
           }}
         />,
+        <TextField
+          fullWidth
+          label="Shop Pincode"
+          name="shopPincode"
+          value={formData.shopPincode}
+          onChange={handleChange}
+          required
+          InputProps={{
+            endAdornment: pincodeLoading && (
+              <InputAdornment position="end">
+                <CircularProgress size={20} />
+              </InputAdornment>
+            ),
+          }}
+        />,
+        <TextField
+          fullWidth
+          label="Shop No. / Building"
+          name="shopNumber"
+          value={formData.shopNumber}
+          onChange={handleChange}
+          required
+        />,
       ])}
       {renderGridRow([
-        <FormControl fullWidth required>
-          <InputLabel>Shop State</InputLabel>
-          <Select
-            name="state"
-            value={formData.state}
-            label="Shop State"
-            onChange={handleChange}
-          >
-            {Object.keys(STATE_CITY_DATA).map((s) => (
-              <MenuItem key={s} value={s}>
-                {s}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>,
-        <FormControl fullWidth required disabled={!formData.state}>
-          <InputLabel>Shop City</InputLabel>
-          <Select
-            name="city"
-            value={formData.city}
-            label="Shop City"
-            onChange={handleChange}
-          >
-            {(STATE_CITY_DATA[formData.state] || []).map((c) => (
-              <MenuItem key={c} value={c}>
-                {c}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>,
+        <Autocomplete
+          fullWidth
+          freeSolo
+          options={localities}
+          value={formData.locality}
+          onChange={(e, newValue) => {
+            setFormData((prev) => ({ ...prev, locality: newValue || "" }));
+          }}
+          onInputChange={(e, newInputValue) => {
+            setFormData((prev) => ({ ...prev, locality: newInputValue }));
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Locality / Area"
+              name="locality"
+              required
+              helperText={
+                localities.length > 0
+                  ? "Select from auto-filled areas or type"
+                  : ""
+              }
+            />
+          )}
+        />,
+        <TextField
+          fullWidth
+          label="Shop State"
+          name="state"
+          value={formData.state}
+          onChange={handleChange}
+          required
+        />,
+        <TextField
+          fullWidth
+          label="Shop City"
+          name="city"
+          value={formData.city}
+          onChange={handleChange}
+          required
+        />,
+      ])}
+
+      {renderGridRow([
+        <TextField
+          fullWidth
+          label="Shop State"
+          name="state"
+          value={formData.state}
+          onChange={handleChange}
+          required
+        />,
+        <TextField
+          fullWidth
+          label="Shop City"
+          name="city"
+          value={formData.city}
+          onChange={handleChange}
+          required
+        />,
         <TextField
           fullWidth
           label="Commission (%)"
@@ -401,7 +460,7 @@ const DealerForm = () => {
       <Divider sx={{ mb: 3 }}>
         <Chip label="Economics & Location" size="small" />
       </Divider>
-      
+
       {renderGridRow([
         <Box sx={{ gridColumn: "span 3" }}>
           <LocationPicker
