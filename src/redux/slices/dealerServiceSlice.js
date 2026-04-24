@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { saveDealerServices } from '../../api';
+import { saveDealerServices, getDealerServices } from '../../api';
 
 export const submitDealerServices = createAsyncThunk(
   'dealerService/submit',
@@ -7,6 +7,28 @@ export const submitDealerServices = createAsyncThunk(
     try {
       const response = await saveDealerServices(payload);
       return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+export const fetchDealerServices = createAsyncThunk(
+  'dealerService/fetch',
+  async (dealerId, { rejectWithValue, getState }) => {
+    try {
+      // Check if we already have cached data for this dealer
+      const state = getState();
+      const cached = state.dealerService.cachedServices[dealerId];
+      const now = Date.now();
+      const cacheTime = 5 * 60 * 1000; // 5 minutes
+      
+      if (cached && (now - cached.timestamp) < cacheTime) {
+        return { dealerId, data: { ...cached.data }, fromCache: true };
+      }
+      
+      const response = await getDealerServices(dealerId);
+      return { dealerId, data: response, fromCache: false };
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -27,6 +49,9 @@ const dealerServiceSlice = createSlice({
     isSaving: false,
     saveSuccess: false,
     error: null,
+    // Caching for dealer services
+    cachedServices: {}, // { [dealerId]: { data, timestamp } }
+    fetchingServices: {}, // { [dealerId]: boolean }
   },
   reducers: {
     setSelectedBikes: (state, action) => {
@@ -155,6 +180,17 @@ const dealerServiceSlice = createSlice({
     resetSaveStatus: (state) => {
       state.saveSuccess = false;
       state.error = null;
+    },
+    clearDealerServicesCache: (state, action) => {
+      if (action.payload) {
+        // Clear specific dealer cache
+        delete state.cachedServices[action.payload];
+        delete state.fetchingServices[action.payload];
+      } else {
+        // Clear all cache
+        state.cachedServices = {};
+        state.fetchingServices = {};
+      }
     }
   },
   extraReducers: (builder) => {
@@ -171,6 +207,26 @@ const dealerServiceSlice = createSlice({
       .addCase(submitDealerServices.rejected, (state, action) => {
         state.isSaving = false;
         state.error = action.payload;
+      })
+      .addCase(fetchDealerServices.pending, (state, action) => {
+        const dealerId = action.meta.arg;
+        state.fetchingServices[dealerId] = true;
+      })
+      .addCase(fetchDealerServices.fulfilled, (state, action) => {
+        const { dealerId, data, fromCache } = action.payload;
+        state.fetchingServices[dealerId] = false;
+        
+        if (!fromCache) {
+          // Cache the new data - create a deep copy to prevent mutation
+          state.cachedServices[dealerId] = {
+            data: JSON.parse(JSON.stringify(data)),
+            timestamp: Date.now()
+          };
+        }
+      })
+      .addCase(fetchDealerServices.rejected, (state, action) => {
+        const dealerId = action.meta.arg;
+        state.fetchingServices[dealerId] = false;
       });
   },
 });
@@ -187,7 +243,8 @@ export const {
     hydrateDealerState,
     setSelectedCompanies,
     resetSelection,
-    resetSaveStatus 
+    resetSaveStatus,
+    clearDealerServicesCache
 } = dealerServiceSlice.actions;
 
 export default dealerServiceSlice.reducer;

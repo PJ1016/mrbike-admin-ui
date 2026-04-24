@@ -241,7 +241,9 @@ export const getCCListByCompany = (companyId) =>
   apiRequest("GET", `/bike/bikes/cc-by-company/${companyId}`, {}, false);
 
 export const filterBikesByCompaniesMultiple = (companyIds) => {
-  const queryString = companyIds.join(",");
+  // Ensure we have a safe array to work with
+  const safeIds = Array.isArray(companyIds) ? [...companyIds] : [companyIds];
+  const queryString = safeIds.join(",");
   return apiRequest(
     "GET",
     `/bike/bikes/filter-by-company?companyIds=${queryString}`,
@@ -924,6 +926,66 @@ export const getBaseAdditionalServiceList = () =>
 export const saveDealerServices = (payload) =>
   apiRequest("POST", "/dealer/services", payload, true, true);
 
-// ✅ Fetch dealer services configuration
-export const getDealerServices = (dealerId) =>
-  apiRequest("GET", `/dealer/services?dealerId=${dealerId}`, {}, false, true);
+// Request cache for dealer services to prevent duplicate calls
+const dealerServicesCache = new Map();
+const dealerServicesRequests = new Map();
+
+// ✅ Fetch dealer services configuration with caching
+export const getDealerServices = async (dealerId) => {
+  if (!dealerId) {
+    throw new Error('Dealer ID is required');
+  }
+
+  const cacheKey = `dealer-services-${dealerId}`;
+  const now = Date.now();
+  const cacheTime = 3 * 60 * 1000; // 3 minutes cache
+
+  // Check cache first
+  const cached = dealerServicesCache.get(cacheKey);
+  if (cached && (now - cached.timestamp) < cacheTime) {
+    return cached.data;
+  }
+
+  // Check if request is already in progress
+  const existingRequest = dealerServicesRequests.get(cacheKey);
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  // Make new request
+  const requestPromise = apiRequest("GET", `/dealer/services?dealerId=${dealerId}`, {}, false, true)
+    .then(data => {
+      // Cache the result
+      dealerServicesCache.set(cacheKey, {
+        data,
+        timestamp: now
+      });
+      
+      // Remove from active requests
+      dealerServicesRequests.delete(cacheKey);
+      
+      return data;
+    })
+    .catch(error => {
+      // Remove from active requests on error
+      dealerServicesRequests.delete(cacheKey);
+      throw error;
+    });
+
+  // Store the request promise
+  dealerServicesRequests.set(cacheKey, requestPromise);
+  
+  return requestPromise;
+};
+
+// Clear dealer services cache (useful for testing or forced refresh)
+export const clearDealerServicesCache = (dealerId = null) => {
+  if (dealerId) {
+    const cacheKey = `dealer-services-${dealerId}`;
+    dealerServicesCache.delete(cacheKey);
+    dealerServicesRequests.delete(cacheKey);
+  } else {
+    dealerServicesCache.clear();
+    dealerServicesRequests.clear();
+  }
+};

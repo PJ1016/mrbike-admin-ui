@@ -11,10 +11,10 @@ import {
   InputAdornment,
   Paper,
   Skeleton,
+  CircularProgress,
 } from "@mui/material";
 import { Search as SearchIcon } from "@mui/icons-material";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchBikesByCompany } from "../../redux/slices/bikeSlice";
 import {
   addSelectedBike,
   removeSelectedBike,
@@ -22,30 +22,22 @@ import {
   setSelectedBikes,
 } from "../../redux/slices/dealerServiceSlice";
 import SelectedBikesSummary from "./SelectedBikes/SelectedBikesSummary";
+import { useBikesByCompany } from "../../hooks/useBikesByCompany";
 
 const SupportedBikesSection = () => {
   const dispatch = useDispatch();
-  const {
-    companies,
-    bikes,
-    loading: bikesLoading,
-  } = useSelector((state) => state.bike);
+  const { companies } = useSelector((state) => state.bike);
   const { selectedBikes, selectedCompanies } = useSelector(
     (state) => state.dealerService,
   );
   const [searchTerm, setSearchTerm] = useState("");
-
-  // Auto-fetch bikes when companies are pre-filled/selected
-  React.useEffect(() => {
-    if (selectedCompanies.length > 0) {
-      const companyIds = selectedCompanies
-        .map((c) => c._id || c.id)
-        .filter(Boolean);
-      if (companyIds.length > 0) {
-        dispatch(fetchBikesByCompany(companyIds));
-      }
-    }
-  }, [dispatch, selectedCompanies]);
+  
+  // Use custom hook for bike fetching with duplicate prevention
+  const companyIds = selectedCompanies.map((c) => c._id || c.id).filter(Boolean);
+  const { bikes, loading: bikesLoading } = useBikesByCompany([...companyIds], {
+    debounceMs: 300,
+    enabled: companyIds.length > 0
+  });
 
   const handleCompanyChange = (event, newValue) => {
     dispatch(setSelectedCompanies(newValue));
@@ -186,10 +178,15 @@ const SupportedBikesSection = () => {
                   placeholder="Filter by model or variant..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  disabled={bikesLoading}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <SearchIcon sx={{ color: "text.secondary" }} />
+                        {bikesLoading ? (
+                          <CircularProgress size={16} />
+                        ) : (
+                          <SearchIcon sx={{ color: "text.secondary" }} />
+                        )}
                       </InputAdornment>
                     ),
                   }}
@@ -222,9 +219,9 @@ const SupportedBikesSection = () => {
                   fontWeight="700"
                   color="text.secondary"
                 >
-                  VARIANTS ({filteredBikes.length} available)
+                  VARIANTS ({bikesLoading ? '...' : filteredBikes.length} available)
                 </Typography>
-                {filteredBikes.length > 0 && (
+                {filteredBikes.length > 0 && !bikesLoading && (
                   <FormControlLabel
                     control={
                       <Checkbox

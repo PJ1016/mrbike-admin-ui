@@ -375,6 +375,7 @@ const DealerForm = () => {
               </InputAdornment>
             ),
           }}
+          helperText={pincodeLoading ? "Looking up location..." : ""}
         />,
       ])}
       {renderGridRow([
@@ -833,7 +834,10 @@ const DealerForm = () => {
           sx={{ minWidth: 150 }}
         >
           {isSubmitting ? (
-            <CircularProgress size={24} color="inherit" />
+            <>
+              <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} />
+              Submitting...
+            </>
           ) : activeStep === steps.length - 1 ? (
             "Submit"
           ) : (

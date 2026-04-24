@@ -15,34 +15,17 @@ import {
   CircularProgress,
   Divider,
 } from "@mui/material";
-import { getDealerServices } from "../../api";
 import { getCCDisplayName } from "../../constants/bikeConstants";
+import { useDealerServices } from "../../hooks/useDealerServices";
 
 const DealerServicesView = ({ dealerId }) => {
-  const [loading, setLoading] = useState(true);
-  const [pricingData, setPricingData] = useState([]);
-  const [error, setError] = useState(null);
+  // Use custom hook for dealer services with caching
+  const { data: servicesData, loading, error } = useDealerServices(dealerId, {
+    enabled: !!dealerId,
+    cacheTime: 5 * 60 * 1000 // 5 minutes cache
+  });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const res = await getDealerServices(dealerId);
-        if (res?.status && Array.isArray(res.pricing)) {
-          setPricingData(res.pricing);
-        }
-      } catch (err) {
-        console.error("Failed to fetch dealer services", err);
-        setError("Could not load service information.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (dealerId) {
-      fetchData();
-    }
-  }, [dealerId]);
+  const pricingData = servicesData?.pricing || [];
 
   if (loading) {
     return (

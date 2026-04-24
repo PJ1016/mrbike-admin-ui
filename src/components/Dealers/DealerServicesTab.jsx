@@ -10,6 +10,7 @@ import {
   Snackbar,
   Alert,
   Skeleton,
+  CircularProgress,
 } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import SaveIcon from "@mui/icons-material/Save";
@@ -27,6 +28,7 @@ import {
   resetSelection
 } from "../../redux/slices/dealerServiceSlice";
 import { getCCRangeKey } from "../../constants/bikeConstants";
+import { useDealerServices } from "../../hooks/useDealerServices";
 
 const DealerServicesTab = ({ dealer }) => {
   const dispatch = useDispatch();
@@ -42,6 +44,17 @@ const DealerServicesTab = ({ dealer }) => {
   } = useSelector((state) => state.dealerService);
 
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [isHydrating, setIsHydrating] = useState(false);
+  const [masterDataLoading, setMasterDataLoading] = useState(false);
+
+  // Use custom hook for dealer services with caching
+  const { data: dealerServicesData, loading: servicesLoading, refetch } = useDealerServices(
+    dealer?._id || dealer?.id,
+    {
+      enabled: !!(dealer?._id || dealer?.id),
+      cacheTime: 3 * 60 * 1000 // 3 minutes cache for dealer services
+    }
+  );
 
 
   const { companies } = useSelector((state) => state.bike);
@@ -49,16 +62,37 @@ const DealerServicesTab = ({ dealer }) => {
 
   useEffect(() => {
     // Master data fetch - only if not already loaded
-    if (companies.length === 0) dispatch(fetchCompanies());
-    if (baseServices.length === 0) dispatch(fetchBaseServices());
-    if (additionalServices.length === 0) dispatch(fetchAdditionalServices());
+    const loadMasterData = async () => {
+      setMasterDataLoading(true);
+      try {
+        const promises = [];
+        if (companies.length === 0) promises.push(dispatch(fetchCompanies()));
+        if (baseServices.length === 0) promises.push(dispatch(fetchBaseServices()));
+        if (additionalServices.length === 0) promises.push(dispatch(fetchAdditionalServices()));
+        
+        if (promises.length > 0) {
+          await Promise.all(promises);
+        }
+      } catch (error) {
+        console.error('Failed to load master data:', error);
+      } finally {
+        setMasterDataLoading(false);
+      }
+    };
+
+    // Only load master data once
+    if (companies.length === 0 || baseServices.length === 0 || additionalServices.length === 0) {
+      loadMasterData();
+    }
 
     // Hydrate existing dealer configuration
     const hydrate = async () => {
+      if (!dealerServicesData) return;
+      
+      setIsHydrating(true);
       try {
-        const { getDealerServices } = await import("../../api");
-        const res = await getDealerServices(dealer?._id || dealer?.id);
-
+        const res = dealerServicesData;
+        
         if (res?.status && Array.isArray(res.pricing)) {
           // ... hydration logic ...
           const selectedBikesMap = new Map();
@@ -117,16 +151,20 @@ const DealerServicesTab = ({ dealer }) => {
         }
       } catch (err) {
         console.error("BikeDoctor: Hydration failed", err);
+      } finally {
+        setIsHydrating(false);
       }
     };
 
     // Only hydrate if we don't have selected bikes or if the dealer changed
     // In a production app, we might want a more robust check (e.g., currentDealerId in state)
     // For now, we'll keep the hydration on dealer change.
-    if (dealer) hydrate();
+    if (dealer && dealerServicesData && !servicesLoading) {
+      hydrate();
+    }
 
     // REMOVED: dispatch(resetSelection()) on unmount to persist state when switching tabs
-  }, [dispatch, dealer, companies.length, baseServices.length, additionalServices.length]);
+  }, [dispatch, dealer, companies.length, baseServices.length, additionalServices.length, dealerServicesData, servicesLoading]);
 
   // Initialize General Service only on initial load if no services are configured
   useEffect(() => {
@@ -196,26 +234,37 @@ const DealerServicesTab = ({ dealer }) => {
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, pb: 10, position: "relative" }}>
-      <Stack spacing={6}>
-        {/* Section 1: Supported Bikes */}
-        <Box>
-          <SupportedBikesSection />
+      {(masterDataLoading || isHydrating || servicesLoading) ? (
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 8 }}>
+          <CircularProgress size={40} />
+          <Typography sx={{ mt: 2 }} color="text.secondary">
+            {masterDataLoading ? 'Loading master data...' : 
+             servicesLoading ? 'Loading dealer services...' :
+             'Loading dealer configuration...'}
+          </Typography>
         </Box>
+      ) : (
+        <Stack spacing={6}>
+          {/* Section 1: Supported Bikes */}
+          <Box>
+            <SupportedBikesSection />
+          </Box>
 
-        <Divider />
+          <Divider />
 
-        {/* Section 2: Base Services */}
-        <Box>
-          <BaseServicesSection />
-        </Box>
+          {/* Section 2: Base Services */}
+          <Box>
+            <BaseServicesSection />
+          </Box>
 
-        <Divider />
+          <Divider />
 
-        {/* Section 3: Additional Services */}
-        <Box>
-          <AdditionalServicesSection />
-        </Box>
-      </Stack>
+          {/* Section 3: Additional Services */}
+          <Box>
+            <AdditionalServicesSection />
+          </Box>
+        </Stack>
+      )}
 
       {/* Sticky Save Button */}
       <Paper
@@ -242,9 +291,9 @@ const DealerServicesTab = ({ dealer }) => {
           variant="contained"
           color="primary"
           size="large"
-          startIcon={isSaving ? null : <SaveIcon />}
+          startIcon={isSaving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
           onClick={handleSave}
-          disabled={isSaving}
+          disabled={isSaving || masterDataLoading || isHydrating || servicesLoading}
           sx={{
             px: 4,
             py: 1.2,

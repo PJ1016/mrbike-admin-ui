@@ -182,6 +182,8 @@ const VendorDealerDetails = () => {
   const [dealerServices, setDealersServices] = useState([]);
   const [additionalServices, setAdditionalServices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
   const token = localStorage.getItem("token");
 
@@ -190,7 +192,9 @@ const VendorDealerDetails = () => {
   };
 
   const downloadDealerPDF = async () => {
-    const doc = new jsPDF();
+    setPdfLoading(true);
+    try {
+      const doc = new jsPDF();
 
     const convertImageToBase64 = async (url) => {
       try {
@@ -421,7 +425,13 @@ const VendorDealerDetails = () => {
       });
     }
 
-    doc.save(`${dealer.shopName.replace(/\s/g, "_")}_Full_Profile.pdf`);
+      doc.save(`${dealer.shopName.replace(/\s/g, "_")}_Full_Profile.pdf`);
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      Swal.fire('Error', 'Failed to generate PDF', 'error');
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -444,6 +454,7 @@ const VendorDealerDetails = () => {
 
     const fetchServices = async () => {
       try {
+        setServicesLoading(true);
         const [servicesRes, addServicesRes] = await Promise.all([
           getServiceList(),
           getAdditionalServiceList(),
@@ -488,6 +499,8 @@ const VendorDealerDetails = () => {
         console.error("Error fetching services:", error);
         setDealersServices([]);
         setAdditionalServices([]);
+      } finally {
+        setServicesLoading(false);
       }
     };
 
@@ -620,11 +633,12 @@ const VendorDealerDetails = () => {
             <Button
               variant="outlined"
               color="primary"
-              startIcon={<DownloadIcon />}
+              startIcon={pdfLoading ? <CircularProgress size={16} /> : <DownloadIcon />}
               onClick={downloadDealerPDF}
+              disabled={pdfLoading}
               sx={{ fontWeight: "700", borderRadius: 2, px: 3 }}
             >
-              Export
+              {pdfLoading ? 'Generating...' : 'Export'}
             </Button>
             <Button
               variant="contained"
@@ -1037,7 +1051,13 @@ const VendorDealerDetails = () => {
                   </Box>
                 </Box>
 
-                <DealerServicesView dealerId={id} />
+                {servicesLoading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                    <CircularProgress />
+                  </Box>
+                ) : (
+                  <DealerServicesView dealerId={id} />
+                )}
               </Box>
             </CustomTabPanel>
 
@@ -1162,7 +1182,13 @@ const VendorDealerDetails = () => {
 
             {/* TAB 5: REPORTS */}
             <CustomTabPanel value={tabIndex} index={4}>
-              <DealerServicesTab dealer={dealer} />
+              {dealer ? (
+                <DealerServicesTab dealer={dealer} />
+              ) : (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  <CircularProgress />
+                </Box>
+              )}
             </CustomTabPanel>
           </CardContent>
         </Box>
