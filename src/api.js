@@ -3,7 +3,6 @@ import Swal from "sweetalert2";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://api.mrbikedoctor.cloud/bikedoctor";
 
-// test
 
 const getAuthToken = () => localStorage.getItem("adminToken");
 
@@ -377,53 +376,12 @@ export const addService = async (serviceData) => {
   }
 };
 
-export const AaddService = async (serviceData) => {
-  try {
-    const response = await axios.post(
-      `${API_BASE_URL}/service/addservice`, // ✅ API base URL
-      serviceData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          token: getAuthToken(), // ✅ Ensure correct token header
-        },
-      },
-    );
-
-    // ✅ Show success message
-    Swal.fire({
-      icon: "success",
-      title: "Service Added Successfully!",
-      text: response.data.message || "The service has been created.",
-      timer: 2000,
-      showConfirmButton: false,
-    });
-
-    return response.data;
-  } catch (error) {
-    console.error(
-      "Error adding service:",
-      error.response?.data || error.message,
-    );
-
-    // ✅ Show proper error message
-    Swal.fire({
-      icon: "error",
-      title: "Failed to Add Service",
-      text: error.response?.data?.message || "Something went wrong!",
-    });
-
-    throw error;
-  }
-};
 
 // ✅ Updated getServiceList to use the new admin services endpoint and fixed duplicate exports
 export const getServiceList = () =>
   apiRequest("GET", "/service/adminservices", {}, false);
 export const getAdditionalServiceList = () =>
   apiRequest("GET", "/additional-service/admin/additional-services", {}, false);
-export const getAServiceList = getServiceList;
-export const getServices = getServiceList;
 
 // Update Admin Service
 
@@ -797,7 +755,6 @@ export const editOffer = async (id, offerData) => {
   }
 };
 
-export const updateOffer = editOffer;
 
 export const getDealersVerify = () =>
   apiRequest("GET", "/dealerAuth/pending-registrations", {}, false);

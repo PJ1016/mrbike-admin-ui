@@ -7,7 +7,7 @@ import {
     FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaFileAlt,
     FaArrowLeft, FaImage, FaUniversity, FaTools
 } from 'react-icons/fa';
-import { getAServiceList } from '../../api';
+import { getServiceList } from '../../api';
 import React from 'react';
 
 const ImagePreview = ({ src, label }) => {
@@ -65,7 +65,7 @@ const ViewDealersVerify = () => {
 
         const fetchServices = async () => {
             try {
-                const response = await getAServiceList();
+                const response = await getServiceList();
                 if (response.status === 200) {
                     console.log("All Services", response.data);
 

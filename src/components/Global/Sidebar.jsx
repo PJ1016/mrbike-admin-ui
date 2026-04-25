@@ -10,11 +10,8 @@ import {
   ListItemIcon,
   ListItemText,
   Collapse,
-  Divider,
   Typography,
   Box,
-  IconButton,
-  Tooltip,
 } from "@mui/material";
 import {
   Dashboard as DashboardIcon,
@@ -28,8 +25,6 @@ import {
   AdminPanelSettings as AdminIcon,
   ExpandLess,
   ExpandMore,
-  ChevronLeft as ChevronLeftIcon,
-  Menu as MenuIcon,
   FiberManualRecord as BulletIcon,
   SupportAgent as TicketIcon,
   PowerSettingsNew as LogoutIcon,

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import { getServices, getOfferById, updateOffer } from "../../api";
+import { getServiceList, getOfferById, editOffer } from "../../api";
 
 const EditOffer = () => {
   const { id } = useParams();
@@ -22,7 +22,7 @@ const EditOffer = () => {
     const fetchInitialData = async () => {
       try {
         const [servicesRes, offerRes] = await Promise.all([
-          getServices(),
+          getServiceList(),
           getOfferById(id),
         ]);
         setServices(servicesRes.data || []);
@@ -58,7 +58,7 @@ const EditOffer = () => {
         payload.append(key, value);
       });
 
-      const res = await updateOffer(id, payload);
+      const res = await editOffer(id, payload);
       Swal.fire("Success", res.message || "Offer updated!", "success");
       navigate("/offers"); // 🔁 adjust this to your actual offer listing path
     } catch (err) {

@@ -1,6 +1,6 @@
 // import React, { useState, useEffect } from "react";
 // import Swal from "sweetalert2";
-// import { addOffer, getServices } from "../../api";
+// import { addOffer, getServiceList } from "../../api";
 // import { useNavigate } from "react-router-dom";
 
 // const OfferForm = () => {
@@ -20,7 +20,7 @@
 //   useEffect(() => {
 //     const fetchServices = async () => {
 //       try {
-//         const res = await getServices();
+//         const res = await getServiceList();
 //         setServices(res.data || []);
 //       } catch (err) {
 //         console.error("Failed to load services", err);
@@ -265,7 +265,7 @@
 
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import { addOffer, getServices } from "../../api";
+import { addOffer, getServiceList } from "../../api";
 import { useNavigate } from "react-router-dom";
 
 const OfferForm = () => {
@@ -285,7 +285,7 @@ const OfferForm = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await getServices();
+        const res = await getServiceList();
         setServices(res.data || []);
       } catch (err) {
         console.error("Failed to load services", err);
