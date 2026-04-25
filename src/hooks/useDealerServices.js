@@ -1,7 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { getDealerServices } from '../api';
 
-import { safeArrayCopy } from '../utils/arrayUtils';
 
 /**
  * Custom hook to manage dealer services fetching with duplicate prevention and caching

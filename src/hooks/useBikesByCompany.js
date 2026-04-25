@@ -1,7 +1,15 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBikesByCompany } from '../redux/slices/bikeSlice';
-import { createStableKey } from '../utils/arrayUtils';
+/**
+ * Create a stable key from an array of IDs for comparison
+ * @param {Array} ids - Array of IDs
+ * @returns {string} - Stable key string
+ */
+const createStableKey = (ids) => {
+  if (!Array.isArray(ids) || ids.length === 0) return '';
+  return [...ids].sort().join(',');
+};
 
 /**
  * Custom hook to manage bike fetching by company with duplicate prevention
