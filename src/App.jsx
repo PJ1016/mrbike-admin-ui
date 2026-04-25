@@ -26,7 +26,6 @@ import Dashboard from "./pages/Dashboard/Dashboard";
 import ProfilePage from "./pages/Auth/ProfilePage";
 // Auth provider removed - using Redux authSlice
 import AddDealer from "./pages/Dealer/Createdealer";
-import Addservices from "./pages/services/CreateService";
 import Admins from "./pages/admin/admin";
 import Bookings from "./pages/bookings/bookings";
 import Customers from "./pages/customer/customer";
@@ -41,7 +40,6 @@ import OfferList from "./pages/Offers/OfferList";
 import DealerUpdate from "./pages/Dealer/updateDealer";
 import DealerPayoutList from "./pages/Dealer/DealerPayoutList";
 import DealerVerify from "./pages/Dealer/DealerVerify";
-import DocumentStatus from "./pages/Dealer/DocumentStatus";
 import Offer from "./pages/Offers/AddOffer";
 import ViewDealerDetails from "./components/Dealers/ViewDealerDetails";
 import EditService from "./components/Service/EditService";
@@ -233,11 +231,9 @@ const AppContent = () => {
           />
           <Route path="/dealers" element={<DealerList />} />
           <Route path="/dealers-verify" element={<DealerVerify />} />
-          <Route path="/dealer-doc-update" element={<DocumentStatus />} />
           <Route path="/booking" element={<Bookings />} />
           <Route path="/addBikeCompany" element={<AddBikeCompany />} />
           <Route path="/bikes" element={<Bikes />} />
-          <Route path="/create-service" element={<Addservices />} />
           <Route path="/banners" element={<CreateBanner />} />
           <Route path="/bannerList" element={<Banners />} />
           <Route path="/paymentList" element={<PaymentList />} />

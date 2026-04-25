@@ -110,16 +110,6 @@ const Services = () => {
                 >
                   PDF
                 </Button>
-                <Button
-                  component={Link}
-                  to="/create-service"
-                  variant="contained"
-                  color="primary"
-                  startIcon={<AddCircleOutlineIcon />}
-                  sx={{ fontWeight: "bold" }}
-                >
-                  Add New Service
-                </Button>
               </Box>
             </Stack>
           </Box>

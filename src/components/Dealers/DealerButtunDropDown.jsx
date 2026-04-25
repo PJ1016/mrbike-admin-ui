@@ -43,16 +43,6 @@ const DealerButtunDropDown = ({ activeItem, handleMenuClick }) => {
             View Dealers
           </Link>
         </li>
-        {/* <li>
-          <Link onClick={() => handleMenuClick("/approve")} to="/approve" style={{ textDecoration: "none" }}>
-            Dealers PayOut
-          </Link>
-        </li>
-        <li>
-          <Link onClick={() => handleMenuClick("/dealer-doc-update")} to="/dealer-doc-update" style={{ textDecoration: "none" }}>
-            Doc Update
-          </Link>
-        </li> */}
       </ul>
     </li>
   );

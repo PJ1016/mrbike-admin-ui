@@ -133,6 +133,9 @@ const DealerForm = () => {
     lookupPincode();
   }, [formData.shopPincode]);
 
+  const validateAadhar = (number) => /^\d{12}$/.test(number);
+  const validatePAN = (number) => /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(number);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => {
@@ -140,7 +143,27 @@ const DealerForm = () => {
       if (name === "state") updated.city = "";
       return updated;
     });
-    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+
+    // Real-time validation
+    if (name === "aadharCardNo") {
+      if (value && !validateAadhar(value)) {
+        setErrors((prev) => ({ ...prev, aadharCardNo: "Aadhar must be 12 digits" }));
+      } else {
+        setErrors((prev) => ({ ...prev, aadharCardNo: "" }));
+      }
+    }
+
+    if (name === "panCardNo") {
+      if (value && !validatePAN(value)) {
+        setErrors((prev) => ({ ...prev, panCardNo: "Invalid PAN format (e.g. ABCDE1234F)" }));
+      } else {
+        setErrors((prev) => ({ ...prev, panCardNo: "" }));
+      }
+    }
+
+    if (errors[name] && name !== "aadharCardNo" && name !== "panCardNo") {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
   };
 
   const handleNext = () => {
@@ -496,6 +519,8 @@ const DealerForm = () => {
           value={formData.aadharCardNo}
           onChange={handleChange}
           required
+          error={!!errors.aadharCardNo}
+          helperText={errors.aadharCardNo || "12-digit Aadhaar number"}
         />,
         <TextField
           fullWidth
@@ -504,6 +529,8 @@ const DealerForm = () => {
           value={formData.panCardNo}
           onChange={handleChange}
           required
+          error={!!errors.panCardNo}
+          helperText={errors.panCardNo || "10-character alphanumeric PAN"}
         />,
         <div />,
       ])}

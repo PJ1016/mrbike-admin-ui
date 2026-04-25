@@ -125,6 +125,9 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
   const [sameAsPermanent, setSameAsPermanent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const validateAadhar = (number) => /^\d{12}$/.test(number);
+  const validatePAN = (number) => /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(number);
+
   useEffect(() => {
     if (isEdit && dealerData) {
       setFormData(initializeFormData());
@@ -161,7 +164,27 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
       return;
     }
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+
+    // Real-time validation
+    if (name === "aadharCardNo") {
+      if (value && !validateAadhar(value)) {
+        setErrors((prev) => ({ ...prev, aadharCardNo: "Aadhar must be 12 digits" }));
+      } else {
+        setErrors((prev) => ({ ...prev, aadharCardNo: "" }));
+      }
+    }
+
+    if (name === "panCardNo") {
+      if (value && !validatePAN(value)) {
+        setErrors((prev) => ({ ...prev, panCardNo: "Invalid PAN format" }));
+      } else {
+        setErrors((prev) => ({ ...prev, panCardNo: "" }));
+      }
+    }
+
+    if (errors[name] && name !== "aadharCardNo" && name !== "panCardNo") {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
   };
 
   const handleFileUpload = (e, setter, fieldName) => {
@@ -258,6 +281,28 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
           </Grid>
           <Grid item xs={12} md={6}>
             <TextField fullWidth label="Personal Email" name="personalEmail" value={formData.personalEmail} onChange={handleChange} />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField 
+              fullWidth 
+              label="Aadhar Card No." 
+              name="aadharCardNo" 
+              value={formData.aadharCardNo} 
+              onChange={handleChange} 
+              error={!!errors.aadharCardNo}
+              helperText={errors.aadharCardNo || "12-digit Aadhaar number"}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField 
+              fullWidth 
+              label="PAN Card No." 
+              name="panCardNo" 
+              value={formData.panCardNo} 
+              onChange={handleChange} 
+              error={!!errors.panCardNo}
+              helperText={errors.panCardNo || "10-character alphanumeric PAN"}
+            />
           </Grid>
 
           <Grid item xs={12}>

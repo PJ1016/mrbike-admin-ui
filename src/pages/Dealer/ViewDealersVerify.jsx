@@ -5,20 +5,33 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import Swal from 'sweetalert2';
 import {
     FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaFileAlt,
-    FaArrowLeft, FaImage, FaUniversity, FaTools
+    FaArrowLeft, FaImage, FaUniversity, FaTools, FaCheckCircle, FaTimesCircle
 } from 'react-icons/fa';
 import { getServiceList } from '../../api';
 import React from 'react';
 
+const validateAadhar = (number) => /^\d{12}$/.test(number);
+const validatePAN = (number) => /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(number);
+
 const ImagePreview = ({ src, label }) => {
     const [show, setShow] = useState(false);
+    
+    const getSrc = (path) => {
+        if (!path) return "";
+        if (path.startsWith("http")) return path;
+        const baseUrl = "https://api.mrbikedoctor.cloud";
+        return `${baseUrl}${path.startsWith("/") ? "" : "/"}${path}`;
+    };
+
+    const finalSrc = getSrc(src);
+
     return (
         <div className="mb-3">
             <p><strong>{label}:</strong></p>
             {src ? (
                 <>
                     <img
-                        src={`/${src}`}
+                        src={finalSrc}
                         alt={label}
                         onClick={() => setShow(true)}
                         style={{ width: '100px', height: 'auto', cursor: 'pointer', borderRadius: '4px', border: '1px solid #ccc' }}
@@ -26,7 +39,7 @@ const ImagePreview = ({ src, label }) => {
                     <Modal show={show} onHide={() => setShow(false)} size="lg" centered>
                         <Modal.Body className="text-center">
                             <img
-                                src={`/${src}`}
+                                src={finalSrc}
                                 alt="Preview"
                                 style={{ maxWidth: '100%', maxHeight: '80vh' }}
                             />
@@ -157,13 +170,23 @@ const ViewDealersVerify = () => {
                                     <h5 className="text-primary mb-3"><FaFileAlt className="me-2" /> Uploaded Documents</h5>
                                     <div className="row">
                                         <div className="col-md-4">
+                                            <p><strong>Aadhaar Number:</strong> {dealer.aadharCardNo || 'N/A'} 
+                                                {dealer.aadharCardNo && (validateAadhar(dealer.aadharCardNo) ? 
+                                                    <FaCheckCircle className="text-success ms-2" title="Valid Format" /> : 
+                                                    <FaTimesCircle className="text-danger ms-2" title="Invalid Format" />)}
+                                            </p>
                                             <ImagePreview
-                                                src={`https://api.mrbikedoctor.cloud${dealer.documents?.aadharFront}`}
+                                                src={dealer.documents?.aadharFront}
                                                 label="Aadhaar Front"
                                             />
                                             <ImagePreview src={dealer.documents?.aadharBack} label="Aadhaar Back" />
                                         </div>
                                         <div className="col-md-4">
+                                            <p><strong>PAN Number:</strong> {dealer.panCardNo || 'N/A'} 
+                                                {dealer.panCardNo && (validatePAN(dealer.panCardNo) ? 
+                                                    <FaCheckCircle className="text-success ms-2" title="Valid Format" /> : 
+                                                    <FaTimesCircle className="text-danger ms-2" title="Invalid Format" />)}
+                                            </p>
                                             <ImagePreview src={dealer.documents?.panCardFront} label="PAN Card" />
                                         </div>
                                     </div>
