@@ -26,6 +26,7 @@ import Dashboard from "./pages/Dashboard/Dashboard";
 import ProfilePage from "./pages/Auth/ProfilePage";
 // Auth provider removed - using Redux authSlice
 import AddDealer from "./pages/Dealer/Createdealer";
+import CreateDealerAI from "./pages/Dealer/CreateDealerAI";
 import Admins from "./pages/admin/admin";
 import Bookings from "./pages/bookings/bookings";
 import Customers from "./pages/customer/customer";
@@ -172,6 +173,7 @@ const AppContent = () => {
           <Route path="/addadmin" element={<AddAdmin />} />
           <Route path="/" element={<Dashboard />} />
           <Route path="/add-dealer" element={<AddDealer />} />
+          <Route path="/add-dealer-ai" element={<CreateDealerAI />} />
           <Route path="/view-dealer/:id" element={<ViewDealerDetails />} />
           <Route
             path="/view-verify-dealer/:id"

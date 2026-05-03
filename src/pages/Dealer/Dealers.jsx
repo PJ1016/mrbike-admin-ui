@@ -15,6 +15,7 @@ import {
   Add as AddIcon,
   FileDownload as DownloadIcon,
   NavigateNext as NavigateNextIcon,
+  AutoAwesome as AutoAwesomeIcon,
 } from "@mui/icons-material";
 import DealerStats from "../../components/Dealers/DealerStats";
 
@@ -116,6 +117,24 @@ const Dealer = () => {
                   }}
                 >
                   Export
+                </Button>
+                <Button
+                  component={Link}
+                  to="/add-dealer-ai"
+                  variant="contained"
+                  startIcon={<AutoAwesomeIcon />}
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: "none",
+                    fontWeight: 600,
+                    background: "linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)",
+                    "&:hover": { 
+                      background: "linear-gradient(45deg, #1976D2 30%, #0288D1 90%)"
+                    },
+                    boxShadow: "0 3px 5px 2px rgba(33, 203, 243, .3)",
+                  }}
+                >
+                  AI Create
                 </Button>
                 <Button
                   component={Link}

@@ -47,9 +47,9 @@ import {
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import { approveDealer, deleteDealer, verifyDealerDocument } from "../../api";
+import { approveDealer, deleteDealer, verifyDealerDocument, IMAGE_BASE_URL } from "../../api";
 
-const API_BASE_URL = "https://api.mrbikedoctor.cloud";
+
 
 const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
   const navigate = useNavigate();
@@ -169,7 +169,8 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
   const getImageUrl = (path) => {
     if (!path) return null;
     if (path.startsWith("http")) return path;
-    return `${API_BASE_URL}/${path}`;
+    const cleanPath = path.startsWith("/") ? path : `/${path}`;
+    return `${IMAGE_BASE_URL}${cleanPath}`;
   };
 
   const handleDocVerify = async (docType, status) => {
@@ -365,14 +366,14 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                             color="primary"
                             sx={{ fontWeight: "bold" }}
                           >
-                            {dealer.shopContact || "No Contact"}
+                            {dealer.phone || "No Phone"}
                           </Typography>
                           <Typography
                             variant="caption"
                             display="block"
                             color="text.secondary"
                           >
-                            {dealer.shopEmail || "No Email"}
+                            {dealer.email || "No Email"}
                           </Typography>
                         </Box>
                       </Box>
@@ -382,12 +383,23 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                         <Typography variant="body2">
                           {dealer.ownerName || "N/A"}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          {dealer.personalEmail || dealer.email || "N/A"}
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                        >
+                          {dealer.email || "N/A"}
                         </Typography>
-                        <Typography variant="caption" color="primary" display="block" sx={{ fontWeight: "bold" }}>
-                          {dealer.alternatePhone || dealer.phone || "N/A"}
-                        </Typography>
+                        {dealer.alternatePhone && (
+                          <Typography
+                            variant="caption"
+                            color="primary"
+                            display="block"
+                            sx={{ fontWeight: "bold" }}
+                          >
+                            Alt: {dealer.alternatePhone}
+                          </Typography>
+                        )}
                       </Box>
                     </TableCell>
                     <TableCell>
@@ -489,9 +501,9 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                           );
                         })}
                       </Box>
-                      {Object.entries(dealer.documentVerification || {})
-                        .filter(([_, v]) => v === "rejected")
-                        .length > 0 && (
+                      {Object.entries(dealer.documentVerification || {}).filter(
+                        ([_, v]) => v === "rejected",
+                      ).length > 0 && (
                         <Box sx={{ mt: 1 }}>
                           <Typography
                             variant="caption"
@@ -649,8 +661,11 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                     { label: "Shop Name", value: selectedDealer.shopName },
                     { label: "Owner Name", value: selectedDealer.ownerName },
                     { label: "Shop Email", value: selectedDealer.email },
-                    { label: "Shop Contact", value: selectedDealer.phone },
-                    { label: "Alt. Phone", value: selectedDealer.alternatePhone },
+                    { label: "Phone Number", value: selectedDealer.phone },
+                    {
+                      label: "Alternative Number",
+                      value: selectedDealer.alternatePhone,
+                    },
                     {
                       label: "Commission",
                       value:
@@ -964,11 +979,20 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                       path: selectedDealer.bankDetails?.passbookImage,
                       docKey: "passbook",
                     },
-                    {
-                      label: "Shop Photo",
-                      path: selectedDealer.shopImages?.[0],
-                      docKey: null,
-                    },
+                    ...(selectedDealer.shopImages &&
+                    selectedDealer.shopImages.length > 0
+                      ? selectedDealer.shopImages.map((img, idx) => ({
+                          label: `Shop Photo ${idx + 1}`,
+                          path: img,
+                          docKey: null,
+                        }))
+                      : [
+                          {
+                            label: "Shop Photo",
+                            path: null,
+                            docKey: null,
+                          },
+                        ]),
                   ].map((doc) => {
                     const status = doc.docKey
                       ? docVerification[doc.docKey]
