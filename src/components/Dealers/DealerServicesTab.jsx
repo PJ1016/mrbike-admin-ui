@@ -11,9 +11,12 @@ import {
   Alert,
   Skeleton,
   CircularProgress,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import SaveIcon from "@mui/icons-material/Save";
+import MopedIcon from "@mui/icons-material/Moped";
 import SupportedBikesSection from "./SupportedBikesSection";
 import BaseServicesSection from "./BaseServicesSection";
 import AdditionalServicesSection from "./AdditionalServicesSection";
@@ -25,7 +28,8 @@ import {
   toggleService, 
   toggleAdditionalService,
   hydrateDealerState,
-  resetSelection
+  resetSelection,
+  setPickupCharges
 } from "../../redux/slices/dealerServiceSlice";
 import { getCCRangeKey } from "../../constants/bikeConstants";
 import { useDealerServices } from "../../hooks/useDealerServices";
@@ -40,7 +44,8 @@ const DealerServicesTab = ({ dealer }) => {
     additionalServicePricingByCCRange,
     isSaving, 
     saveSuccess, 
-    error 
+    error,
+    pickupCharges 
   } = useSelector((state) => state.dealerService);
 
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
@@ -144,7 +149,8 @@ const DealerServicesTab = ({ dealer }) => {
             selectedServices: Array.from(selectedServicesSet),
             selectedAdditionalServices: Array.from(selectedAdditionalServicesSet),
             servicePricingByCCRange,
-            additionalServicePricingByCCRange
+            additionalServicePricingByCCRange,
+            pickupCharges: res.pickupCharges || 0
           }));
         } else {
           dispatch(resetSelection());
@@ -223,7 +229,8 @@ const DealerServicesTab = ({ dealer }) => {
 
     const payload = {
       dealerId: dealer?._id,
-      pricing: pricing
+      pricing: pricing,
+      pickupCharges: pickupCharges
     };
     dispatch(submitDealerServices(payload));
   };
@@ -249,6 +256,38 @@ const DealerServicesTab = ({ dealer }) => {
           <Box>
             <SupportedBikesSection />
           </Box>
+
+          <Divider />
+
+          {/* Section: Global Settings */}
+          <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: "divider", borderRadius: 3, bgcolor: "white" }}>
+            <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>
+              <Box sx={{ p: 1, bgcolor: "primary.light", borderRadius: 2, display: "flex" }}>
+                <MopedIcon color="primary" />
+              </Box>
+              <Box>
+                <Typography variant="h6" fontWeight="800">Logistic Settings</Typography>
+                <Typography variant="caption" color="text.secondary">Configure standard charges for vehicle movement</Typography>
+              </Box>
+            </Stack>
+            
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  fullWidth
+                  label="Standard Pickup Charges"
+                  variant="outlined"
+                  type="number"
+                  value={pickupCharges}
+                  onChange={(e) => dispatch(setPickupCharges(e.target.value))}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                  }}
+                  helperText="Standard fee for vehicle pickup and drop"
+                />
+              </Grid>
+            </Grid>
+          </Paper>
 
           <Divider />
 

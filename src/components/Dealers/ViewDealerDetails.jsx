@@ -830,6 +830,19 @@ const VendorDealerDetails = () => {
                             }}
                           />
                         </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            fontWeight="700"
+                            sx={{ display: "block", mb: 0.5 }}
+                          >
+                            PICKUP CHARGES
+                          </Typography>
+                          <Typography variant="body1" fontWeight="600" color="primary.main">
+                            ₹{dealer.pickupCharges || 0}
+                          </Typography>
+                        </Grid>
                       </Grid>
                     </Box>
 
