@@ -39,7 +39,7 @@ import {
   AddPhotoAlternate as AddPhotoAlternateIcon,
   Face as FaceIcon,
 } from "@mui/icons-material";
-import { addDealer } from "../../api";
+import { addDealer, API_BASE_URL } from "../../api";
 
 const steps = ["Upload Documents", "Review Details", "Submit"];
 
@@ -130,7 +130,7 @@ const CreateDealerAI = () => {
       }
 
       const response = await fetch(
-        "http://localhost:8001/bikedoctor/dealer/process",
+        `${API_BASE_URL}/dealer/process`,
         {
           method: "POST",
           body: formDataToSend,

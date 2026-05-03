@@ -30,7 +30,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import PageHeader from "../Global/PageHeader";
 
 const AI_API_URL =
-  process.env.REACT_APP_AI_API_URL || "http://localhost:8001/ai/generate";
+  process.env.REACT_APP_AI_API_URL || "/ai/generate";
 
 const BaseServiceForm = ({ isEdit = false }) => {
   const navigate = useNavigate();
