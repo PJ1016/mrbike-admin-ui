@@ -25,6 +25,9 @@ import {
   Select,
   MenuItem,
   IconButton,
+  Tooltip,
+  Dialog,
+  DialogContent,
 } from "@mui/material";
 import {
   ArrowBack as ArrowBackIcon,
@@ -38,6 +41,8 @@ import {
   Close as CloseIcon,
   AddPhotoAlternate as AddPhotoAlternateIcon,
   Face as FaceIcon,
+  Star as StarIcon,
+  Visibility as VisibilityIcon,
 } from "@mui/icons-material";
 import { addDealer, API_BASE_URL } from "../../api";
 
@@ -87,6 +92,7 @@ const CreateDealerAI = () => {
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [postOffices, setPostOffices] = useState([]);
   const [selectedPostOffice, setSelectedPostOffice] = useState("");
+  const [previewImage, setPreviewImage] = useState(null);
 
   const handleFileUpload = (fileType, file) => {
     setFiles((prev) => ({ ...prev, [fileType]: file }));
@@ -106,6 +112,15 @@ const CreateDealerAI = () => {
       ...prev,
       shopImages: prev.shopImages.filter((_, i) => i !== index),
     }));
+  };
+
+  const setAsMainImage = (index) => {
+    setFiles((prev) => {
+      const updatedImages = [...prev.shopImages];
+      const selectedImage = updatedImages.splice(index, 1)[0];
+      updatedImages.unshift(selectedImage);
+      return { ...prev, shopImages: updatedImages };
+    });
   };
 
   const allFilesUploaded =
@@ -129,13 +144,10 @@ const CreateDealerAI = () => {
         formDataToSend.append("bankPassbook", files.bankPassbook);
       }
 
-      const response = await fetch(
-        `${API_BASE_URL}/dealer/process`,
-        {
-          method: "POST",
-          body: formDataToSend,
-        },
-      );
+      const response = await fetch(`${API_BASE_URL}/dealer/process`, {
+        method: "POST",
+        body: formDataToSend,
+      });
 
       const result = await response.json();
 
@@ -1196,102 +1208,73 @@ const CreateDealerAI = () => {
 
                       <Divider sx={{ my: 4 }} />
 
-                      {/* Sub-section 5: Shop Images */}
-                      <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-                          <Typography
-                            variant="subtitle2"
-                            sx={{
-                              fontWeight: 700,
-                              color: "text.secondary",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.1em",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                            }}
-                          >
-                            📸 Shop Images
-                          </Typography>
-                          <Chip 
-                            label={`${files.shopImages.length} / 5 Photos`} 
-                            size="small" 
-                            color={files.shopImages.length > 0 ? "primary" : "default"}
-                            variant={files.shopImages.length > 0 ? "filled" : "outlined"}
-                            sx={{ fontWeight: 600, borderRadius: 1.5 }}
-                          />
-                        </Box>
-                        
-                        <Grid container spacing={2.5}>
-                          {files.shopImages.map((file, index) => (
-                            <Grid item xs={6} sm={4} md={2.4} key={index}>
-                              <Paper
-                                elevation={0}
+                      {/* Sub-section 5: Shop Images Gallery */}
+                      <Box sx={{ mt: 2 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            mb: 3,
+                          }}
+                        >
+                          <Box>
+                            <Typography
+                              variant="subtitle1"
+                              sx={{
+                                fontWeight: 800,
+                                color: "#1e293b",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1.5,
+                              }}
+                            >
+                              <Box
                                 sx={{
-                                  position: "relative",
-                                  paddingTop: "100%",
-                                  borderRadius: 3,
-                                  overflow: "hidden",
-                                  border: "1px solid",
-                                  borderColor: "divider",
-                                  transition: "all 0.3s ease",
-                                  "&:hover": {
-                                    transform: "translateY(-4px)",
-                                    boxShadow: "0 12px 20px rgba(0,0,0,0.1)",
-                                    "& .delete-btn": { opacity: 1 }
-                                  },
+                                  p: 1,
+                                  borderRadius: 2,
+                                  backgroundColor: "primary.50",
+                                  color: "primary.main",
+                                  display: "flex",
                                 }}
                               >
-                                <img
-                                  src={URL.createObjectURL(file)}
-                                  alt={`Shop ${index + 1}`}
-                                  style={{
-                                    position: "absolute",
-                                    top: 0,
-                                    left: 0,
-                                    width: "100%",
-                                    height: "100%",
-                                    objectFit: "cover",
-                                  }}
-                                />
-                                <Box
-                                  className="delete-btn"
-                                  sx={{
-                                    position: "absolute",
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    backgroundColor: "rgba(0,0,0,0.2)",
-                                    opacity: 0,
-                                    transition: "opacity 0.2s",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                  }}
-                                >
-                                  <IconButton
-                                    size="medium"
-                                    onClick={() => removeShopImage(index)}
-                                    sx={{
-                                      backgroundColor: "rgba(255, 255, 255, 0.9)",
-                                      backdropFilter: "blur(4px)",
-                                      color: "error.main",
-                                      "&:hover": {
-                                        backgroundColor: "#fff",
-                                        transform: "scale(1.1)",
-                                      },
-                                    }}
-                                  >
-                                    <CloseIcon fontSize="small" />
-                                  </IconButton>
-                                </Box>
-                              </Paper>
-                            </Grid>
-                          ))}
-                          
-                          {files.shopImages.length < 5 && (
-                            <Grid item xs={6} sm={4} md={2.4}>
+                                <AddPhotoAlternateIcon />
+                              </Box>
+                              Shop Gallery
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ mt: 0.5 }}
+                            >
+                              The featured image (first one) will be shown as
+                              your primary shop photo.
+                            </Typography>
+                          </Box>
+                          <Chip
+                            label={`${files.shopImages.length} / 5 Photos`}
+                            size="medium"
+                            color={
+                              files.shopImages.length > 0
+                                ? "primary"
+                                : "default"
+                            }
+                            variant={
+                              files.shopImages.length > 0
+                                ? "filled"
+                                : "outlined"
+                            }
+                            sx={{
+                              fontWeight: 700,
+                              borderRadius: 2,
+                              height: 32,
+                            }}
+                          />
+                        </Box>
+
+                        <Grid container spacing={3}>
+                          {files.shopImages.length === 0 ? (
+                            <Grid item xs={12}>
                               <Box
                                 component="label"
                                 sx={{
@@ -1299,59 +1282,85 @@ const CreateDealerAI = () => {
                                   flexDirection: "column",
                                   alignItems: "center",
                                   justifyContent: "center",
-                                  paddingTop: "calc(100% - 4px)",
-                                  borderRadius: 3,
-                                  border: "2px dashed",
+                                  py: 10,
+                                  px: 4,
+                                  borderRadius: 5,
+                                  border: "3px dashed",
                                   borderColor: "primary.light",
-                                  backgroundColor: "primary.50",
+                                  backgroundColor: "rgba(33, 150, 243, 0.02)",
                                   cursor: "pointer",
-                                  position: "relative",
-                                  transition: "all 0.2s ease",
+                                  transition:
+                                    "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+                                  textAlign: "center",
+                                  width: "100%",
                                   "&:hover": {
-                                    backgroundColor: "primary.100",
+                                    backgroundColor: "rgba(33, 150, 243, 0.08)",
                                     borderColor: "primary.main",
-                                    transform: "scale(0.98)",
+                                    transform: "translateY(-4px)",
+                                    boxShadow:
+                                      "0 20px 40px -10px rgba(33, 150, 243, 0.15)",
+                                    "& .add-icon-box": {
+                                      transform: "scale(1.1) rotate(90deg)",
+                                      boxShadow:
+                                        "0 15px 30px -5px rgba(33, 150, 243, 0.3)",
+                                    },
                                   },
                                 }}
                               >
                                 <Box
+                                  className="add-icon-box"
                                   sx={{
-                                    position: "absolute",
-                                    top: 0,
-                                    left: 0,
-                                    width: "100%",
-                                    height: "100%",
+                                    width: 100,
+                                    height: 100,
+                                    borderRadius: "32px",
+                                    backgroundColor: "primary.main",
                                     display: "flex",
-                                    flexDirection: "column",
                                     alignItems: "center",
                                     justifyContent: "center",
-                                    gap: 1,
+                                    boxShadow:
+                                      "0 15px 30px -5px rgba(33, 150, 243, 0.3)",
+                                    transition: "all 0.5s ease",
+                                    mb: 3,
                                   }}
                                 >
-                                  <Box 
-                                    sx={{ 
-                                      width: 40, 
-                                      height: 40, 
-                                      borderRadius: "50%", 
-                                      backgroundColor: "primary.main", 
-                                      display: "flex", 
-                                      alignItems: "center", 
-                                      justifyContent: "center",
-                                      boxShadow: "0 4px 10px rgba(33, 150, 243, 0.3)",
-                                      mb: 0.5
-                                    }}
-                                  >
-                                    <AddPhotoAlternateIcon sx={{ color: "#fff", fontSize: 20 }} />
-                                  </Box>
-                                  <Typography
-                                    variant="caption"
-                                    color="primary.main"
-                                    fontWeight={700}
-                                    sx={{ textTransform: 'uppercase', fontSize: '0.65rem' }}
-                                  >
-                                    Add Shop Photo
-                                  </Typography>
+                                  <AddPhotoAlternateIcon
+                                    sx={{ color: "#fff", fontSize: 48 }}
+                                  />
                                 </Box>
+                                <Typography
+                                  variant="h5"
+                                  color="#1e293b"
+                                  fontWeight={900}
+                                  sx={{ mb: 1 }}
+                                >
+                                  Upload Shop Photos
+                                </Typography>
+                                <Typography
+                                  variant="body1"
+                                  color="text.secondary"
+                                  sx={{ mb: 4, maxWidth: 500 }}
+                                >
+                                  Dealers with great shop photos see 40% more
+                                  bookings. Upload at least 3 photos (Interior,
+                                  Exterior, Main Entrance).
+                                </Typography>
+                                <Button
+                                  variant="contained"
+                                  component="span"
+                                  startIcon={<CloudUploadIcon />}
+                                  sx={{
+                                    borderRadius: 3,
+                                    px: 6,
+                                    py: 1.5,
+                                    textTransform: "none",
+                                    fontWeight: 700,
+                                    fontSize: "1rem",
+                                    boxShadow:
+                                      "0 10px 20px rgba(33, 150, 243, 0.2)",
+                                  }}
+                                >
+                                  Select Photos from Computer
+                                </Button>
                                 <input
                                   type="file"
                                   accept="image/*"
@@ -1361,23 +1370,341 @@ const CreateDealerAI = () => {
                                 />
                               </Box>
                             </Grid>
+                          ) : (
+                            <Box>
+                              {/* Hero Image */}
+                              <Box
+                                sx={{
+                                  position: "relative",
+                                  width: "100%",
+                                  height: { xs: 240, md: 360 },
+                                  borderRadius: 5,
+                                  overflow: "hidden",
+                                  border: "4px solid",
+                                  borderColor: "primary.main",
+                                  boxShadow: "0 20px 40px -10px rgba(33, 150, 243, 0.2)",
+                                  mb: 3,
+                                  "&:hover .hero-overlay": { opacity: 1 }
+                                }}
+                              >
+                                <img
+                                  src={URL.createObjectURL(files.shopImages[0])}
+                                  alt="Main Shop Preview"
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                  }}
+                                  onClick={() => setPreviewImage(URL.createObjectURL(files.shopImages[0]))}
+                                />
+                                
+                                <Box
+                                  sx={{
+                                    position: "absolute",
+                                    bottom: 0,
+                                    left: 0,
+                                    right: 0,
+                                    padding: 3,
+                                    background: "linear-gradient(to top, rgba(15,23,42,0.9) 0%, rgba(15,23,42,0) 100%)",
+                                    display: "flex",
+                                    alignItems: "flex-end",
+                                    pointerEvents: "none"
+                                  }}
+                                >
+                                  <Chip 
+                                    icon={<StarIcon style={{ color: "#fff" }} />} 
+                                    label="Primary Featured Photo" 
+                                    color="primary"
+                                    sx={{ 
+                                      fontWeight: 800, 
+                                      fontSize: "0.85rem",
+                                      borderRadius: 2,
+                                      height: 36,
+                                      boxShadow: "0 10px 15px -3px rgba(33, 150, 243, 0.4)"
+                                    }} 
+                                  />
+                                </Box>
+
+                                <Box
+                                  className="hero-overlay"
+                                  sx={{
+                                    position: "absolute",
+                                    top: 16,
+                                    right: 16,
+                                    opacity: 0,
+                                    transition: "all 0.3s ease",
+                                    display: "flex",
+                                    gap: 1.5,
+                                  }}
+                                >
+                                  <Tooltip title="Preview" arrow>
+                                    <IconButton
+                                      onClick={() => setPreviewImage(URL.createObjectURL(files.shopImages[0]))}
+                                      sx={{ backgroundColor: "rgba(255,255,255,0.9)", color: "primary.main", "&:hover": { backgroundColor: "#fff", transform: "scale(1.1)" } }}
+                                    >
+                                      <VisibilityIcon />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Tooltip title="Remove" arrow>
+                                    <IconButton
+                                      onClick={() => removeShopImage(0)}
+                                      sx={{ backgroundColor: "rgba(255,255,255,0.9)", color: "error.main", "&:hover": { backgroundColor: "#fff", transform: "scale(1.1)" } }}
+                                    >
+                                      <CloseIcon />
+                                    </IconButton>
+                                  </Tooltip>
+                                </Box>
+                              </Box>
+
+                              {/* Thumbnail Strip */}
+                              <Stack direction="row" spacing={2} sx={{ overflowX: "auto", pb: 2, "&::-webkit-scrollbar": { height: 8 }, "&::-webkit-scrollbar-thumb": { backgroundColor: "rgba(33, 150, 243, 0.2)", borderRadius: 4 } }}>
+                                {files.shopImages.slice(1).map((file, i) => {
+                                  const originalIndex = i + 1;
+                                  return (
+                                    <Box
+                                      key={originalIndex}
+                                      sx={{
+                                        position: "relative",
+                                        width: 140,
+                                        height: 140,
+                                        flexShrink: 0,
+                                        borderRadius: 4,
+                                        overflow: "hidden",
+                                        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                                        border: "2px solid transparent",
+                                        "&:hover": { borderColor: "primary.light" },
+                                        "&:hover .thumb-overlay": { opacity: 1 }
+                                      }}
+                                    >
+                                      <img
+                                        src={URL.createObjectURL(file)}
+                                        alt={`Shop Thumbnail ${originalIndex}`}
+                                        style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }}
+                                        onClick={() => setPreviewImage(URL.createObjectURL(file))}
+                                      />
+                                      <Box
+                                        className="thumb-overlay"
+                                        sx={{
+                                          position: "absolute",
+                                          top: 0, left: 0, right: 0, bottom: 0,
+                                          backgroundColor: "rgba(15, 23, 42, 0.6)",
+                                          backdropFilter: "blur(2px)",
+                                          opacity: 0,
+                                          transition: "all 0.3s ease",
+                                          display: "flex",
+                                          flexDirection: "column",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          gap: 1.5,
+                                          pointerEvents: "none"
+                                        }}
+                                      >
+                                        <Stack direction="row" spacing={1} sx={{ pointerEvents: "auto" }}>
+                                          <Tooltip title="Preview" arrow>
+                                            <IconButton
+                                              size="small"
+                                              onClick={() => setPreviewImage(URL.createObjectURL(file))}
+                                              sx={{ backgroundColor: "rgba(255, 255, 255, 0.9)", color: "primary.main", "&:hover": { backgroundColor: "#fff", transform: "scale(1.1)" } }}
+                                            >
+                                              <VisibilityIcon fontSize="small" />
+                                            </IconButton>
+                                          </Tooltip>
+                                          <Tooltip title="Set as Primary" arrow>
+                                            <IconButton
+                                              size="small"
+                                              onClick={() => setAsMainImage(originalIndex)}
+                                              sx={{ backgroundColor: "rgba(255, 255, 255, 0.9)", color: "warning.main", "&:hover": { backgroundColor: "#fff", transform: "scale(1.1)" } }}
+                                            >
+                                              <StarIcon fontSize="small" />
+                                            </IconButton>
+                                          </Tooltip>
+                                        </Stack>
+                                        <Tooltip title="Remove" arrow sx={{ pointerEvents: "auto" }}>
+                                          <IconButton
+                                            size="small"
+                                            onClick={() => removeShopImage(originalIndex)}
+                                            sx={{ backgroundColor: "rgba(255, 255, 255, 0.9)", color: "error.main", "&:hover": { backgroundColor: "#fff", transform: "scale(1.1)" } }}
+                                          >
+                                            <CloseIcon fontSize="small" />
+                                          </IconButton>
+                                        </Tooltip>
+                                      </Box>
+                                    </Box>
+                                  );
+                                })}
+
+                                {/* Add More Button in Strip */}
+                                {files.shopImages.length < 5 && (
+                                  <Box
+                                    component="label"
+                                    sx={{
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      width: 140,
+                                      height: 140,
+                                      flexShrink: 0,
+                                      borderRadius: 4,
+                                      border: "3px dashed",
+                                      borderColor: "primary.light",
+                                      backgroundColor: "primary.50",
+                                      cursor: "pointer",
+                                      transition: "all 0.3s ease",
+                                      "&:hover": {
+                                        backgroundColor: "primary.100",
+                                        borderColor: "primary.main",
+                                        transform: "translateY(-4px)",
+                                        "& .add-icon-mini": { transform: "scale(1.1)" }
+                                      }
+                                    }}
+                                  >
+                                    <Box
+                                      className="add-icon-mini"
+                                      sx={{
+                                        width: 40, height: 40, borderRadius: "12px",
+                                        backgroundColor: "primary.main",
+                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                        boxShadow: "0 8px 16px rgba(33, 150, 243, 0.2)",
+                                        transition: "all 0.3s ease",
+                                        mb: 1
+                                      }}
+                                    >
+                                      <AddPhotoAlternateIcon sx={{ color: "#fff", fontSize: 20 }} />
+                                    </Box>
+                                    <Typography variant="caption" color="primary.main" fontWeight={800} sx={{ textTransform: "uppercase" }}>
+                                      Add Photo
+                                    </Typography>
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      multiple
+                                      onChange={handleShopImagesChange}
+                                      style={{ display: "none" }}
+                                    />
+                                  </Box>
+                                )}
+                              </Stack>
+                            </Box>
                           )}
                         </Grid>
-                        <Alert 
-                          severity="info" 
-                          icon={false}
-                          sx={{ 
-                            mt: 3, 
-                            borderRadius: 2,
-                            backgroundColor: "grey.50",
+
+                        <Box
+                          sx={{
+                            mt: 4,
+                            p: 2.5,
+                            borderRadius: 3,
+                            backgroundColor: "rgba(33, 150, 243, 0.05)",
                             border: "1px solid",
-                            borderColor: "grey.200",
-                            "& .MuiAlert-message": { color: "text.secondary", fontSize: "0.75rem" }
+                            borderColor: "primary.50",
                           }}
                         >
-                          Tip: Upload both interior and exterior shots to help customers find your shop easily. (Max 5 photos)
-                        </Alert>
+                          <Stack
+                            direction="row"
+                            spacing={2.5}
+                            alignItems="center"
+                          >
+                            <Box
+                              sx={{
+                                p: 1.5,
+                                borderRadius: 2,
+                                backgroundColor: "primary.main",
+                                color: "white",
+                                display: "flex",
+                                boxShadow: "0 4px 12px rgba(33, 150, 243, 0.3)",
+                              }}
+                            >
+                              <AutoAwesomeIcon sx={{ fontSize: 20 }} />
+                            </Box>
+                            <Box>
+                              <Typography
+                                variant="subtitle2"
+                                color="primary.main"
+                                fontWeight={800}
+                              >
+                                Visual Impact Matters
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{
+                                  display: "block",
+                                  mt: 0.5,
+                                  lineHeight: 1.5,
+                                }}
+                              >
+                                Dealers with at least 3 high-quality shop photos
+                                (Interior & Exterior) see{" "}
+                                <strong>40% higher</strong> customer engagement.
+                                Make sure your featured image shows your shop's
+                                main entrance.
+                              </Typography>
+                            </Box>
+                          </Stack>
+                        </Box>
                       </Box>
+
+                      {/* Image Preview Modal */}
+                      <Dialog
+                        open={Boolean(previewImage)}
+                        onClose={() => setPreviewImage(null)}
+                        maxWidth="lg"
+                        fullWidth
+                        PaperProps={{
+                          sx: {
+                            borderRadius: 6,
+                            overflow: "hidden",
+                            backgroundColor: "transparent",
+                            boxShadow: "none",
+                          },
+                        }}
+                      >
+                        <DialogContent
+                          sx={{
+                            p: 0,
+                            position: "relative",
+                            backgroundColor: "rgba(0,0,0,0.8)",
+                            backdropFilter: "blur(10px)",
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            minHeight: "50vh",
+                          }}
+                        >
+                          <IconButton
+                            onClick={() => setPreviewImage(null)}
+                            sx={{
+                              position: "absolute",
+                              top: 24,
+                              right: 24,
+                              backgroundColor: "rgba(255,255,255,0.1)",
+                              color: "white",
+                              "&:hover": {
+                                backgroundColor: "rgba(255,255,255,0.2)",
+                                transform: "rotate(90deg)",
+                              },
+                              transition: "all 0.3s ease",
+                              zIndex: 10,
+                            }}
+                          >
+                            <CloseIcon />
+                          </IconButton>
+                          {previewImage && (
+                            <img
+                              src={previewImage}
+                              alt="Shop Preview"
+                              style={{
+                                maxWidth: "95%",
+                                maxHeight: "90vh",
+                                objectFit: "contain",
+                                borderRadius: "12px",
+                                boxShadow:
+                                  "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+                              }}
+                            />
+                          )}
+                        </DialogContent>
+                      </Dialog>
                     </Paper>
                   </Grid>
 
