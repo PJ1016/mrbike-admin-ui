@@ -272,8 +272,8 @@ const VendorDealerDetails = () => {
     );
     addInfo("Pincode", dealer.shopPincode || "N/A");
     addInfo(
-      "Commission / Tax",
-      `${dealer.commission || 0}% / ${dealer.tax || 0}%`,
+      "Commission / Tax / Pickup",
+      `${dealer.commission || 0}% / ${dealer.tax || 0}% / Rs. ${dealer.pickupCharges || 0}`,
     );
     addInfo("Status", dealer.isActive ? "Active" : "Inactive");
     yPos += 5;

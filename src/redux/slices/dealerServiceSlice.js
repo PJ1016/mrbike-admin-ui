@@ -52,7 +52,6 @@ const dealerServiceSlice = createSlice({
     // Caching for dealer services
     cachedServices: {}, // { [dealerId]: { data, timestamp } }
     fetchingServices: {}, // { [dealerId]: boolean }
-    pickupCharges: 0,
   },
   reducers: {
     setSelectedBikes: (state, action) => {
@@ -167,7 +166,6 @@ const dealerServiceSlice = createSlice({
       state.selectedAdditionalServices = selectedAdditionalServices || [];
       state.servicePricingByCCRange = servicePricingByCCRange || {};
       state.additionalServicePricingByCCRange = additionalServicePricingByCCRange || {};
-      state.pickupCharges = action.payload.pickupCharges || 0;
     },
     setSelectedCompanies: (state, action) => {
       state.selectedCompanies = action.payload;
@@ -193,9 +191,6 @@ const dealerServiceSlice = createSlice({
         state.cachedServices = {};
         state.fetchingServices = {};
       }
-    },
-    setPickupCharges: (state, action) => {
-      state.pickupCharges = Number(action.payload);
     },
   },
   extraReducers: (builder) => {
@@ -249,8 +244,7 @@ export const {
     setSelectedCompanies,
     resetSelection,
     resetSaveStatus,
-    clearDealerServicesCache,
-    setPickupCharges
+    clearDealerServicesCache
 } = dealerServiceSlice.actions;
 
 export default dealerServiceSlice.reducer;

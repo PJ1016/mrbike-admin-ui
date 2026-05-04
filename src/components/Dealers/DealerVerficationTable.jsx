@@ -47,9 +47,12 @@ import {
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import { approveDealer, deleteDealer, verifyDealerDocument, IMAGE_BASE_URL } from "../../api";
-
-
+import {
+  approveDealer,
+  deleteDealer,
+  verifyDealerDocument,
+  IMAGE_BASE_URL,
+} from "../../api";
 
 const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
   const navigate = useNavigate();
@@ -678,6 +681,13 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                       value:
                         selectedDealer.tax != null
                           ? `${selectedDealer.tax}%`
+                          : null,
+                    },
+                    {
+                      label: "Pickup charges",
+                      value:
+                        selectedDealer.pickupCharges != null
+                          ? `₹${selectedDealer.pickupCharges}`
                           : null,
                     },
                     {

@@ -149,8 +149,7 @@ const DealerServicesTab = ({ dealer }) => {
             selectedServices: Array.from(selectedServicesSet),
             selectedAdditionalServices: Array.from(selectedAdditionalServicesSet),
             servicePricingByCCRange,
-            additionalServicePricingByCCRange,
-            pickupCharges: res.pickupCharges || 0
+            additionalServicePricingByCCRange
           }));
         } else {
           dispatch(resetSelection());
@@ -229,8 +228,7 @@ const DealerServicesTab = ({ dealer }) => {
 
     const payload = {
       dealerId: dealer?._id,
-      pricing: pricing,
-      pickupCharges: pickupCharges
+      pricing: pricing
     };
     dispatch(submitDealerServices(payload));
   };
@@ -258,36 +256,6 @@ const DealerServicesTab = ({ dealer }) => {
           </Box>
 
           <Divider />
-
-          {/* Section: Global Settings */}
-          <Paper elevation={0} sx={{ p: 3, border: "1px solid", borderColor: "divider", borderRadius: 3, bgcolor: "white" }}>
-            <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>
-              <Box sx={{ p: 1, bgcolor: "primary.light", borderRadius: 2, display: "flex" }}>
-                <MopedIcon color="primary" />
-              </Box>
-              <Box>
-                <Typography variant="h6" fontWeight="800">Logistic Settings</Typography>
-                <Typography variant="caption" color="text.secondary">Configure standard charges for vehicle movement</Typography>
-              </Box>
-            </Stack>
-            
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField
-                  fullWidth
-                  label="Standard Pickup Charges"
-                  variant="outlined"
-                  type="number"
-                  value={pickupCharges}
-                  onChange={(e) => dispatch(setPickupCharges(e.target.value))}
-                  InputProps={{
-                    startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                  }}
-                  helperText="Standard fee for vehicle pickup and drop"
-                />
-              </Grid>
-            </Grid>
-          </Paper>
 
           <Divider />
 
