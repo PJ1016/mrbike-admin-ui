@@ -80,6 +80,7 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
         presentCity: dealerData.presentAddress?.city || "",
         aadharCardNo: dealerData.aadharCardNo || "",
         panCardNo: dealerData.panCardNo || "",
+        pickupCharges: dealerData.pickupCharges || "",
       };
     }
     return {
@@ -113,6 +114,7 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
       presentCity: "",
       aadharCardNo: "",
       panCardNo: "",
+      pickupCharges: "",
     };
   };
 
@@ -319,6 +321,15 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
           </Grid>
           <Grid item xs={12} md={6}>
             <TextField fullWidth label="IFSC Code" name="ifscCode" value={formData.ifscCode} onChange={handleChange} />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField fullWidth label="Commission (%)" name="comission" type="number" value={formData.comission} onChange={handleChange} />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField fullWidth label="Tax (%)" name="tax" type="number" value={formData.tax} onChange={handleChange} />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField fullWidth label="Pick up charges" name="pickupCharges" type="number" value={formData.pickupCharges} onChange={handleChange} />
           </Grid>
 
           <Grid item xs={12}>

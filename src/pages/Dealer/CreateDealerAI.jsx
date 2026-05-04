@@ -85,6 +85,7 @@ const CreateDealerAI = () => {
     longitude: "",
     commission: "",
     tax: "",
+    pickupCharges: "",
   });
 
   const [formEnabled, setFormEnabled] = useState(false);
@@ -327,6 +328,7 @@ const CreateDealerAI = () => {
         tax: formData.tax,
         aadharCardNo: formData.aadhaarNumber,
         panCardNo: formData.panNumber,
+        pickupCharges: formData.pickupCharges,
       };
 
       Object.entries(dataMapping).forEach(([key, value]) => {
@@ -1175,7 +1177,7 @@ const CreateDealerAI = () => {
                           💰 Business Settings
                         </Typography>
                         <Grid container spacing={3}>
-                          <Grid item xs={12} md={6}>
+                          <Grid item xs={12} md={4}>
                             <TextField
                               fullWidth
                               label="Commission (%)"
@@ -1189,7 +1191,7 @@ const CreateDealerAI = () => {
                               helperText="Commission percentage for transactions"
                             />
                           </Grid>
-                          <Grid item xs={12} md={6}>
+                          <Grid item xs={12} md={4}>
                             <TextField
                               fullWidth
                               label="Tax (%)"
@@ -1201,6 +1203,20 @@ const CreateDealerAI = () => {
                               type="number"
                               inputProps={{ min: 0, max: 100, step: 0.1 }}
                               helperText="Tax percentage being collected"
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={4}>
+                            <TextField
+                              fullWidth
+                              label="Pick up charges"
+                              placeholder="Enter pick up charges"
+                              value={formData.pickupCharges}
+                              onChange={(e) =>
+                                handleInputChange("pickupCharges", e.target.value)
+                              }
+                              type="number"
+                              inputProps={{ min: 0 }}
+                              helperText="Flat charges for pick up service"
                             />
                           </Grid>
                         </Grid>
