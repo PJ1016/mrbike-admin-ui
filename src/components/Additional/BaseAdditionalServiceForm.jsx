@@ -20,6 +20,11 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import SaveIcon from '@mui/icons-material/Save'
 import { createBaseAdditionalService, getBaseAdditionalServiceById, updateBaseAdditionalService } from '../../api/additionalServiceApi'
 import PageHeader from '../Global/PageHeader'
+import { BsStars } from "react-icons/bs";
+import axios from "axios";
+import { InputAdornment, IconButton, Tooltip } from '@mui/material';
+
+const AI_API_URL = process.env.REACT_APP_AI_API_URL || "/ai/generate";
 
 // Helper to form image URLs correctly
 const getImageUrl = (imagePath) => {
@@ -35,6 +40,7 @@ const BaseAdditionalServiceForm = ({ isEdit = false }) => {
   
   const [formData, setFormData] = useState({
     name: '',
+    description: '',
   })
   const [image, setImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
@@ -43,6 +49,7 @@ const BaseAdditionalServiceForm = ({ isEdit = false }) => {
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
   const [alertInfo, setAlertInfo] = useState({ show: false, message: '', severity: 'success' })
 
   useEffect(() => {
@@ -53,7 +60,10 @@ const BaseAdditionalServiceForm = ({ isEdit = false }) => {
           const response = await getBaseAdditionalServiceById(id)
           if (response && response.data) {
             const service = response.data
-            setFormData({ name: service.name || '' })
+            setFormData({ 
+              name: service.name || '',
+              description: service.description || '',
+            })
             setExistingImage(service.image || null)
           }
         } catch (error) {
@@ -103,6 +113,26 @@ const BaseAdditionalServiceForm = ({ isEdit = false }) => {
     }
   }
 
+  const handleGenerateDescription = async () => {
+    if (!formData.name.trim()) return;
+
+    setIsGenerating(true);
+    try {
+      const { data } = await axios.post(AI_API_URL, {
+        prompt: `Write a clear, professional description for a bike service called "${formData.name}". Please provide the description ONLY as a short list of bullet points using standard dashes (-). Do not use any markdown formatting like asterisks (**) for bolding. Do not include any introductory text, conversational filler, or concluding remarks.`,
+      });
+
+      if (data?.result) {
+        setFormData((prev) => ({ ...prev, description: data.result }));
+      }
+    } catch (error) {
+      console.error("Failed to generate description:", error);
+      setAlertInfo({ show: true, message: "Failed to generate AI description", severity: "error" });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setFormErrors({})
@@ -115,6 +145,7 @@ const BaseAdditionalServiceForm = ({ isEdit = false }) => {
     try {
       const form = new FormData()
       form.append('name', formData.name)
+      form.append('description', formData.description)
       if (image) form.append('image', image)
 
       let response
@@ -178,6 +209,32 @@ const BaseAdditionalServiceForm = ({ isEdit = false }) => {
                         onChange={handleChange}
                         error={!!formErrors.name}
                         helperText={formErrors.name}
+                      />
+
+                      <TextField
+                        fullWidth
+                        label="Service Description"
+                        name="description"
+                        placeholder="Detailed description of the additional service..."
+                        value={formData.description}
+                        onChange={handleChange}
+                        multiline
+                        rows={4}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end" sx={{ alignSelf: "flex-end", mb: 1, mr: -1 }}>
+                              <Tooltip title="Generate description with AI">
+                                <IconButton
+                                  color="primary"
+                                  onClick={handleGenerateDescription}
+                                  disabled={!formData.name.trim() || isGenerating}
+                                >
+                                  {isGenerating ? <CircularProgress size={24} /> : <BsStars />}
+                                </IconButton>
+                              </Tooltip>
+                            </InputAdornment>
+                          ),
+                        }}
                       />
 
                       <Box>

@@ -17,7 +17,7 @@ const BaseAdditionalServices = () => {
   const [refresh, setRefresh] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  const tableHeaders = ['#', 'Service Image', 'Service Name', 'Created At', 'Actions']
+  const tableHeaders = ['#', 'Service Image', 'Service Name', 'Description', 'Created At', 'Actions']
 
   useEffect(() => {
     const fetchServices = async () => {

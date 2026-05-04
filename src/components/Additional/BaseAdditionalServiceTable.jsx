@@ -128,7 +128,10 @@ const BaseAdditionalServiceTable = ({
     if (searchTerm.trim()) {
       dataList = dataList.filter((item) => {
         const search = searchTerm.toLowerCase();
-        return item.name?.toLowerCase().includes(search) ?? false;
+        return (
+          item.name?.toLowerCase().includes(search) || 
+          item.description?.toLowerCase().includes(search)
+        ) ?? false;
       });
     }
 
@@ -277,6 +280,22 @@ const BaseAdditionalServiceTable = ({
                   <TableCell>
                     <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
                       {service.name || "N/A"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ maxWidth: 300 }}>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        fontSize: "0.85rem",
+                        lineHeight: 1.5
+                      }}
+                    >
+                      {service.description || "—"}
                     </Typography>
                   </TableCell>
                   <TableCell sx={{ whiteSpace: "nowrap" }}>
