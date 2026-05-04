@@ -69,7 +69,7 @@ const menuConfig = [
     title: "Services",
     icon: <ServiceIcon />,
     children: [
-      { title: "Major Services", path: "/base-services" },
+      { title: "Major Services", path: "/MajorServices" },
       { title: "Additional Services", path: "/base-additional-services" },
     ],
   },

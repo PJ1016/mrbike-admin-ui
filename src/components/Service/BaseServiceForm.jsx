@@ -170,7 +170,7 @@ const BaseServiceForm = ({ isEdit = false }) => {
         
         // Wait a brief moment before navigating back to let the snackbar show
         setTimeout(() => {
-          navigate("/base-services");
+          navigate("/MajorServices");
         }, 1200);
       }
     } catch (error) {
@@ -306,7 +306,7 @@ const BaseServiceForm = ({ isEdit = false }) => {
             title={isEdit ? "Edit Base Service" : "Add Base Service"}
             breadcrumbs={[
               { label: "Dashboard", path: "/" },
-              { label: "Services", path: "/base-services" },
+              { label: "Services", path: "/MajorServices" },
               { label: isEdit ? "Edit" : "Add", path: "#" },
             ]}
           />
@@ -376,7 +376,7 @@ const BaseServiceForm = ({ isEdit = false }) => {
                     <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
                       <Button
                         variant="outlined"
-                        onClick={() => navigate("/base-services")}
+                        onClick={() => navigate("/MajorServices")}
                         disabled={isSubmitting}
                         sx={{ fontWeight: "bold" }}
                       >

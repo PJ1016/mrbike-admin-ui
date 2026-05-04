@@ -51,13 +51,14 @@ import ViewDealersVerify from "./pages/Dealer/ViewDealersVerify";
 import UpdateDealerVerify from "./components/Dealers/UpdateDealerVerify";
 import AllTicket from "./pages/ticketSection/AllTicket";
 import NewTicket from "./pages/ticketSection/NewTicket";
-import BaseServices from "./pages/services/BaseServices";
+// Removed BaseServices in favor of MajorServices
 import BaseServiceForm from "./components/Service/BaseServiceForm";
 import BaseAdditionalServices from "./pages/services/BaseAdditionalServices";
 import BaseAdditionalServiceForm from "./components/Additional/BaseAdditionalServiceForm";
 import DealerServices from "./pages/Dealer/DealerServices";
 import ViewUserDetails from "./pages/customer/ViewUserDetails";
 import ViewAdminServiceDetails from "./components/Service/ViewAdminServiceDetails";
+import MajorServices from "./pages/services/MajorServices";
 const theme = createTheme({
   palette: {
     primary: {
@@ -191,7 +192,8 @@ const AppContent = () => {
           <Route path="/admins" element={<Admins />} />
           <Route path="/bookings" element={<Bookings />} />
           <Route path="/customers" element={<Customers />} />
-          <Route path="/base-services" element={<BaseServices />} />
+          <Route path="/base-services" element={<MajorServices />} />
+          <Route path="/MajorServices" element={<MajorServices />} />
           <Route
             path="/create-base-service"
             element={<BaseServiceForm isEdit={false} />}
