@@ -9,7 +9,6 @@ export const API_BASE_URL =
 
 export const IMAGE_BASE_URL = "https://api.mrbikedoctor.cloud";
 
-
 const getAuthToken = () => localStorage.getItem("adminToken");
 
 const apiRequest = async (
@@ -88,7 +87,6 @@ export const addDealer = async (dealerData) => {
       dealerData,
       {
         headers: {
-          "Content-Type": "multipart/form-data",
           token: getAuthToken(),
         },
       },
@@ -300,7 +298,10 @@ export const deleteBikeModel = async (modelId) => {
 
     return response.data;
   } catch (error) {
-    console.error("Delete model failed:", error.response?.data || error.message);
+    console.error(
+      "Delete model failed:",
+      error.response?.data || error.message,
+    );
 
     const errorMessage =
       error.response?.data?.message || "Could not delete Bike Model";
@@ -329,7 +330,10 @@ export const deleteBikeCompany = async (companyId) => {
 
     return response.data;
   } catch (error) {
-    console.error("Delete company failed:", error.response?.data || error.message);
+    console.error(
+      "Delete company failed:",
+      error.response?.data || error.message,
+    );
 
     const errorMessage =
       error.response?.data?.message || "Could not delete Bike Company";
@@ -381,7 +385,6 @@ export const addService = async (serviceData) => {
     throw error;
   }
 };
-
 
 // ✅ Updated getServiceList to use the new admin services endpoint and fixed duplicate exports
 export const getServiceList = () =>
@@ -761,7 +764,6 @@ export const editOffer = async (id, offerData) => {
   }
 };
 
-
 export const getDealersVerify = () =>
   apiRequest("GET", "/dealerAuth/pending-registrations", {}, false);
 
@@ -769,7 +771,10 @@ export const approveDealer = (dealerId) =>
   apiRequest("PUT", `/dealerAuth/approve/${dealerId}`, {});
 
 export const verifyDealerDocument = (dealerId, docType, status) =>
-  apiRequest("PUT", `/dealerAuth/verify-document/${dealerId}`, { docType, status });
+  apiRequest("PUT", `/dealerAuth/verify-document/${dealerId}`, {
+    docType,
+    status,
+  });
 
 export const getAdminServiceById = (serviceId) =>
   apiRequest("GET", `/service/admin/services/${serviceId}`, {}, false);
@@ -805,7 +810,6 @@ export const getDealerById = async (id) => {
   const res = await apiRequest("GET", `/dealer/dealer/${id}`, {}, false);
   return res?.data || res;
 };
-
 
 export const getBaseServiceList = () =>
   apiRequest("GET", "/service/admin/base-services", {}, false);
@@ -858,7 +862,11 @@ export const updateBaseService = async (serviceId, serviceData) => {
   }
 };
 
-export const deleteBaseService = async (serviceId, force = false, deactivate = false) => {
+export const deleteBaseService = async (
+  serviceId,
+  force = false,
+  deactivate = false,
+) => {
   try {
     let url = `${API_BASE_URL}/service/admin/base-services/${serviceId}`;
     const params = [];
@@ -896,7 +904,7 @@ const dealerServicesRequests = new Map();
 // ✅ Fetch dealer services configuration with caching
 export const getDealerServices = async (dealerId) => {
   if (!dealerId) {
-    throw new Error('Dealer ID is required');
+    throw new Error("Dealer ID is required");
   }
 
   const cacheKey = `dealer-services-${dealerId}`;
@@ -905,7 +913,7 @@ export const getDealerServices = async (dealerId) => {
 
   // Check cache first
   const cached = dealerServicesCache.get(cacheKey);
-  if (cached && (now - cached.timestamp) < cacheTime) {
+  if (cached && now - cached.timestamp < cacheTime) {
     return cached.data;
   }
 
@@ -916,20 +924,26 @@ export const getDealerServices = async (dealerId) => {
   }
 
   // Make new request
-  const requestPromise = apiRequest("GET", `/dealer/services?dealerId=${dealerId}`, {}, false, true)
-    .then(data => {
+  const requestPromise = apiRequest(
+    "GET",
+    `/dealer/services?dealerId=${dealerId}`,
+    {},
+    false,
+    true,
+  )
+    .then((data) => {
       // Cache the result
       dealerServicesCache.set(cacheKey, {
         data,
-        timestamp: now
+        timestamp: now,
       });
-      
+
       // Remove from active requests
       dealerServicesRequests.delete(cacheKey);
-      
+
       return data;
     })
-    .catch(error => {
+    .catch((error) => {
       // Remove from active requests on error
       dealerServicesRequests.delete(cacheKey);
       throw error;
@@ -937,7 +951,7 @@ export const getDealerServices = async (dealerId) => {
 
   // Store the request promise
   dealerServicesRequests.set(cacheKey, requestPromise);
-  
+
   return requestPromise;
 };
 
