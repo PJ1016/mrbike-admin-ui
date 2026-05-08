@@ -51,6 +51,7 @@ import {
   approveDealer,
   deleteDealer,
   verifyDealerDocument,
+  updateDealerField,
   IMAGE_BASE_URL,
 } from "../../api";
 
@@ -68,6 +69,9 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
   const [confirmAction, setConfirmAction] = useState(null);
   const [actionError, setActionError] = useState(null);
   const [docVerification, setDocVerification] = useState({});
+  const [minWalletAmount, setMinWalletAmount] = useState("");
+  const [isSavingWallet, setIsSavingWallet] = useState(false);
+  const [walletSaveSuccess, setWalletSaveSuccess] = useState(false);
 
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === "asc";
@@ -166,7 +170,24 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
   const handleOpenReview = () => {
     setReviewDialogOpen(true);
     setDocVerification(selectedDealer?.documentVerification || {});
+    setMinWalletAmount(selectedDealer?.minWalletAmount ?? "");
+    setWalletSaveSuccess(false);
     handleActionClose();
+  };
+
+  const handleSaveMinWallet = async () => {
+    if (!selectedDealer) return;
+    setIsSavingWallet(true);
+    setActionError(null);
+    try {
+      await updateDealerField(selectedDealer._id, { minWalletAmount });
+      setWalletSaveSuccess(true);
+      setTimeout(() => setWalletSaveSuccess(false), 3000);
+    } catch (error) {
+      setActionError(error?.response?.data?.message || "Failed to save min wallet amount.");
+    } finally {
+      setIsSavingWallet(false);
+    }
   };
 
   const getImageUrl = (path) => {
@@ -711,6 +732,49 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                       </Typography>
                     </Box>
                   ))}
+
+                  {/* Min Wallet Amount — editable */}
+                  <Box sx={{ mt: 1.5, pt: 1.5, borderTop: "1px dashed", borderColor: "divider" }}>
+                    <Typography
+                      variant="caption"
+                      sx={{ fontWeight: "bold", color: "text.secondary", display: "block", mb: 1 }}
+                    >
+                      MIN WALLET AMOUNT
+                    </Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={minWalletAmount}
+                        onChange={(e) => setMinWalletAmount(e.target.value)}
+                        placeholder="e.g. 500"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Typography variant="caption" sx={{ fontWeight: "bold" }}>₹</Typography>
+                            </InputAdornment>
+                          ),
+                        }}
+                        sx={{ width: 150 }}
+                        disabled={isSavingWallet}
+                      />
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={handleSaveMinWallet}
+                        disabled={isSavingWallet || minWalletAmount === ""}
+                        startIcon={isSavingWallet ? <CircularProgress size={14} color="inherit" /> : null}
+                        sx={{ textTransform: "none", fontWeight: 700, fontSize: "0.75rem" }}
+                      >
+                        {isSavingWallet ? "Saving…" : "Save"}
+                      </Button>
+                    </Box>
+                    {walletSaveSuccess && (
+                      <Typography variant="caption" sx={{ color: "success.main", fontWeight: 700, display: "block", mt: 0.75 }}>
+                        ✓ Min wallet amount saved
+                      </Typography>
+                    )}
+                  </Box>
                 </Box>
 
                 {/* Address */}
@@ -1356,6 +1420,8 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                 title={
                   !allDocsVerified(docVerification)
                     ? "Review and approve all documents first"
+                    : !(selectedDealer?.minWalletAmount > 0 || walletSaveSuccess)
+                    ? "Set and save a Min Wallet Amount before approving"
                     : ""
                 }
               >
@@ -1365,7 +1431,12 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                     color="success"
                     startIcon={<CheckCircleIcon />}
                     onClick={() => setConfirmAction("approve")}
-                    // disabled={actionLoading || selectedDealer?.isVerify || confirmAction === "approve" || !allDocsVerified(docVerification)}
+                    disabled={
+                      actionLoading ||
+                      confirmAction === "approve" ||
+                      !allDocsVerified(docVerification) ||
+                      !(selectedDealer?.minWalletAmount > 0 || walletSaveSuccess)
+                    }
                   >
                     {selectedDealer?.isVerify
                       ? "Already Verified"

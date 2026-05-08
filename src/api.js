@@ -776,6 +776,9 @@ export const verifyDealerDocument = (dealerId, docType, status) =>
     status,
   });
 
+export const updateDealerField = (dealerId, fields) =>
+  apiRequest("PUT", "/dealer/editDealer", { id: dealerId, ...fields });
+
 export const getAdminServiceById = (serviceId) =>
   apiRequest("GET", `/service/admin/services/${serviceId}`, {}, false);
 
