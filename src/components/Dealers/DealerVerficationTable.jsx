@@ -184,7 +184,9 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
       setWalletSaveSuccess(true);
       setTimeout(() => setWalletSaveSuccess(false), 3000);
     } catch (error) {
-      setActionError(error?.response?.data?.message || "Failed to save min wallet amount.");
+      setActionError(
+        error?.response?.data?.message || "Failed to save min wallet amount.",
+      );
     } finally {
       setIsSavingWallet(false);
     }
@@ -734,10 +736,22 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                   ))}
 
                   {/* Min Wallet Amount — editable */}
-                  <Box sx={{ mt: 1.5, pt: 1.5, borderTop: "1px dashed", borderColor: "divider" }}>
+                  <Box
+                    sx={{
+                      mt: 1.5,
+                      pt: 1.5,
+                      borderTop: "1px dashed",
+                      borderColor: "divider",
+                    }}
+                  >
                     <Typography
                       variant="caption"
-                      sx={{ fontWeight: "bold", color: "text.secondary", display: "block", mb: 1 }}
+                      sx={{
+                        fontWeight: "bold",
+                        color: "text.secondary",
+                        display: "block",
+                        mb: 1,
+                      }}
                     >
                       MIN WALLET AMOUNT
                     </Typography>
@@ -751,7 +765,12 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
-                              <Typography variant="caption" sx={{ fontWeight: "bold" }}>₹</Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{ fontWeight: "bold" }}
+                              >
+                                ₹
+                              </Typography>
                             </InputAdornment>
                           ),
                         }}
@@ -763,14 +782,30 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                         variant="contained"
                         onClick={handleSaveMinWallet}
                         disabled={isSavingWallet || minWalletAmount === ""}
-                        startIcon={isSavingWallet ? <CircularProgress size={14} color="inherit" /> : null}
-                        sx={{ textTransform: "none", fontWeight: 700, fontSize: "0.75rem" }}
+                        startIcon={
+                          isSavingWallet ? (
+                            <CircularProgress size={14} color="inherit" />
+                          ) : null
+                        }
+                        sx={{
+                          textTransform: "none",
+                          fontWeight: 700,
+                          fontSize: "0.75rem",
+                        }}
                       >
                         {isSavingWallet ? "Saving…" : "Save"}
                       </Button>
                     </Box>
                     {walletSaveSuccess && (
-                      <Typography variant="caption" sx={{ color: "success.main", fontWeight: 700, display: "block", mt: 0.75 }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "success.main",
+                          fontWeight: 700,
+                          display: "block",
+                          mt: 0.75,
+                        }}
+                      >
                         ✓ Min wallet amount saved
                       </Typography>
                     )}
@@ -1420,9 +1455,12 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                 title={
                   !allDocsVerified(docVerification)
                     ? "Review and approve all documents first"
-                    : !(selectedDealer?.minWalletAmount > 0 || walletSaveSuccess)
-                    ? "Set and save a Min Wallet Amount before approving"
-                    : ""
+                    : !(
+                          selectedDealer?.minWalletAmount > 0 ||
+                          walletSaveSuccess
+                        )
+                      ? "Set and save a Min Wallet Amount before approving"
+                      : ""
                 }
               >
                 <span>
@@ -1434,8 +1472,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                     disabled={
                       actionLoading ||
                       confirmAction === "approve" ||
-                      !allDocsVerified(docVerification) ||
-                      !(selectedDealer?.minWalletAmount > 0 || walletSaveSuccess)
+                      !allDocsVerified(docVerification)
                     }
                   >
                     {selectedDealer?.isVerify
