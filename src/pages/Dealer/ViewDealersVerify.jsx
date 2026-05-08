@@ -171,8 +171,8 @@ const ViewDealersVerify = () => {
                   <p>
                     <strong>Comission:</strong> {dealer.commission || 0} % |{" "}
                     <strong>Tax:</strong> {dealer.tax || 0} % |{" "}
-                    <strong>Pickup charges:</strong> ₹
-                    {dealer.pickupCharges || 0}
+                    <strong>Pickup charges:</strong> ₹{dealer.pickupCharges || 0} |{" "}
+                    <strong>Min Wallet:</strong> ₹{dealer.minWalletAmount || 0}
                   </p>
                   <p>
                     <strong>Shop Images: &nbsp;</strong>

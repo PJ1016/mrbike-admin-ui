@@ -843,6 +843,19 @@ const VendorDealerDetails = () => {
                             ₹{dealer.pickupCharges || 0}
                           </Typography>
                         </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            fontWeight="700"
+                            sx={{ display: "block", mb: 0.5 }}
+                          >
+                            MIN WALLET AMOUNT
+                          </Typography>
+                          <Typography variant="body1" fontWeight="600" color={dealer.minWalletAmount ? "success.main" : "text.secondary"}>
+                            ₹{dealer.minWalletAmount || 0}
+                          </Typography>
+                        </Grid>
                       </Grid>
                     </Box>
 
