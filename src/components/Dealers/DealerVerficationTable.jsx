@@ -1469,11 +1469,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                     color="success"
                     startIcon={<CheckCircleIcon />}
                     onClick={() => setConfirmAction("approve")}
-                    disabled={
-                      actionLoading ||
-                      confirmAction === "approve" ||
-                      !allDocsVerified(docVerification)
-                    }
+                    disabled={actionLoading || confirmAction === "approve"}
                   >
                     {selectedDealer?.isVerify
                       ? "Already Verified"
