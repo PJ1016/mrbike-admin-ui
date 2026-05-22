@@ -65,7 +65,7 @@ const ModernPaymentTable = ({ data = [], onRowClick, loading }) => {
       headerName: "Booking ID",
       width: 250,
       valueGetter: (params, row) =>
-        row.booking_id?._id || row.booking_id || "N/A",
+        row.booking_id?.bookingId || row.booking_id || "N/A",
       renderCell: (params) => (
         <Box sx={{ display: "flex", alignItems: "center", height: "100%" }}>
           <Typography
