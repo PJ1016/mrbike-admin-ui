@@ -144,7 +144,7 @@ const BannerTable = ({
     return currentData.map((data, index) => (
       <tr key={data._id}>
         <td>{index + 1}</td>
-        <td>{data._id || "N/A"}</td>
+        <td>{data.bannerId || "N/A"}</td>
         <td>{data.name || "N/A"}</td>
         <td>{data.banner_image ? <ImagePreview image={`${IMAGE_BASE_URL}${data.banner_image}`} /> : "N/A"}</td>
         <td>{data.from_date ? new Date(data.from_date).toLocaleDateString() : "N/A"}</td>
