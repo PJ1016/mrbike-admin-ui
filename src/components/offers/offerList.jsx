@@ -87,7 +87,7 @@ const OfferTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, da
   const memoizedRowList = currentData.map((data, index) => (
     <tr key={data._id}>
       <td>{(currentPage - 1) * rowsPerPage + index + 1}</td>
-      <td>{data._id}</td>
+      <td>{data.offerId || "N/A"}</td>
       <td>{data.promo_code}</td>
       <td>{data.service_id?.name || "N/A"}</td>
       <td>{data?.service_id?.image ? <ImagePreview image={data.service_id.image} /> : "N/A"}</td>

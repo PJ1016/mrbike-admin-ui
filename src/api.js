@@ -392,6 +392,12 @@ export const getServiceList = () =>
 export const getAdditionalServiceList = () =>
   apiRequest("GET", "/additional-service/admin/additional-services", {}, false);
 
+// Base Services and Additional Services for dropdowns
+export const getBaseServices = () =>
+  apiRequest("GET", "/service/admin/base-services", {}, false);
+export const getBaseAdditionalServices = () =>
+  apiRequest("GET", "/base-additional-service", {}, false);
+
 // Update Admin Service
 
 export const deleteAdminService = async (serviceId) => {
