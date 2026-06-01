@@ -29,6 +29,7 @@ import {
   SupportAgent as TicketIcon,
   PowerSettingsNew as LogoutIcon,
   TwoWheeler as BikeIcon,
+  PlaceOutlined,
 } from "@mui/icons-material";
 
 const DRAWER_WIDTH = 280;
@@ -121,6 +122,11 @@ const menuConfig = [
     title: "Tickets",
     icon: <TicketIcon />,
     path: "/all-tickets",
+  },
+  {
+    title: "Location Categories",
+    icon: <PlaceOutlined />,
+    path: "/location-featured-categories",
   },
   {
     title: "SYSTEM",

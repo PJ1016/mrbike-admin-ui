@@ -59,6 +59,9 @@ import DealerServices from "./pages/Dealer/DealerServices";
 import ViewUserDetails from "./pages/customer/ViewUserDetails";
 import ViewAdminServiceDetails from "./components/Service/ViewAdminServiceDetails";
 import MajorServices from "./pages/services/MajorServices";
+import LocationFeaturedCategoryList from "./pages/locationFeaturedCategories/LocationFeaturedCategoryList";
+import LocationFeaturedCategoryForm from "./components/LocationFeaturedCategories/LocationFeaturedCategoryForm";
+import ViewLocationFeaturedCategory from "./pages/locationFeaturedCategories/ViewLocationFeaturedCategory";
 const theme = createTheme({
   palette: {
     primary: {
@@ -247,6 +250,10 @@ const AppContent = () => {
           <Route path="/add-offer" element={<Offer />} />
           <Route path="/all-tickets" element={<AllTicket />} />
 
+          <Route path="/location-featured-categories" element={<LocationFeaturedCategoryList />} />
+          <Route path="/location-featured-categories/add" element={<LocationFeaturedCategoryForm isEdit={false} />} />
+          <Route path="/location-featured-categories/edit/:id" element={<LocationFeaturedCategoryForm isEdit={true} />} />
+          <Route path="/location-featured-categories/view/:id" element={<ViewLocationFeaturedCategory />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route
             path="/all-tickets/view-ticket/:ticketId"

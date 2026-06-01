@@ -975,3 +975,144 @@ export const clearDealerServicesCache = (dealerId = null) => {
     dealerServicesRequests.clear();
   }
 };
+
+// --- Location Based Featured Categories ---
+
+export const getLocationFeaturedCategories = (params = {}) => {
+  const query = new URLSearchParams();
+  if (params.page) query.append("page", params.page);
+  if (params.limit) query.append("limit", params.limit);
+  if (params.search) query.append("search", params.search);
+  if (params.status) query.append("status", params.status);
+  const qs = query.toString();
+  return apiRequest(
+    "GET",
+    `/location-featured-categories${qs ? `?${qs}` : ""}`,
+    {},
+    false,
+  );
+};
+
+export const getLocationFeaturedCategoryById = (id) =>
+  apiRequest("GET", `/location-featured-categories/${id}`, {}, false);
+
+export const searchLocationSuggestions = (query) =>
+  apiRequest(
+    "GET",
+    `/location-featured-categories/location-search?q=${encodeURIComponent(query)}`,
+    {},
+    false,
+  );
+
+export const createLocationFeaturedCategory = async (formData) => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/location-featured-categories`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          token: getAuthToken(),
+        },
+      },
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Error creating location featured category:",
+      error.response?.data || error.message,
+    );
+    Swal.fire({
+      icon: "error",
+      title: "Failed to Create Category",
+      text: error.response?.data?.message || "Something went wrong!",
+    });
+    throw error;
+  }
+};
+
+export const updateLocationFeaturedCategory = async (id, formData) => {
+  try {
+    const response = await axios.put(
+      `${API_BASE_URL}/location-featured-categories/${id}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          token: getAuthToken(),
+        },
+      },
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Error updating location featured category:",
+      error.response?.data || error.message,
+    );
+    Swal.fire({
+      icon: "error",
+      title: "Failed to Update Category",
+      text: error.response?.data?.message || "Something went wrong!",
+    });
+    throw error;
+  }
+};
+
+export const deleteLocationFeaturedCategory = async (id) => {
+  try {
+    const response = await axios.delete(
+      `${API_BASE_URL}/location-featured-categories/${id}`,
+      {
+        headers: {
+          token: getAuthToken(),
+        },
+      },
+    );
+    Swal.fire({
+      icon: "success",
+      title: "Deleted!",
+      text: response.data.message || "Location featured category deleted successfully.",
+      timer: 2000,
+      showConfirmButton: false,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Delete failed:", error.response?.data || error.message);
+    Swal.fire({
+      icon: "error",
+      title: "Deletion Failed",
+      text: error.response?.data?.message || "Could not delete category.",
+    });
+    throw error;
+  }
+};
+
+export const toggleLocationFeaturedCategoryStatus = async (id) => {
+  try {
+    const response = await axios.patch(
+      `${API_BASE_URL}/location-featured-categories/${id}/status`,
+      {},
+      {
+        headers: {
+          token: getAuthToken(),
+        },
+      },
+    );
+    Swal.fire({
+      icon: "success",
+      title: "Status Updated!",
+      text: response.data.message || "Status has been updated successfully.",
+      timer: 2000,
+      showConfirmButton: false,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Status toggle failed:", error.response?.data || error.message);
+    Swal.fire({
+      icon: "error",
+      title: "Failed to Update Status",
+      text: error.response?.data?.message || "Something went wrong!",
+    });
+    throw error;
+  }
+};
