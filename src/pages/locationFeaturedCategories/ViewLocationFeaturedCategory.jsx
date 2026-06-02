@@ -211,6 +211,17 @@ const ViewLocationFeaturedCategory = () => {
                   <Divider sx={{ my: 2 }} />
 
                   <Stack spacing={1.5}>
+                    {item.serviceId && (
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <i className="fa fa-wrench" style={{ fontSize: 16, color: "#2563eb", width: 18, textAlign: "center" }} />
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">Major Service</Typography>
+                          <Typography variant="body2" fontWeight={600}>
+                            {item.serviceId?.name || item.serviceId}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    )}
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <RadarIcon sx={{ fontSize: 18, color: "primary.main" }} />
                       <Box>
