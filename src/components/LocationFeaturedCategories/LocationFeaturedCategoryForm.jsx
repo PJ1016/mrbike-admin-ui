@@ -16,6 +16,7 @@ import {
   getLocationFeaturedCategoryById,
   createLocationFeaturedCategory,
   updateLocationFeaturedCategory,
+  getBaseServiceList,
 } from "../../api";
 
 const MapPreview = ({ locationName, lat, lng, radius }) => {
@@ -188,16 +189,24 @@ const LocationFeaturedCategoryForm = ({ isEdit = false }) => {
     longitude: "",
     radius: "",
     status: "active",
+    serviceId: "",
   });
   const [image, setImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [existingImage, setExistingImage] = useState(null);
   const [locationQuery, setLocationQuery] = useState("");
+  const [services, setServices] = useState([]);
   const searchInputRef = useRef(null);
   const autocompleteRef = useRef(null);
 
   useEffect(() => {
     loadGoogleMapsScript(() => setGoogleReady(true));
+  }, []);
+
+  useEffect(() => {
+    getBaseServiceList()
+      .then((res) => { if (res?.data) setServices(res.data); })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -237,6 +246,7 @@ const LocationFeaturedCategoryForm = ({ isEdit = false }) => {
               longitude: item.longitude ? String(item.longitude) : "",
               radius: item.radius ? String(item.radius) : "",
               status: item.status || "active",
+              serviceId: item.serviceId?._id || item.serviceId || "",
             });
             setLocationQuery(item.locationName || "");
             if (item.categoryImage) setExistingImage(item.categoryImage);
@@ -282,6 +292,7 @@ const LocationFeaturedCategoryForm = ({ isEdit = false }) => {
   const validate = () => {
     const errors = {};
     if (!formData.categoryName.trim()) errors.categoryName = "Category name is required";
+    if (!formData.serviceId) errors.serviceId = "Major service is required";
     if (!formData.locationName) errors.locationName = "Please select a location from the suggestions";
     if (!formData.radius || isNaN(Number(formData.radius)) || Number(formData.radius) <= 0)
       errors.radius = "Please enter a valid radius (greater than 0)";
@@ -298,6 +309,7 @@ const LocationFeaturedCategoryForm = ({ isEdit = false }) => {
     try {
       const payload = new FormData();
       payload.append("categoryName", formData.categoryName.trim());
+      payload.append("serviceId", formData.serviceId);
       payload.append("locationName", formData.locationName);
       payload.append("address", formData.address);
       payload.append("latitude", formData.latitude);
@@ -440,6 +452,28 @@ const LocationFeaturedCategoryForm = ({ isEdit = false }) => {
                         </Select>
                       </FormControl>
                     </Stack>
+
+                    {/* Major Service */}
+                    <FormControl fullWidth size="small" required error={!!formErrors.serviceId}>
+                      <InputLabel shrink>Major Service</InputLabel>
+                      <Select
+                        name="serviceId"
+                        value={formData.serviceId}
+                        onChange={handleChange}
+                        label="Major Service"
+                        displayEmpty
+                      >
+                        <MenuItem value="" disabled>Select a major service</MenuItem>
+                        {services.map((s) => (
+                          <MenuItem key={s._id} value={s._id}>{s.name}</MenuItem>
+                        ))}
+                      </Select>
+                      {formErrors.serviceId && (
+                        <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                          {formErrors.serviceId}
+                        </Typography>
+                      )}
+                    </FormControl>
 
                     <Divider />
 

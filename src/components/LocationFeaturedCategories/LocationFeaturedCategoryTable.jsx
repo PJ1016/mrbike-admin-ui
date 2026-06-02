@@ -176,6 +176,9 @@ const LocationFeaturedCategoryTable = ({
                           )}
                         </td>
                         <td style={{ fontWeight: 500 }}>{item.categoryName}</td>
+                        <td style={{ fontWeight: 500 }}>
+                          {item.serviceId?.name || item.serviceId || "—"}
+                        </td>
                         <td>
                           <div style={{ fontWeight: 500 }}>{item.locationName}</div>
                           <div style={{ fontSize: "0.78rem", color: "#64748b" }}>{item.address}</div>

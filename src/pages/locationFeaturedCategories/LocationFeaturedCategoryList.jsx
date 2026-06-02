@@ -15,6 +15,7 @@ const LocationFeaturedCategoryList = () => {
     "#",
     "Image",
     "Category Name",
+    "Major Service",
     "Location",
     "Radius",
     "Status",
