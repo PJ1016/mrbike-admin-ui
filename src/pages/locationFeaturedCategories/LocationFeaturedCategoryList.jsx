@@ -27,7 +27,7 @@ const LocationFeaturedCategoryList = () => {
       setLoading(true);
       try {
         const response = await getLocationFeaturedCategories({ limit: 1000, page: 1 });
-        if (response?.success) {
+        if (response?.data) {
           setData(response.data);
         }
       } catch (error) {

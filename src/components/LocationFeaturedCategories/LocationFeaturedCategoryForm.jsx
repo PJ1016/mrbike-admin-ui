@@ -3,8 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   Box, TextField, Button, Card, CardContent, Divider,
   Typography, Stack, Select, MenuItem, FormControl, InputLabel,
-  CircularProgress, Snackbar, Alert, Paper, InputAdornment,
-  IconButton, List, ListItem, ListItemIcon, ListItemText,
+  CircularProgress, Snackbar, Alert, InputAdornment, IconButton,
 } from "@mui/material";
 import {
   AddPhotoAlternate as AddPhotoAlternateIcon,
@@ -17,7 +16,6 @@ import {
   getLocationFeaturedCategoryById,
   createLocationFeaturedCategory,
   updateLocationFeaturedCategory,
-  searchLocationSuggestions,
 } from "../../api";
 
 const MapPreview = ({ locationName, lat, lng, radius }) => {
@@ -156,11 +154,30 @@ const MapPreview = ({ locationName, lat, lng, radius }) => {
   );
 };
 
+const GOOGLE_MAPS_KEY = 'AIzaSyB_Lz_b22Sf5eKRSHhgxOnoZ8InrtXkpSM';
+
+const loadGoogleMapsScript = (onReady) => {
+  if (window.google?.maps?.places) { onReady(); return; }
+  if (document.querySelector("script[data-gmaps]")) {
+    const wait = setInterval(() => {
+      if (window.google?.maps?.places) { clearInterval(wait); onReady(); }
+    }, 100);
+    return;
+  }
+  window.__gmapsCallback = () => { delete window.__gmapsCallback; onReady(); };
+  const script = document.createElement("script");
+  script.setAttribute("data-gmaps", "1");
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&libraries=places&callback=__gmapsCallback`;
+  script.async = true;
+  document.head.appendChild(script);
+};
+
 const LocationFeaturedCategoryForm = ({ isEdit = false }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [googleReady, setGoogleReady] = useState(!!window.google?.maps?.places);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const [formErrors, setFormErrors] = useState({});
   const [formData, setFormData] = useState({
@@ -176,9 +193,34 @@ const LocationFeaturedCategoryForm = ({ isEdit = false }) => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [existingImage, setExistingImage] = useState(null);
   const [locationQuery, setLocationQuery] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const debounceRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const autocompleteRef = useRef(null);
+
+  useEffect(() => {
+    loadGoogleMapsScript(() => setGoogleReady(true));
+  }, []);
+
+  useEffect(() => {
+    if (!googleReady || !searchInputRef.current || autocompleteRef.current) return;
+    autocompleteRef.current = new window.google.maps.places.Autocomplete(
+      searchInputRef.current,
+      { fields: ["geometry", "name", "formatted_address"] }
+    );
+    autocompleteRef.current.addListener("place_changed", () => {
+      const place = autocompleteRef.current.getPlace();
+      if (!place?.geometry) return;
+      const name = place.name || searchInputRef.current.value;
+      setLocationQuery(name);
+      setFormData((prev) => ({
+        ...prev,
+        locationName: name,
+        address: place.formatted_address || "",
+        latitude: String(place.geometry.location.lat()),
+        longitude: String(place.geometry.location.lng()),
+      }));
+      setFormErrors((prev) => ({ ...prev, locationName: null }));
+    });
+  }, [googleReady]);
 
   useEffect(() => {
     if (isEdit && id) {
@@ -216,46 +258,12 @@ const LocationFeaturedCategoryForm = ({ isEdit = false }) => {
     return () => URL.revokeObjectURL(url);
   }, [image]);
 
-  const fetchLocationSuggestions = (query) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const response = await searchLocationSuggestions(query);
-        if (response?.success) {
-          setSuggestions(response.data.slice(0, 6));
-          setShowSuggestions(true);
-        }
-      } catch (error) {
-        setSuggestions([]);
-      }
-    }, 300);
-  };
-
   const handleLocationQueryChange = (e) => {
     const val = e.target.value;
     setLocationQuery(val);
-    if (val.trim().length >= 1) {
-      fetchLocationSuggestions(val);
-    } else {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      setSuggestions([]);
-      setShowSuggestions(false);
+    if (!val.trim()) {
       setFormData((prev) => ({ ...prev, locationName: "", address: "", latitude: "", longitude: "" }));
     }
-  };
-
-  const handleSelectSuggestion = (suggestion) => {
-    setLocationQuery(suggestion.name);
-    setShowSuggestions(false);
-    setSuggestions([]);
-    setFormData((prev) => ({
-      ...prev,
-      locationName: suggestion.name,
-      address: suggestion.address,
-      latitude: String(suggestion.lat),
-      longitude: String(suggestion.lng),
-    }));
-    setFormErrors((prev) => ({ ...prev, locationName: null }));
   };
 
   const handleChange = (e) => {
@@ -446,24 +454,20 @@ const LocationFeaturedCategoryForm = ({ isEdit = false }) => {
                         Location Settings
                       </Typography>
 
-                      {/* Location Search Autocomplete */}
-                      <Box sx={{ position: "relative", mb: 2 }}>
+                      {/* Location Search — native Google Places Autocomplete */}
+                      <Box sx={{ mb: 2 }}>
                         <TextField
                           fullWidth
+                          inputRef={searchInputRef}
                           label="Search Location"
                           value={locationQuery}
                           onChange={handleLocationQueryChange}
-                          onFocus={() => {
-                            if (locationQuery.trim().length >= 1) {
-                              fetchLocationSuggestions(locationQuery);
-                            }
-                          }}
-                          onBlur={() => setTimeout(() => setShowSuggestions(false), 180)}
-                          placeholder="Type to search (e.g. Vijay Nagar, Palasia...)"
+                          placeholder={googleReady ? "Type to search (e.g. Vijay Nagar, Palasia...)" : "Loading Google Maps..."}
+                          disabled={!googleReady}
                           variant="outlined"
                           size="small"
                           error={!!formErrors.locationName}
-                          helperText={formErrors.locationName || "Search and select a location"}
+                          helperText={formErrors.locationName || (googleReady ? "Search and select a location" : "Please wait...")}
                           InputLabelProps={{ shrink: true }}
                           InputProps={{
                             startAdornment: (
@@ -473,49 +477,6 @@ const LocationFeaturedCategoryForm = ({ isEdit = false }) => {
                             ),
                           }}
                         />
-                        {showSuggestions && suggestions.length > 0 && (
-                          <Paper
-                            elevation={6}
-                            sx={{
-                              position: "absolute",
-                              top: "100%",
-                              left: 0,
-                              right: 0,
-                              zIndex: 1300,
-                              maxHeight: 220,
-                              overflowY: "auto",
-                              borderRadius: 2,
-                              mt: 0.5,
-                              border: "1px solid #e2e8f0",
-                            }}
-                          >
-                            <List dense disablePadding>
-                              {suggestions.map((s, i) => (
-                                <ListItem
-                                  key={i}
-                                  component="div"
-                                  onClick={() => handleSelectSuggestion(s)}
-                                  sx={{
-                                    cursor: "pointer",
-                                    py: 1,
-                                    "&:hover": { bgcolor: "primary.light" },
-                                    borderBottom: i < suggestions.length - 1 ? "1px solid #f1f5f9" : "none",
-                                  }}
-                                >
-                                  <ListItemIcon sx={{ minWidth: 32 }}>
-                                    <LocationOnIcon sx={{ fontSize: 18, color: "error.main" }} />
-                                  </ListItemIcon>
-                                  <ListItemText
-                                    primary={s.name}
-                                    secondary={s.address}
-                                    primaryTypographyProps={{ fontWeight: 600, fontSize: "0.875rem" }}
-                                    secondaryTypographyProps={{ fontSize: "0.75rem", color: "text.secondary" }}
-                                  />
-                                </ListItem>
-                              ))}
-                            </List>
-                          </Paper>
-                        )}
                       </Box>
 
                       {/* Selected Address */}
@@ -532,45 +493,6 @@ const LocationFeaturedCategoryForm = ({ isEdit = false }) => {
                         helperText="Auto-filled from location selection"
                       />
 
-                      {/* Lat / Lng */}
-                      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 2 }}>
-                        <TextField
-                          fullWidth
-                          label="Latitude"
-                          value={formData.latitude}
-                          variant="outlined"
-                          size="small"
-                          InputLabelProps={{ shrink: true }}
-                          InputProps={{
-                            readOnly: true,
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <LocationOnIcon fontSize="small" color="action" />
-                              </InputAdornment>
-                            ),
-                          }}
-                          placeholder="Auto-filled"
-                          helperText="Auto-filled"
-                        />
-                        <TextField
-                          fullWidth
-                          label="Longitude"
-                          value={formData.longitude}
-                          variant="outlined"
-                          size="small"
-                          InputLabelProps={{ shrink: true }}
-                          InputProps={{
-                            readOnly: true,
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <LocationOnIcon fontSize="small" color="action" />
-                              </InputAdornment>
-                            ),
-                          }}
-                          placeholder="Auto-filled"
-                          helperText="Auto-filled"
-                        />
-                      </Stack>
 
                       {/* Radius */}
                       <TextField

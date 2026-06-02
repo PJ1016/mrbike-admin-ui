@@ -112,10 +112,20 @@ const LocationFeaturedCategoryTable = ({
             </div>
             <div className="table-responsive">
               <table ref={tableRef} id="lfc-table" className="table table-striped">
-                <thead style={{ backgroundColor: "#2e83ff" }}>
+                <thead>
                   <tr>
                     {tableHeaders.map((header, index) => (
-                      <th key={index} style={{ color: "#fff", whiteSpace: "nowrap" }}>{header}</th>
+                      <th
+                        key={index}
+                        style={{
+                          backgroundColor: "#2e83ff",
+                          color: "#fff",
+                          whiteSpace: "nowrap",
+                          borderColor: "#2e83ff",
+                        }}
+                      >
+                        {header}
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -177,36 +187,46 @@ const LocationFeaturedCategoryTable = ({
                         </td>
                         <td>{statusBadge(item.status)}</td>
                         <td>{new Date(item.createdAt).toLocaleDateString()}</td>
-                        <td>
-                          <div className="d-flex align-items-center gap-1">
-                            <button
-                              className="btn btn-sm btn-outline-info"
-                              onClick={() => navigate(`/location-featured-categories/view/${item._id}`)}
-                              title="View"
-                            >
-                              <i className="far fa-eye" />
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-primary"
-                              onClick={() => navigate(`/location-featured-categories/edit/${item._id}`)}
-                              title="Edit"
-                            >
-                              <i className="far fa-edit" />
-                            </button>
-                            <button
-                              className={`btn btn-sm ${item.status === "active" ? "btn-outline-warning" : "btn-outline-success"}`}
-                              onClick={() => handleToggleStatus(item._id)}
-                              title={item.status === "active" ? "Deactivate" : "Activate"}
-                            >
-                              <i className={`fa ${item.status === "active" ? "fa-toggle-on" : "fa-toggle-off"}`} />
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-danger"
-                              onClick={() => handleDelete(item._id)}
-                              title="Delete"
-                            >
-                              <i className="far fa-trash-alt" />
-                            </button>
+                        <td className="d-flex align-items-center">
+                          <div className="dropdown">
+                            <a href="#" className="btn-action-icon" data-bs-toggle="dropdown" aria-expanded="false">
+                              <i className="fas fa-ellipsis-v" />
+                            </a>
+                            <ul className="dropdown-menu dropdown-menu-end">
+                              <li>
+                                <button
+                                  className="dropdown-item"
+                                  onClick={() => navigate(`/location-featured-categories/view/${item._id}`)}
+                                >
+                                  <i className="far fa-eye me-2" /> View
+                                </button>
+                              </li>
+                              <li>
+                                <button
+                                  className="dropdown-item"
+                                  onClick={() => navigate(`/location-featured-categories/edit/${item._id}`)}
+                                >
+                                  <i className="far fa-edit me-2" /> Edit
+                                </button>
+                              </li>
+                              <li>
+                                <button
+                                  className="dropdown-item"
+                                  onClick={() => handleToggleStatus(item._id)}
+                                >
+                                  <i className={`far ${item.status === "active" ? "fa-times-circle" : "fa-check-circle"} me-2`} />
+                                  {item.status === "active" ? "Deactivate" : "Activate"}
+                                </button>
+                              </li>
+                              <li>
+                                <button
+                                  className="dropdown-item"
+                                  onClick={() => handleDelete(item._id)}
+                                >
+                                  <i className="far fa-trash-alt me-2" /> Delete
+                                </button>
+                              </li>
+                            </ul>
                           </div>
                         </td>
                       </tr>
