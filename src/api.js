@@ -43,7 +43,7 @@ const apiRequest = async (
         title: "Session Expired",
         text: "Please log in again.",
       });
-      localStorage.removeItem("token");
+      localStorage.removeItem("adminToken");
     }
 
     if (showAlert) {
