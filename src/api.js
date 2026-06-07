@@ -694,6 +694,15 @@ export const getDealerPayouts = () =>
 export const approveDealerPayout = (orderId, status = "APPROVED") =>
   apiRequest("POST", "/payment/approvePayout", { orderId, status });
 
+export const updateWithdrawalStatus = (walletId, status) =>
+  apiRequest("PUT", `/dealer/updatepending/${walletId}`, { status });
+
+export const getDealerWallet = (dealerId) =>
+  apiRequest("GET", `/dealer/dealerWallet/${dealerId}`, {}, false);
+
+export const adminDepositToDealer = (data) =>
+  apiRequest("POST", "/dealer/deposit", data);
+
 export const addOffer = async (offerData) => {
   try {
     const response = await axios.post(
