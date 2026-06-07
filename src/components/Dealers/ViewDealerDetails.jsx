@@ -64,8 +64,8 @@ import Swal from "sweetalert2";
 import React from "react";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import DealerServicesTab from "./DealerServicesTab";
 import DealerServicesView from "./DealerServicesView";
+import DealerServicesManager from "./ServicesV2/DealerServicesManager";
 
 // Helper to form image URLs correctly
 const getImageUrl = (imagePath) => {
@@ -1206,10 +1206,10 @@ const VendorDealerDetails = () => {
               </Box>
             </CustomTabPanel>
 
-            {/* TAB 5: REPORTS */}
+            {/* TAB 5: SERVICES EDITOR */}
             <CustomTabPanel value={tabIndex} index={4}>
               {dealer ? (
-                <DealerServicesTab dealer={dealer} />
+                <DealerServicesManager dealer={dealer} />
               ) : (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                   <CircularProgress />
