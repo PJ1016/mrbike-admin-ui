@@ -96,7 +96,7 @@ const menuConfig = [
     icon: <PaymentIcon />,
     children: [
       { title: "Payment List", path: "/paymentList" },
-      { title: "Dealer Payouts", path: "/approve" },
+      { title: "Withdrawal Requests", path: "/approve" },
     ],
   },
   {

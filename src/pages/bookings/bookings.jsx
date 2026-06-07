@@ -77,6 +77,8 @@ const Bookings = () => {
           return s === "confirmed" || s === "pickedup" || s === "arrived";
         if (statusFilter === "Pending")
           return s === "pending" || s === "waiting";
+        if (statusFilter === "Completed")
+          return s === "completed" || s === "cash received";
         if (statusFilter === "Today") {
           const today = moment().startOf("day");
           const bookingDate = moment(b.createdAt);
@@ -94,15 +96,16 @@ const Bookings = () => {
     const total = data.length;
     const confirmed = data.filter((b) => {
       const s = b.status?.toLowerCase() || "";
-      return ["confirmed", "completed", "pickedup", "arrived"].includes(s);
+      return ["confirmed", "completed", "cash received", "pickedup", "arrived"].includes(s);
     }).length;
     const pending = data.filter((b) => {
       const s = b.status?.toLowerCase() || "";
       return ["pending", "waiting"].includes(s);
     }).length;
-    const cancelled = data.filter((b) =>
-      b.status?.toLowerCase().includes("cancel"),
-    ).length;
+    const cancelled = data.filter((b) => {
+      const s = b.status?.toLowerCase() || "";
+      return s.includes("cancel") || s === "rejected";
+    }).length;
     const revenue = data.reduce(
       (acc, curr) =>
         acc + (curr.totalBill || curr.services[0]?.bikes[0]?.price || 0),
