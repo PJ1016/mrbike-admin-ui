@@ -196,7 +196,7 @@ const BookingTable = ({
   const getStatusConfig = (status) => {
     const s = status?.toLowerCase() || "";
 
-    if (s.includes("completed") || s.includes("paid"))
+    if (s.includes("completed") || s.includes("paid") || s === "cash received")
       return { color: "success", icon: <CheckCircleIcon fontSize="small" /> };
     if (s.includes("cancelled") || s.includes("rejected"))
       return { color: "error", icon: <CancelIcon fontSize="small" /> };
@@ -215,6 +215,7 @@ const BookingTable = ({
     if (s.includes("service completed")) return 4;
     if (s.includes("service in progress")) return 3;
     if (s.includes("pickup scheduled") || s.includes("awaiting")) return 2;
+    if (booking.status === "cash received") return 6;
     if (booking.status === "confirmed") return 1;
     return 0;
   };
@@ -1395,7 +1396,9 @@ const BookingTable = ({
                               ? "default"
                               : selectedBooking.billStatus === "paid"
                                 ? "success"
-                                : "warning"
+                                : selectedBooking.billStatus === "cancelled"
+                                  ? "error"
+                                  : "warning"
                           }
                           sx={{
                             fontWeight: 900,
