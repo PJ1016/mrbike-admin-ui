@@ -695,7 +695,7 @@ export const approveDealerPayout = (orderId, status = "APPROVED") =>
   apiRequest("POST", "/payment/approvePayout", { orderId, status });
 
 export const updateWithdrawalStatus = (walletId, status) =>
-  apiRequest("PUT", `/dealer/updatepending/${walletId}`, { status });
+  apiRequest("PUT", `/dealer/updatepending/${walletId}`, { wallet_id: walletId, new_status: status });
 
 export const getDealerWallet = (dealerId) =>
   apiRequest("GET", `/dealer/dealerWallet/${dealerId}`, {}, false);
