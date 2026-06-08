@@ -7,7 +7,7 @@ import {
   Typography,
   Stack,
   Avatar,
-  CircularProgress,
+  Skeleton,
   Chip,
   Tooltip,
   IconButton,
@@ -163,23 +163,19 @@ const FinanceDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState(null);
-  const [isMock, setIsMock] = useState(false);
+  const [error, setError] = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      // Fetch summary + live payout counts in parallel
-      const [summaryResult, payoutsResult] = await Promise.all([
+      const [s, payoutsResult] = await Promise.all([
         fetchFinanceSummary(),
         fetchAllPayouts(),
       ]);
 
-      const s = summaryResult.data;
       const payouts = payoutsResult.data;
-
-      // If live payout data is available, recompute counts from it
-      // (overrides any stale counts in summary payload)
-      if (!payoutsResult.isMock && Array.isArray(payouts)) {
+      if (Array.isArray(payouts)) {
         s.pendingWithdrawals    = payouts.filter((p) => p.order_status === "PENDING").length;
         s.inProgressWithdrawals = payouts.filter((p) => p.order_status === "IN_PROGRESS").length;
         s.approvedWithdrawals   = payouts.filter(
@@ -188,9 +184,9 @@ const FinanceDashboard = () => {
       }
 
       setSummary(s);
-      setIsMock(summaryResult.isMock);
     } catch (err) {
       console.error("Finance dashboard load error:", err);
+      setError("Unable to load finance data");
     } finally {
       setLoading(false);
     }
@@ -202,25 +198,54 @@ const FinanceDashboard = () => {
 
   if (loading) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "70vh",
-          gap: 2,
-        }}
-      >
-        <CircularProgress size={44} thickness={3} sx={{ color: "#2563eb" }} />
-        <Typography variant="body2" color="text.secondary">
-          Loading finance data…
-        </Typography>
+      <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: "#f8fafc", minHeight: "100vh" }}>
+        <Skeleton variant="text" width={220} height={48} sx={{ mb: 0.5 }} />
+        <Skeleton variant="text" width={180} height={22} sx={{ mb: 4 }} />
+        <Skeleton variant="text" width={140} height={14} sx={{ mb: 1.5 }} />
+        <Grid container spacing={2.5} sx={{ mb: 3.5 }}>
+          {[0, 1, 2, 3].map((i) => (
+            <Grid item xs={12} sm={6} md={3} key={i}>
+              <Skeleton variant="rounded" height={120} sx={{ borderRadius: "16px" }} />
+            </Grid>
+          ))}
+        </Grid>
+        <Skeleton variant="text" width={160} height={14} sx={{ mb: 1.5 }} />
+        <Grid container spacing={2.5} sx={{ mb: 3.5 }}>
+          {[0, 1, 2].map((i) => (
+            <Grid item xs={12} sm={4} key={i}>
+              <Skeleton variant="rounded" height={120} sx={{ borderRadius: "16px" }} />
+            </Grid>
+          ))}
+        </Grid>
+        <Skeleton variant="text" width={110} height={14} sx={{ mb: 1.5 }} />
+        <Grid container spacing={2.5}>
+          {[0, 1].map((i) => (
+            <Grid item xs={12} sm={6} key={i}>
+              <Skeleton variant="rounded" height={120} sx={{ borderRadius: "16px" }} />
+            </Grid>
+          ))}
+        </Grid>
       </Box>
     );
   }
 
-  if (!summary) return null;
+  if (error) {
+    return (
+      <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "70vh", gap: 2 }}>
+        <Alert severity="error" sx={{ borderRadius: "12px", fontWeight: 600 }}>
+          {error}
+        </Alert>
+        <Tooltip title="Retry">
+          <IconButton
+            onClick={loadData}
+            sx={{ bgcolor: "white", border: "1px solid #f1f5f9", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", "&:hover": { bgcolor: "#f8fafc" } }}
+          >
+            <Refresh sx={{ fontSize: 18, color: "#64748b" }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
+    );
+  }
 
   const today = moment().format("dddd, D MMMM YYYY");
 
@@ -245,19 +270,6 @@ const FinanceDashboard = () => {
           </Typography>
         </Box>
         <Stack direction="row" alignItems="center" spacing={1.5}>
-          {isMock && (
-            <Chip
-              label="Mock Data"
-              size="small"
-              sx={{
-                bgcolor: "#fff7ed",
-                color: "#c2410c",
-                fontWeight: 700,
-                fontSize: "0.65rem",
-                border: "1px solid #fed7aa",
-              }}
-            />
-          )}
           <Tooltip title="Refresh">
             <IconButton
               onClick={loadData}
@@ -273,16 +285,6 @@ const FinanceDashboard = () => {
           </Tooltip>
         </Stack>
       </Stack>
-
-      {isMock && (
-        <Alert
-          severity="info"
-          sx={{ mb: 3, borderRadius: "12px", fontSize: "0.8rem" }}
-        >
-          Showing mock data — connect <strong>GET /finance/summary</strong> and{" "}
-          <strong>GET /dealer/payouts?status=ALL</strong> to display live figures.
-        </Alert>
-      )}
 
       {/* ── Section: Revenue ── */}
       <SectionLabel>Revenue & Earnings</SectionLabel>

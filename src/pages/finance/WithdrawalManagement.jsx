@@ -6,7 +6,6 @@ import {
   Badge,
   Typography,
   Stack,
-  Chip,
   CircularProgress,
   Alert,
   Tooltip,
@@ -302,7 +301,8 @@ const tdStyle = { padding: "10px 12px" };
 const WithdrawalManagement = () => {
   const [allPayouts, setAllPayouts]   = useState([]);
   const [loading, setLoading]         = useState(true);
-  const [isMock, setIsMock]           = useState(false);
+  const [error, setError]             = useState(null);
+  const [isLegacy, setIsLegacy]       = useState(false);
   const [activeTab, setActiveTab]     = useState(0);
   const [updating, setUpdating]       = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
@@ -317,12 +317,14 @@ const WithdrawalManagement = () => {
 
   const loadPayouts = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const result = await fetchAllPayouts();
       setAllPayouts(result.data);
-      setIsMock(result.isMock);
+      setIsLegacy(result.isLegacy);
     } catch (err) {
       console.error("Failed to load payouts:", err);
+      setError("Unable to load finance data");
     } finally {
       setLoading(false);
     }
@@ -472,13 +474,6 @@ const WithdrawalManagement = () => {
           </Typography>
         </Box>
         <Stack direction="row" spacing={1} flexShrink={0}>
-          {isMock && (
-            <Chip
-              label="Mock Data"
-              size="small"
-              sx={{ bgcolor: "#fff7ed", color: "#c2410c", fontWeight: 700, fontSize: "0.65rem", border: "1px solid #fed7aa" }}
-            />
-          )}
           <Tooltip title="Export Excel">
             <button className="btn btn-outline-secondary btn-sm" onClick={onDownload} style={{ fontSize: 12 }}>
               Excel
@@ -510,9 +505,17 @@ const WithdrawalManagement = () => {
         </Stack>
       </Stack>
 
-      {isMock && (
-        <Alert severity="info" sx={{ mb: 2.5, borderRadius: "12px", fontSize: "0.8rem" }}>
-          Showing mock data — backend endpoint <strong>GET /dealer/payouts?status=ALL</strong> is not yet active.
+      {error && (
+        <Alert severity="error" sx={{ mb: 2.5, borderRadius: "12px", fontSize: "0.8rem", fontWeight: 600 }}>
+          {error}
+        </Alert>
+      )}
+
+      {isLegacy && (
+        <Alert severity="warning" sx={{ mb: 2.5, borderRadius: "12px", fontSize: "0.8rem" }}>
+          <strong>Using legacy pending endpoint</strong> — only PENDING withdrawals are shown.
+          Backend <code>GET /dealer/payouts?status=ALL</code> may be unavailable.
+          IN_PROGRESS, APPROVED, and REJECTED tabs will appear empty.
         </Alert>
       )}
 
