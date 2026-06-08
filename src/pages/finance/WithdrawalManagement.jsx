@@ -54,6 +54,8 @@ const TAB_META = [
 
 const ROWS_PER_PAGE = 10;
 
+const getStatus = (p) => p.status || p.rawStatus || p.order_status;
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 const StatusBadge = ({ status }) => {
@@ -91,7 +93,7 @@ const WalletStatCell = ({ label, value, valueColor }) => (
 // ─── Action Buttons per status ────────────────────────────────────────────────
 
 const RowActions = ({ row, onAction, busy }) => {
-  const status = row.order_status;
+  const status = getStatus(row);
   const isViewOnly = status === "APPROVED" || status === "COMPLETED" || status === "REJECTED";
 
   if (isViewOnly) {
@@ -153,6 +155,7 @@ const WithdrawalTable = ({
   tableRef,
   emptyLabel,
 }) => {
+  console.log("[WithdrawalTable] rows before render:", rows.length);
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(rows.length / ROWS_PER_PAGE));
   const currentRows = useMemo(() => {
@@ -229,7 +232,7 @@ const WithdrawalTable = ({
                       {TXN_LABELS[row.Type] || row.Type || "—"}
                     </td>
                     <td style={tdStyle}>
-                      <StatusBadge status={row.order_status} />
+                      <StatusBadge status={getStatus(row)} />
                     </td>
                     <td style={{ ...tdStyle, color: "#64748b", whiteSpace: "nowrap" }}>
                       {row.createdAt
@@ -316,10 +319,12 @@ const WithdrawalManagement = () => {
   const tableRef = useRef(null);
 
   const loadPayouts = useCallback(async () => {
+    console.log("[loadPayouts] called");
     setLoading(true);
     setError(null);
     try {
       const result = await fetchAllPayouts();
+      console.log("[loadPayouts] allPayouts count:", result.data?.length, "isLegacy:", result.isLegacy);
       setAllPayouts(result.data);
       setIsLegacy(result.isLegacy);
     } catch (err) {
@@ -334,15 +339,20 @@ const WithdrawalManagement = () => {
 
   // ── Derived per-tab data ───────────────────────────────────────────────────
   const tabData = useMemo(() => {
-    const byStatus = (s) => allPayouts.filter(
-      (p) => p.order_status === s || (s === "APPROVED" && p.order_status === "COMPLETED")
-    );
-    return [
+    console.log("[tabData] allPayouts received:", allPayouts.length);
+    if (allPayouts.length > 0) console.log("sample payout", allPayouts[0]);
+    const byStatus = (s) => allPayouts.filter((p) => {
+      const st = getStatus(p);
+      return st === s || (s === "APPROVED" && st === "COMPLETED");
+    });
+    const result = [
       byStatus("PENDING"),
       byStatus("IN_PROGRESS"),
       byStatus("APPROVED"),
       byStatus("REJECTED"),
     ];
+    console.log("[tabData] counts — PENDING:", result[0].length, "IN_PROGRESS:", result[1].length, "APPROVED:", result[2].length, "REJECTED:", result[3].length);
+    return result;
   }, [allPayouts]);
 
   // ── Export helpers ─────────────────────────────────────────────────────────
@@ -366,7 +376,7 @@ const WithdrawalManagement = () => {
         r.dealer_id?.name || "N/A",
         `₹${(r.Amount || 0).toLocaleString()}`,
         TXN_LABELS[r.Type] || r.Type || "—",
-        r.order_status || "—",
+        getStatus(r) || "—",
         r.createdAt ? new Date(r.createdAt).toLocaleDateString("en-IN") : "—",
         r.updatedAt ? new Date(r.updatedAt).toLocaleDateString("en-IN") : "—",
       ]),
@@ -641,7 +651,7 @@ const WithdrawalManagement = () => {
                     <div><span style={{ color: "#94a3b8", marginRight: 6 }}>Amount:</span><strong>{fmt(row.Amount)}</strong></div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <span style={{ color: "#94a3b8" }}>Status:</span>
-                      <StatusBadge status={row.order_status} />
+                      <StatusBadge status={getStatus(row)} />
                       <span style={{ color: "#94a3b8" }}>→</span>
                       <StatusBadge status={nextStatus} />
                     </div>

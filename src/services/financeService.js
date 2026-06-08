@@ -10,11 +10,12 @@ export const fetchFinanceSummary = async () => {
 export const fetchAllPayouts = async () => {
   try {
     const res = await getAllPayouts("ALL");
-    console.log("ALL payouts response", res);
+    console.log("payout response", res);
+    console.log("records", res?.data);
 
     const raw = res?.data || res?.payouts || res?.withdrawals || [];
     const data = Array.isArray(raw) ? raw : [];
-    console.log("ALL payouts count", data.length);
+    console.log("[financeService] raw array length:", data.length);
 
     return { data, isLegacy: false };
   } catch (err) {
