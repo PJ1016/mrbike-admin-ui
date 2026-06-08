@@ -2,6 +2,7 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
+  Navigate,
   useLocation,
   Outlet,
   useParams,
@@ -40,6 +41,8 @@ import Reward from "./pages/reward/RewardList";
 import OfferList from "./pages/Offers/OfferList";
 import DealerUpdate from "./pages/Dealer/updateDealer";
 import DealerPayoutList from "./pages/Dealer/DealerPayoutList";
+import FinanceDashboard from "./pages/finance/FinanceDashboard";
+import WithdrawalManagement from "./pages/finance/WithdrawalManagement";
 import DealerVerify from "./pages/Dealer/DealerVerify";
 import Offer from "./pages/Offers/AddOffer";
 import ViewDealerDetails from "./components/Dealers/ViewDealerDetails";
@@ -246,7 +249,11 @@ const AppContent = () => {
           <Route path="/paymentList" element={<PaymentList />} />
           <Route path="/rewards" element={<Reward />} />
           <Route path="/offers" element={<OfferList />} />
-          <Route path="/approve" element={<DealerPayoutList />} />
+          {/* Legacy redirect — old /approve now lives at /finance/withdrawals */}
+          <Route path="/approve" element={<Navigate to="/finance/withdrawals" replace />} />
+          {/* Finance Phase 1 */}
+          <Route path="/finance" element={<FinanceDashboard />} />
+          <Route path="/finance/withdrawals" element={<WithdrawalManagement />} />
           <Route path="/add-offer" element={<Offer />} />
           <Route path="/all-tickets" element={<AllTicket />} />
 
