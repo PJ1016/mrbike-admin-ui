@@ -703,6 +703,18 @@ export const getDealerWallet = (dealerId) =>
 export const adminDepositToDealer = (data) =>
   apiRequest("POST", "/dealer/deposit", data);
 
+// ─── Finance APIs (Phase 1) ──────────────────────────────────────────────────
+// Backend endpoints: /finance/summary and /dealer/payouts?status=ALL
+
+export const getFinanceSummary = () =>
+  apiRequest("GET", "/finance/summary", {}, false);
+
+// Fetches ALL withdrawal records regardless of status.
+// Query param: status=ALL|PENDING|IN_PROGRESS|APPROVED|REJECTED
+// Falls back to legacy /dealer/pending endpoint when status=PENDING.
+export const getAllPayouts = (status = "ALL") =>
+  apiRequest("GET", `/dealer/payouts?status=${status}`, {}, false);
+
 export const addOffer = async (offerData) => {
   try {
     const response = await axios.post(

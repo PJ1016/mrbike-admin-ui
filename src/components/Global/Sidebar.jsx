@@ -30,7 +30,12 @@ import {
   PowerSettingsNew as LogoutIcon,
   TwoWheeler as BikeIcon,
   PlaceOutlined,
+  BarChart as FinanceDashIcon,
+  AccountBalanceWallet as WalletIcon,
+  Receipt as TransactionIcon,
+  SwapHoriz as WithdrawalIcon,
 } from "@mui/icons-material";
+import { Chip } from "@mui/material";
 
 const DRAWER_WIDTH = 280;
 
@@ -92,12 +97,26 @@ const menuConfig = [
     type: "header",
   },
   {
-    title: "Payments",
-    icon: <PaymentIcon />,
-    children: [
-      { title: "Payment List", path: "/paymentList" },
-      { title: "Withdrawal Requests", path: "/approve" },
-    ],
+    title: "Finance Dashboard",
+    icon: <FinanceDashIcon />,
+    path: "/finance",
+  },
+  {
+    title: "Withdrawal Requests",
+    icon: <WithdrawalIcon />,
+    path: "/finance/withdrawals",
+  },
+  {
+    title: "Dealer Wallets",
+    icon: <WalletIcon />,
+    path: "/finance/dealer-wallets",
+    disabled: true,
+  },
+  {
+    title: "Transactions",
+    icon: <TransactionIcon />,
+    path: "/finance/transactions",
+    disabled: true,
   },
   {
     title: "Rewards",
@@ -183,20 +202,22 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
     const hasChildren = !!item.children;
     const isOpen = openMenus[item.title];
     const isActive = location.pathname === item.path || (item.children?.some(child => location.pathname === child.path));
+    const isDisabled = !!item.disabled;
 
     return (
       <React.Fragment key={item.title}>
         <ListItem disablePadding sx={{ px: 1, mb: 0.5 }}>
           <ListItemButton
-            onClick={() => handleMenuClick(item.title, item.path, hasChildren)}
+            onClick={() => !isDisabled && handleMenuClick(item.title, item.path, hasChildren)}
             active={isActive ? 1 : 0}
             sx={{
               borderRadius: "8px",
               py: 1,
               px: 1.5,
               bgcolor: isActive && !hasChildren ? "primary.light" : "transparent",
-              color: isActive && !hasChildren ? "primary.main" : "text.secondary",
-              "&:hover": {
+              color: isDisabled ? "#cbd5e1" : isActive && !hasChildren ? "primary.main" : "text.secondary",
+              cursor: isDisabled ? "default" : "pointer",
+              "&:hover": isDisabled ? {} : {
                 bgcolor: isActive && !hasChildren ? "primary.light" : "neutral-100",
                 color: isActive && !hasChildren ? "primary.main" : "neutral-800",
               },
@@ -206,20 +227,35 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
             <ListItemIcon
               sx={{
                 minWidth: 32,
-                color: isActive ? "primary.main" : "inherit",
+                color: isDisabled ? "#cbd5e1" : isActive ? "primary.main" : "inherit",
                 "& svg": { fontSize: isChild ? 18 : 20 }
               }}
             >
               {isChild ? <BulletIcon sx={{ fontSize: 6 }} /> : item.icon}
             </ListItemIcon>
-            <ListItemText 
-              primary={item.title} 
-              primaryTypographyProps={{ 
-                fontSize: "0.875rem", 
+            <ListItemText
+              primary={item.title}
+              primaryTypographyProps={{
+                fontSize: "0.875rem",
                 fontWeight: isActive ? 600 : 500,
-              }} 
+                color: isDisabled ? "#cbd5e1" : undefined,
+              }}
             />
-            {hasChildren && (
+            {isDisabled && (
+              <Chip
+                label="Soon"
+                size="small"
+                sx={{
+                  height: 18,
+                  fontSize: "0.6rem",
+                  fontWeight: 700,
+                  bgcolor: "#f1f5f9",
+                  color: "#94a3b8",
+                  border: "1px solid #e2e8f0",
+                }}
+              />
+            )}
+            {!isDisabled && hasChildren && (
               <Box sx={{ display: 'flex', color: 'text.disabled' }}>
                 {isOpen ? <ExpandLess sx={{ fontSize: 18 }} /> : <ExpandMore sx={{ fontSize: 18 }} />}
               </Box>
