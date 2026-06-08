@@ -10,8 +10,22 @@ const DealerPayoutList = () => {
   const fetchData = async () => {
     try {
       const response = await getDealerPayouts();
-      if (response.status === true) {
-        setData(response.data);
+      console.log("dealer pending response", response);
+      console.log("response.status:", response.status, "| response.success:", response.success);
+
+      const isOk = response.status === true || response.success === true;
+      const records = Array.isArray(response.data) ? response.data : [];
+
+      console.log("records received:", records.length, records);
+
+      const target = records.find(r => r.orderId === "WD-1780897135354" || r._id === "WD-1780897135354");
+      console.log("WD-1780897135354 present:", target ? "YES" : "NO", target || "");
+
+      if (isOk) {
+        console.log("setData executing with", records.length, "records");
+        setData(records);
+      } else {
+        console.warn("Data gate failed — neither response.status nor response.success is true. Raw response:", response);
       }
     } catch (error) {
       console.error("Error fetching withdrawal requests:", error);

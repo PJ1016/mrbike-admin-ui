@@ -125,14 +125,21 @@ const WithdrawalManagementTable = ({ datas = [], fetchLatest, triggerDownloadExc
     doc.save(`Withdrawal_Requests_${new Date().toISOString().split("T")[0]}.pdf`)
   }
 
-  const handleStatusUpdate = async (walletId, status) => {
+  const handleStatusUpdate = async (walletId, status, row) => {
+    const payload = { wallet_id: walletId, new_status: status }
+    console.log("approve payload", payload)
+    console.log("wallet_id", walletId)
+    console.log("new_status", status)
+    console.log("row fields — _id:", row?._id, "| orderId:", row?.orderId, "| wallet_id field:", row?.wallet_id)
     setUpdating(walletId)
     try {
-      await updateWithdrawalStatus(walletId, status)
+      const res = await updateWithdrawalStatus(walletId, status)
+      console.log("status update response", res)
       setConfirmModal(null)
       await fetchLatest()
     } catch (err) {
       console.error("Status update failed:", err)
+      console.error("Error response:", err?.response?.data)
     } finally {
       setUpdating(null)
     }
@@ -378,7 +385,7 @@ const WithdrawalManagementTable = ({ datas = [], fetchLatest, triggerDownloadExc
                   <button
                     className={`btn btn-sm ${isReject ? "btn-danger" : isComplete ? "btn-success" : "btn-primary"}`}
                     disabled={busy}
-                    onClick={() => handleStatusUpdate(row._id, nextStatus)}
+                    onClick={() => handleStatusUpdate(row._id, nextStatus, row)}
                   >
                     {busy ? "Processing…" : isReject ? "Reject" : isComplete ? "Mark Completed" : "Move to In Progress"}
                   </button>
