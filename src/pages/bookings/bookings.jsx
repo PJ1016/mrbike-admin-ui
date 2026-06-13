@@ -79,6 +79,14 @@ const Bookings = () => {
           return s === "pending" || s === "waiting";
         if (statusFilter === "Completed")
           return s === "completed" || s === "cash received";
+        if (statusFilter === "Awaiting Payment")
+          return s === "awaiting_payment";
+        if (statusFilter === "Payment Selected")
+          return s === "payment_selected";
+        if (statusFilter === "Ready For Delivery")
+          return s === "ready_for_delivery";
+        if (statusFilter === "Delivered")
+          return s === "delivered";
         if (statusFilter === "Today") {
           const today = moment().startOf("day");
           const bookingDate = moment(b.createdAt);
@@ -96,7 +104,7 @@ const Bookings = () => {
     const total = data.length;
     const confirmed = data.filter((b) => {
       const s = b.status?.toLowerCase() || "";
-      return ["confirmed", "completed", "cash received", "pickedup", "arrived"].includes(s);
+      return ["confirmed", "completed", "cash received", "pickedup", "arrived", "awaiting_payment", "payment_selected", "ready_for_delivery", "delivered"].includes(s);
     }).length;
     const pending = data.filter((b) => {
       const s = b.status?.toLowerCase() || "";
@@ -158,6 +166,10 @@ const Bookings = () => {
     "Confirmed",
     "Completed",
     "Cancelled",
+    "Awaiting Payment",
+    "Payment Selected",
+    "Ready For Delivery",
+    "Delivered",
   ];
 
   const handleStatusChange = (event, newValue) => {

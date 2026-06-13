@@ -10,12 +10,8 @@ export const fetchFinanceSummary = async () => {
 export const fetchAllPayouts = async () => {
   try {
     const res = await getAllPayouts("ALL");
-    console.log("payout response", res);
-    console.log("records", res?.data);
-
     const raw = res?.data || res?.payouts || res?.withdrawals || [];
     const data = Array.isArray(raw) ? raw : [];
-    console.log("[financeService] raw array length:", data.length);
 
     return { data, isLegacy: false };
   } catch (err) {
@@ -28,7 +24,6 @@ export const fetchAllPayouts = async () => {
       const res = await getDealerPayouts();
       const raw = res?.data || res;
       const data = Array.isArray(raw) ? raw : [];
-      console.log("Legacy /dealer/pending count", data.length);
       return { data, isLegacy: true };
     } catch (fallbackErr) {
       console.error("Both payouts endpoints failed:", fallbackErr?.message);

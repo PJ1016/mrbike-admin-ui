@@ -274,8 +274,18 @@ const WithdrawalManagementTable = ({ datas = [], fetchLatest, triggerDownloadExc
                       </td>
                     </tr>
                   ) : currentData.map((row, index) => {
-                    const dealerId   = row.dealer_id?._id || row.dealer_id
-                    const dealerName = row.dealer_id?.name || "N/A"
+                  
+                    const dealerName =
+  row.dealer?.shopName ||
+  row.dealer?.name ||
+  row.dealer_id?.shopName ||
+  row.dealer_id?.name ||
+  "N/A";
+
+const dealerId =
+  row.dealer?.dealerId ||
+  row.dealer_id?.dealerId ||
+  "—";
                     const balance    = row.dealer_id?.walletBalance ?? row.dealer_id?.balance ?? null
 
                     return (
@@ -416,17 +426,28 @@ const WithdrawalManagementTable = ({ datas = [], fetchLatest, triggerDownloadExc
                     Failed to load wallet data.
                   </div>
                 ) : (() => {
-                  const balance         = walletData.balance        ?? walletData.walletBalance   ?? 0
-                  const minWalletAmount = walletData.minWalletAmount ?? 0
-                  const totalCredits    = walletData.totalCredits    ?? 0
-                  const totalDebits     = walletData.totalDebits     ?? 0
-                  const transactions    = walletData.transactions    ?? walletData.recentTransactions ?? []
+                  console.log("wallet summary response", walletData)
+
+                  const transactions = walletData.transactions ?? walletData.recentTransactions ?? []
+                  console.log("wallet transactions", transactions)
+
+                  const balance      = walletData.balance ?? walletData.walletBalance ?? walletData.currentBalance ?? 0
+                  const creditLimit  = walletData.creditLimit ?? walletData.minWalletAmount ?? 0
+
+                  const isDebitTxn = (txn) => {
+                    const t = (txn.type || txn.transaction_type || "").toLowerCase()
+                    return t === "withdrawal" || t === "debit"
+                  }
+                  const totalCredits = walletData.totalCredits ??
+                    transactions.filter(t => !isDebitTxn(t)).reduce((s, t) => s + (t.amount || 0), 0)
+                  const totalDebits  = walletData.totalDebits ??
+                    transactions.filter(isDebitTxn).reduce((s, t) => s + (t.amount || 0), 0)
 
                   return (
                     <>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
-                        <StatCard label="Current Balance"   value={fmt(balance)}         valueColor={balance < 0 ? "#dc2626" : "#166534"} />
-                        <StatCard label="Min Wallet Amount" value={fmt(minWalletAmount)}  valueColor="#374151" />
+                        <StatCard label="Current Balance" value={fmt(balance)}       valueColor={balance < 0 ? "#dc2626" : "#166534"} />
+                        <StatCard label="Credit Limit"    value={fmt(creditLimit)}   valueColor="#374151" />
                         <StatCard label="Total Credits"     value={fmt(totalCredits)}     valueColor="#166534" />
                         <StatCard label="Total Debits"      value={fmt(totalDebits)}      valueColor="#dc2626" />
                       </div>
