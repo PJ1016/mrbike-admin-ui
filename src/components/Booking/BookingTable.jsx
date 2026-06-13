@@ -202,6 +202,12 @@ const BookingTable = ({
       return { color: "error", icon: <CancelIcon fontSize="small" /> };
     if (s.includes("pending") || s.includes("waiting") || s.includes("created"))
       return { color: "warning", icon: <PendingIcon fontSize="small" /> };
+    if (s === "awaiting_payment")
+      return { color: "warning", icon: <PendingIcon fontSize="small" /> };
+    if (s === "payment_selected")
+      return { color: "secondary", icon: <PaymentIcon fontSize="small" /> };
+    if (s === "ready_for_delivery" || s === "delivered")
+      return { color: "success", icon: <CheckCircleIcon fontSize="small" /> };
 
     // Default or other progressive statuses
     return { color: "info", icon: <InfoIcon fontSize="small" /> };
@@ -215,7 +221,10 @@ const BookingTable = ({
     if (s.includes("service completed")) return 4;
     if (s.includes("service in progress")) return 3;
     if (s.includes("pickup scheduled") || s.includes("awaiting")) return 2;
+    if (booking.status === "delivered") return 6;
     if (booking.status === "cash received") return 6;
+    if (booking.status === "ready_for_delivery" || booking.status === "payment_selected") return 5;
+    if (booking.status === "awaiting_payment") return 4;
     if (booking.status === "confirmed") return 1;
     return 0;
   };
@@ -508,7 +517,7 @@ const BookingTable = ({
                         const { color, icon } = getStatusConfig(displayStatus);
                         return (
                           <Chip
-                            label={displayStatus.replace("_", " ")}
+                            label={displayStatus.replace(/_/g, " ")}
                             color={color}
                             icon={icon}
                             size="small"
@@ -778,7 +787,7 @@ const BookingTable = ({
               selectedBooking?.vehicleLifecycleStatus ||
               selectedBooking?.status ||
               ""
-            ).replace("_", " ")}
+            ).replace(/_/g, " ")}
             size="medium"
             sx={{
               fontWeight: 800,

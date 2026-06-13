@@ -155,7 +155,6 @@ const WithdrawalTable = ({
   tableRef,
   emptyLabel,
 }) => {
-  console.log("[WithdrawalTable] rows before render:", rows.length);
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(rows.length / ROWS_PER_PAGE));
   const currentRows = useMemo(() => {
@@ -198,9 +197,11 @@ const WithdrawalTable = ({
               </tr>
             ) : (
               currentRows.map((row, idx) => {
-                const dealerId   = row.dealer_id?._id || row.dealer_id;
-                const dealerName = row.dealer_id?.name || "N/A";
-                const busy       = updating === row._id;
+                console.log("dealer object", row.dealer);
+                const walletDealerId = row.dealer?._id || row.dealer_id;
+                const dealerIdCode   = row.dealer?.dealerId || "—";
+                const shopName       = row.dealer?.name || "N/A";
+                const busy           = updating === row._id;
 
                 return (
                   <tr key={row._id} style={{ verticalAlign: "middle" }}>
@@ -210,7 +211,7 @@ const WithdrawalTable = ({
                     </td>
                     <td style={tdStyle}>
                       <button
-                        onClick={() => onViewWallet(dealerId, dealerName)}
+                        onClick={() => onViewWallet(walletDealerId, shopName)}
                         title="View wallet details"
                         style={{
                           background: "none",
@@ -218,18 +219,21 @@ const WithdrawalTable = ({
                           color: "#2563eb",
                           cursor: "pointer",
                           padding: 0,
-                          fontWeight: 500,
-                          textDecoration: "underline",
-                          textDecorationStyle: "dotted",
-                          fontSize: 13,
+                          textAlign: "left",
+                          lineHeight: 1.4,
                         }}
                       >
-                        {dealerName}
+                        <div style={{ fontFamily: "monospace", fontSize: 11, color: "#64748b", fontWeight: 600 }}>
+                          {dealerIdCode}
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 600, textDecoration: "underline", textDecorationStyle: "dotted" }}>
+                          {shopName}
+                        </div>
                       </button>
                     </td>
-                    <td style={{ ...tdStyle, fontWeight: 600 }}>{fmt(row.Amount)}</td>
+                    <td style={{ ...tdStyle, fontWeight: 600 }}>{fmt(row.amount ?? row.Amount)}</td>
                     <td style={{ ...tdStyle, color: "#475569" }}>
-                      {TXN_LABELS[row.Type] || row.Type || "—"}
+                      {"Withdrawal"}
                     </td>
                     <td style={tdStyle}>
                       <StatusBadge status={getStatus(row)} />
@@ -319,12 +323,10 @@ const WithdrawalManagement = () => {
   const tableRef = useRef(null);
 
   const loadPayouts = useCallback(async () => {
-    console.log("[loadPayouts] called");
     setLoading(true);
     setError(null);
     try {
       const result = await fetchAllPayouts();
-      console.log("[loadPayouts] allPayouts count:", result.data?.length, "isLegacy:", result.isLegacy);
       setAllPayouts(result.data);
       setIsLegacy(result.isLegacy);
     } catch (err) {
@@ -339,8 +341,6 @@ const WithdrawalManagement = () => {
 
   // ── Derived per-tab data ───────────────────────────────────────────────────
   const tabData = useMemo(() => {
-    console.log("[tabData] allPayouts received:", allPayouts.length);
-    if (allPayouts.length > 0) console.log("sample payout", allPayouts[0]);
     const byStatus = (s) => allPayouts.filter((p) => {
       const st = getStatus(p);
       return st === s || (s === "APPROVED" && st === "COMPLETED");
@@ -351,7 +351,6 @@ const WithdrawalManagement = () => {
       byStatus("APPROVED"),
       byStatus("REJECTED"),
     ];
-    console.log("[tabData] counts — PENDING:", result[0].length, "IN_PROGRESS:", result[1].length, "APPROVED:", result[2].length, "REJECTED:", result[3].length);
     return result;
   }, [allPayouts]);
 
@@ -373,9 +372,9 @@ const WithdrawalManagement = () => {
       body: tabData[activeTab].map((r, i) => [
         i + 1,
         r.orderId || r._id?.slice(-8) || "—",
-        r.dealer_id?.name || "N/A",
-        `₹${(r.Amount || 0).toLocaleString()}`,
-        TXN_LABELS[r.Type] || r.Type || "—",
+        `${r.dealer?.dealerId || "—"} – ${r.dealer?.name || "N/A"}`,
+        `₹${(r.amount ?? r.Amount ?? 0).toLocaleString()}`,
+        "Withdrawal",
         getStatus(r) || "—",
         r.createdAt ? new Date(r.createdAt).toLocaleDateString("en-IN") : "—",
         r.updatedAt ? new Date(r.updatedAt).toLocaleDateString("en-IN") : "—",
@@ -630,7 +629,7 @@ const WithdrawalManagement = () => {
                     {isReject ? (
                       <>
                         Reject the withdrawal request from{" "}
-                        <strong>{row.dealer_id?.name}</strong>?
+                        <strong>{row.dealer?.name || "N/A"}</strong>?
                         <span style={{ fontSize: 12, color: "#6b7280", display: "block", marginTop: 4 }}>
                           The dealer's wallet balance will be restored by the backend.
                         </span>
@@ -647,8 +646,14 @@ const WithdrawalManagement = () => {
                       borderRadius: 8, fontSize: 12, display: "flex", flexDirection: "column", gap: 5,
                     }}
                   >
-                    <div><span style={{ color: "#94a3b8", marginRight: 6 }}>Dealer:</span><strong>{row.dealer_id?.name || "N/A"}</strong></div>
-                    <div><span style={{ color: "#94a3b8", marginRight: 6 }}>Amount:</span><strong>{fmt(row.Amount)}</strong></div>
+                    <div>
+                      <span style={{ color: "#94a3b8", marginRight: 6 }}>Dealer:</span>
+                      <span style={{ fontFamily: "monospace", fontSize: 11, color: "#64748b", marginRight: 6 }}>
+                        {row.dealer?.dealerId || "—"}
+                      </span>
+                      <strong>{row.dealer?.name || "N/A"}</strong>
+                    </div>
+                    <div><span style={{ color: "#94a3b8", marginRight: 6 }}>Amount:</span><strong>{fmt(row.amount ?? row.Amount)}</strong></div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <span style={{ color: "#94a3b8" }}>Status:</span>
                       <StatusBadge status={getStatus(row)} />
@@ -697,18 +702,30 @@ const WithdrawalManagement = () => {
                 ) : !walletData ? (
                   <div style={{ textAlign: "center", padding: "40px 0", color: "#ef4444" }}>Failed to load wallet data.</div>
                 ) : (() => {
-                  const balance         = walletData.balance        ?? walletData.walletBalance ?? 0;
-                  const minWalletAmount = walletData.minWalletAmount ?? 0;
-                  const totalCredits    = walletData.totalCredits    ?? 0;
-                  const totalDebits     = walletData.totalDebits     ?? 0;
-                  const transactions    = walletData.transactions    ?? walletData.recentTransactions ?? [];
+                  console.log("wallet summary response", walletData);
+
+                  const transactions = walletData.transactions ?? walletData.recentTransactions ?? [];
+                  console.log("wallet transactions", transactions);
+
+                  const balance     = walletData.balance ?? walletData.walletBalance ?? walletData.currentBalance ?? 0;
+                  const creditLimit = walletData.creditLimit ?? walletData.minWalletAmount ?? 0;
+
+                  const isDebitTxn = (txn) => {
+                    const t = (txn.type || txn.transaction_type || "").toLowerCase();
+                    return t === "withdrawal" || t === "debit";
+                  };
+                  const totalCredits = walletData.totalCredits ??
+                    transactions.filter(t => !isDebitTxn(t)).reduce((s, t) => s + (t.amount || 0), 0);
+                  const totalDebits  = walletData.totalDebits ??
+                    transactions.filter(isDebitTxn).reduce((s, t) => s + (t.amount || 0), 0);
+
                   return (
                     <>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
-                        <WalletStatCell label="Current Balance"   value={fmt(balance)}        valueColor={balance < 0 ? "#dc2626" : "#166534"} />
-                        <WalletStatCell label="Min Wallet Amount" value={fmt(minWalletAmount)} valueColor="#374151" />
-                        <WalletStatCell label="Total Credits"     value={fmt(totalCredits)}    valueColor="#166534" />
-                        <WalletStatCell label="Total Debits"      value={fmt(totalDebits)}     valueColor="#dc2626" />
+                        <WalletStatCell label="Current Balance" value={fmt(balance)}      valueColor={balance < 0 ? "#dc2626" : "#166534"} />
+                        <WalletStatCell label="Credit Limit"    value={fmt(creditLimit)}  valueColor="#374151" />
+                        <WalletStatCell label="Total Credits"   value={fmt(totalCredits)} valueColor="#166534" />
+                        <WalletStatCell label="Total Debits"    value={fmt(totalDebits)}  valueColor="#dc2626" />
                       </div>
                       {transactions.length > 0 && (
                         <>

@@ -46,14 +46,18 @@ import moment from "moment";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 const STATUS_META = {
-  confirmed:        { label: "Confirmed",     color: "#2563eb", bg: "#eff6ff", icon: <CheckCircle fontSize="small" /> },
-  pickedup:         { label: "Picked Up",    color: "#f59e0b", bg: "#fffbeb", icon: <LocalShipping fontSize="small" /> },
-  arrived:          { label: "Arrived",      color: "#0ea5e9", bg: "#f0f9ff", icon: <EventNote fontSize="small" /> },
-  completed:        { label: "Completed",    color: "#10b981", bg: "#ecfdf5", icon: <CheckCircle fontSize="small" /> },
-  "cash received":  { label: "Cash Received", color: "#059669", bg: "#d1fae5", icon: <AttachMoney fontSize="small" /> },
-  user_cancelled:   { label: "Cancelled",    color: "#ef4444", bg: "#fef2f2", icon: <Cancel fontSize="small" /> },
-  cancelled:        { label: "Cancelled",    color: "#ef4444", bg: "#fef2f2", icon: <Cancel fontSize="small" /> },
-  rejected:         { label: "Rejected",     color: "#ef4444", bg: "#fef2f2", icon: <Cancel fontSize="small" /> },
+  confirmed:          { label: "Confirmed",          color: "#2563eb", bg: "#eff6ff", icon: <CheckCircle fontSize="small" /> },
+  pickedup:           { label: "Picked Up",          color: "#f59e0b", bg: "#fffbeb", icon: <LocalShipping fontSize="small" /> },
+  arrived:            { label: "Arrived",            color: "#0ea5e9", bg: "#f0f9ff", icon: <EventNote fontSize="small" /> },
+  awaiting_payment:   { label: "Awaiting Payment",   color: "#f59e0b", bg: "#fffbeb", icon: <AttachMoney fontSize="small" /> },
+  payment_selected:   { label: "Payment Selected",   color: "#8b5cf6", bg: "#f5f3ff", icon: <AttachMoney fontSize="small" /> },
+  ready_for_delivery: { label: "Ready for Delivery", color: "#0ea5e9", bg: "#f0f9ff", icon: <LocalShipping fontSize="small" /> },
+  delivered:          { label: "Delivered",          color: "#10b981", bg: "#ecfdf5", icon: <DirectionsBike fontSize="small" /> },
+  completed:          { label: "Completed",          color: "#10b981", bg: "#ecfdf5", icon: <CheckCircle fontSize="small" /> },
+  "cash received":    { label: "Cash Received",      color: "#059669", bg: "#d1fae5", icon: <AttachMoney fontSize="small" /> },
+  user_cancelled:     { label: "Cancelled",          color: "#ef4444", bg: "#fef2f2", icon: <Cancel fontSize="small" /> },
+  cancelled:          { label: "Cancelled",          color: "#ef4444", bg: "#fef2f2", icon: <Cancel fontSize="small" /> },
+  rejected:           { label: "Rejected",           color: "#ef4444", bg: "#fef2f2", icon: <Cancel fontSize="small" /> },
 };
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
@@ -251,13 +255,19 @@ const Dashboard = () => {
     );
     recentBookings.push(...sorted.slice(0, 5));
 
-    const completedCount = (statusCounts["completed"] || 0) + (statusCounts["cash received"] || 0);
+    const completedCount =
+      (statusCounts["completed"] || 0) +
+      (statusCounts["cash received"] || 0) +
+      (statusCounts["delivered"] || 0);
     const cancelledCount =
       (statusCounts["user_cancelled"] || 0) + (statusCounts["rejected"] || 0);
     const activeCount =
       (statusCounts["confirmed"] || 0) +
       (statusCounts["pickedup"] || 0) +
-      (statusCounts["arrived"] || 0);
+      (statusCounts["arrived"] || 0) +
+      (statusCounts["awaiting_payment"] || 0) +
+      (statusCounts["payment_selected"] || 0) +
+      (statusCounts["ready_for_delivery"] || 0);
 
     return {
       totalRevenue,
@@ -321,7 +331,7 @@ const Dashboard = () => {
   }
 
   const today = moment().format("dddd, D MMMM YYYY");
-  const statusOrder = ["confirmed", "pickedup", "arrived", "completed", "cash received", "user_cancelled", "cancelled", "rejected"];
+  const statusOrder = ["confirmed", "pickedup", "arrived", "awaiting_payment", "payment_selected", "ready_for_delivery", "delivered", "completed", "cash received", "user_cancelled", "cancelled", "rejected"];
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: "neutral.50", minHeight: "100vh" }}>
@@ -366,7 +376,7 @@ const Dashboard = () => {
           <StatCard
             title="Jobs in Progress"
             value={analytics?.activeCount ?? 0}
-            subtitle="Confirmed + Picked Up + Arrived"
+            subtitle="Confirmed + In Progress + In Payment Flow"
             icon={<Build />}
             color="#f59e0b"
             onClick={() => navigate("/booking")}
