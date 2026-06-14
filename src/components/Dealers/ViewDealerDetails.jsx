@@ -32,7 +32,6 @@ import DocumentsTab from "./Details/tabs/DocumentsTab";
 import BankingTab from "./Details/tabs/BankingTab";
 import LiveVerificationTab from "./Details/tabs/LiveVerificationTab";
 import BusinessSettingsTab from "./Details/tabs/BusinessSettingsTab";
-import DealerServicesView from "./DealerServicesView";
 import DealerServicesManager from "./ServicesV2/DealerServicesManager";
 
 function CustomTabPanel({ children, value, index }) {
@@ -432,10 +431,7 @@ const VendorDealerDetails = () => {
 
               <CustomTabPanel value={tabIndex} index={6}>
                 <Box sx={{ px: { xs: 2, md: 4 }, py: 3 }}>
-                  <DealerServicesView dealerId={id} />
-                  <Box sx={{ mt: 4 }}>
-                    <DealerServicesManager dealer={dealer} />
-                  </Box>
+                  <DealerServicesManager dealer={dealer} />
                 </Box>
               </CustomTabPanel>
 
