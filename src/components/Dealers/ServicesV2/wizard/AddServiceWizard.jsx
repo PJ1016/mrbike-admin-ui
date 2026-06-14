@@ -18,6 +18,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import Step1SelectService from "./Step1SelectService";
 import Step2SelectCompanies from "./Step2SelectCompanies";
 import Step3SelectBikes from "./Step3SelectBikes";
+import Step4SelectCCRanges from "./Step4SelectCCRanges";
 import Step4Pricing from "./Step4Pricing";
 import Step5Review from "./Step5Review";
 import { saveDealerServices } from "../../../../api";
@@ -27,6 +28,7 @@ export const STEPS = [
   "Select Service",
   "Select Companies",
   "Select Bikes",
+  "Select CC Ranges",
   "Set Prices",
   "Review & Save",
 ];
@@ -36,6 +38,7 @@ const initialState = {
   selectedService: null,
   selectedCompanyIds: [],
   selectedBikes: [],
+  selectedCCRanges: [],
   pricing: {},
   isSaving: false,
 };
@@ -48,6 +51,7 @@ export const wizardReducer = (state, action) => {
         selectedService: action.payload,
         selectedCompanyIds: [],
         selectedBikes: [],
+        selectedCCRanges: [],
         pricing: {},
       };
     case "SET_COMPANIES":
@@ -55,16 +59,23 @@ export const wizardReducer = (state, action) => {
         ...state,
         selectedCompanyIds: action.payload,
         selectedBikes: [],
+        selectedCCRanges: [],
         pricing: {},
       };
     case "SET_BIKES":
       return {
         ...state,
-        // Normalize _id so all downstream code (pricing keys, save payload) uses b._id consistently
         selectedBikes: action.payload.map((b) => ({
           ...b,
           _id: b._id || b.variant_id,
         })),
+        selectedCCRanges: [],
+        pricing: {},
+      };
+    case "SET_CC_RANGES":
+      return {
+        ...state,
+        selectedCCRanges: action.payload,
         pricing: {},
       };
     case "SET_PRICING":
@@ -75,7 +86,10 @@ export const wizardReducer = (state, action) => {
         pricing: { ...state.pricing, [action.bikeId]: action.price },
       };
     case "NEXT":
-      return { ...state, activeStep: Math.min(state.activeStep + 1, STEPS.length - 1) };
+      return {
+        ...state,
+        activeStep: Math.min(state.activeStep + 1, STEPS.length - 1),
+      };
     case "BACK":
       return { ...state, activeStep: Math.max(state.activeStep - 1, 0) };
     case "SET_SAVING":
@@ -96,14 +110,21 @@ const canGoNext = (state) => {
     case 2:
       return state.selectedBikes.length > 0;
     case 3:
+      // Must have at least one CC range selected AND all those bikes must have cc > 0
+      return state.selectedCCRanges.length > 0;
+    case 4: {
+      const pricedBikes = state.selectedBikes.filter((b) =>
+        state.selectedCCRanges.includes(Number(b.cc || b.engine_cc || 0))
+      );
       return (
-        state.selectedBikes.length > 0 &&
-        state.selectedBikes.every((b) => {
+        pricedBikes.length > 0 &&
+        pricedBikes.every((b) => {
           const p = state.pricing[b._id];
           return p !== undefined && p !== "" && Number(p) > 0;
         })
       );
-    case 4:
+    }
+    case 5:
       return true;
     default:
       return false;
@@ -128,7 +149,54 @@ const AddServiceWizard = ({
   const handleSave = useCallback(async () => {
     dispatch({ type: "SET_SAVING", payload: true });
     try {
-      const newEntries = state.selectedBikes.map((bike) => ({
+      // Only save bikes whose CC is in the selected CC ranges
+      const bikesToSave = state.selectedBikes.filter((bike) =>
+        state.selectedCCRanges.includes(Number(bike.cc || bike.engine_cc || 0))
+      );
+
+      // Defensive: block bikes with cc <= 0 (should not reach here after Step4SelectCCRanges)
+      const cczero = bikesToSave.filter(
+        (b) => Number(b.cc || b.engine_cc || 0) <= 0
+      );
+      if (cczero.length > 0) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Invalid CC Data",
+          html: `<strong>${cczero.length} bike(s)</strong> have no CC configured and cannot be saved:<br/><br/><em>${cczero.map((b) => b.variant_name).join(", ")}</em><br/><br/>Please update bike master data first.`,
+        });
+        return;
+      }
+
+      // Duplicate mapping check: warn if any selected bike is already mapped to this service
+      const existingForService = allPricing.filter(
+        (p) =>
+          String(p.serviceId) === String(state.selectedService._id) &&
+          p.type === serviceType
+      );
+      const duplicateBikes = bikesToSave.filter((bike) =>
+        existingForService.some(
+          (e) => String(e.variantId) === String(bike._id)
+        )
+      );
+      if (duplicateBikes.length > 0) {
+        const { isConfirmed } = await Swal.fire({
+          icon: "warning",
+          title: "Duplicate Bike Mappings",
+          html: `<strong>${duplicateBikes.length} bike(s)</strong> are already mapped to this service:<br/><br/><em>${duplicateBikes
+            .map((d) => d.variant_name)
+            .join(
+              ", "
+            )}</em><br/><br/>Saving will update their existing pricing. Continue?`,
+          showCancelButton: true,
+          confirmButtonText: "Yes, Update",
+          confirmButtonColor: "#1976d2",
+          cancelButtonColor: "#757575",
+          cancelButtonText: "Cancel",
+        });
+        if (!isConfirmed) return;
+      }
+
+      const newEntries = bikesToSave.map((bike) => ({
         type: serviceType,
         serviceId: String(state.selectedService._id),
         variantId: String(bike._id || bike.variant_id),
@@ -153,7 +221,7 @@ const AddServiceWizard = ({
       Swal.fire({
         icon: "success",
         title: "Service Added!",
-        text: `${state.selectedService.name} is now configured for ${state.selectedBikes.length} bikes.`,
+        text: `${state.selectedService.name} is now configured for ${bikesToSave.length} bike${bikesToSave.length !== 1 ? "s" : ""}.`,
         timer: 2000,
         showConfirmButton: false,
       });
@@ -218,7 +286,7 @@ const AddServiceWizard = ({
               <StepLabel
                 sx={{
                   "& .MuiStepLabel-label": {
-                    fontSize: "0.72rem",
+                    fontSize: "0.68rem",
                     fontWeight: idx === state.activeStep ? 700 : 400,
                   },
                 }}
@@ -237,8 +305,9 @@ const AddServiceWizard = ({
         {state.activeStep === 0 && <Step1SelectService {...stepProps} />}
         {state.activeStep === 1 && <Step2SelectCompanies {...stepProps} />}
         {state.activeStep === 2 && <Step3SelectBikes {...stepProps} />}
-        {state.activeStep === 3 && <Step4Pricing {...stepProps} />}
-        {state.activeStep === 4 && <Step5Review {...stepProps} />}
+        {state.activeStep === 3 && <Step4SelectCCRanges {...stepProps} />}
+        {state.activeStep === 4 && <Step4Pricing {...stepProps} />}
+        {state.activeStep === 5 && <Step5Review {...stepProps} />}
       </DialogContent>
 
       <Divider />
@@ -266,7 +335,12 @@ const AddServiceWizard = ({
             variant="contained"
             onClick={() => dispatch({ type: "NEXT" })}
             disabled={!nextAllowed}
-            sx={{ fontWeight: 700, textTransform: "none", borderRadius: 2, px: 3 }}
+            sx={{
+              fontWeight: 700,
+              textTransform: "none",
+              borderRadius: 2,
+              px: 3,
+            }}
           >
             Next
           </Button>
@@ -281,7 +355,12 @@ const AddServiceWizard = ({
                 <CircularProgress size={16} color="inherit" />
               ) : null
             }
-            sx={{ fontWeight: 800, textTransform: "none", borderRadius: 2, px: 4 }}
+            sx={{
+              fontWeight: 800,
+              textTransform: "none",
+              borderRadius: 2,
+              px: 4,
+            }}
           >
             {state.isSaving ? "Saving…" : "Save Service"}
           </Button>

@@ -39,11 +39,15 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import CurrencyRupeeIcon from "@mui/icons-material/CurrencyRupee";
 import BusinessIcon from "@mui/icons-material/Business";
+import FilterListIcon from "@mui/icons-material/FilterList";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchCompanies, fetchBikesByCompany } from "../../../redux/slices/bikeSlice";
+import {
+  fetchCompanies,
+  fetchBikesByCompany,
+} from "../../../redux/slices/bikeSlice";
 import Swal from "sweetalert2";
 
-// Isolated price cell
+// Isolated price cell — only re-renders when its own value changes
 const PriceInput = React.memo(({ bikeId, value, onChange }) => (
   <TextField
     size="small"
@@ -147,6 +151,34 @@ const EditServiceDialog = ({
     dispatch(fetchBikesByCompany(selectedCompanyIds));
   }, [selectedCompanyIds, dispatch]);
 
+  // ── Company mapping — which companies are currently represented ──
+  const companyMappings = useMemo(() => {
+    const map = {};
+    currentBikes.forEach((b) => {
+      const name = b.company_name;
+      if (name) {
+        if (!map[name]) map[name] = 0;
+        map[name]++;
+      }
+    });
+    return Object.entries(map)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [currentBikes]);
+
+  // ── CC mapping — which CC values are currently represented ──
+  const ccMappings = useMemo(() => {
+    const map = {};
+    currentBikes.forEach((b) => {
+      const cc = Number(b.cc || 0);
+      if (!map[cc]) map[cc] = 0;
+      map[cc]++;
+    });
+    return Object.entries(map)
+      .map(([cc, count]) => ({ cc: Number(cc), count }))
+      .sort((a, b) => a.cc - b.cc);
+  }, [currentBikes]);
+
   const filteredCurrent = useMemo(() => {
     if (!search.trim()) return currentBikes;
     const q = search.toLowerCase();
@@ -163,7 +195,6 @@ const EditServiceDialog = ({
       .filter((b) => !currentIds.has(b._id || b.variant_id))
       .map((b) => ({
         ...b,
-        // DataGrid requires `id` — bikes use variant_id, not _id
         id: b._id || b.variant_id,
         cc: Number(b.cc || b.engine_cc || 0),
       }));
@@ -182,6 +213,42 @@ const EditServiceDialog = ({
     });
   }, []);
 
+  // Remove all bikes from a given company
+  const handleRemoveByCompany = useCallback(
+    (companyName) => {
+      const toRemove = new Set(
+        currentBikes
+          .filter((b) => b.company_name === companyName)
+          .map((b) => b._id)
+      );
+      setCurrentBikes((prev) => prev.filter((b) => !toRemove.has(b._id)));
+      setPricing((prev) => {
+        const copy = { ...prev };
+        toRemove.forEach((id) => delete copy[id]);
+        return copy;
+      });
+    },
+    [currentBikes]
+  );
+
+  // Remove all bikes with a given CC value
+  const handleRemoveByCC = useCallback(
+    (cc) => {
+      const toRemove = new Set(
+        currentBikes
+          .filter((b) => Number(b.cc || 0) === cc)
+          .map((b) => b._id)
+      );
+      setCurrentBikes((prev) => prev.filter((b) => !toRemove.has(b._id)));
+      setPricing((prev) => {
+        const copy = { ...prev };
+        toRemove.forEach((id) => delete copy[id]);
+        return copy;
+      });
+    },
+    [currentBikes]
+  );
+
   const handleToggleCompany = useCallback((id) => {
     setSelectedCompanyIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -193,7 +260,6 @@ const EditServiceDialog = ({
       .filter((b) => addSelection.includes(b._id || b.variant_id))
       .map((b) => ({
         ...b,
-        // Normalize _id so pricing[bike._id] works consistently
         _id: b._id || b.variant_id,
         cc: Number(b.cc || b.engine_cc || 0),
       }));
@@ -242,7 +308,7 @@ const EditServiceDialog = ({
       Swal.fire({
         icon: "success",
         title: "Updated!",
-        text: `${serviceRow.serviceName} updated with ${currentBikes.length} bikes.`,
+        text: `${serviceRow.serviceName} updated with ${currentBikes.length} bike${currentBikes.length !== 1 ? "s" : ""}.`,
         timer: 1800,
         showConfirmButton: false,
       });
@@ -338,6 +404,107 @@ const EditServiceDialog = ({
         {/* ── Tab 0: Current bikes + prices ── */}
         {activeTab === 0 && (
           <Box>
+            {/* ── Company mapping chips ── */}
+            {companyMappings.length > 0 && (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 1.5,
+                  mb: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 2,
+                  bgcolor: "grey.50",
+                }}
+              >
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                  mb={0.75}
+                  flexWrap="wrap"
+                >
+                  <BusinessIcon
+                    sx={{ fontSize: 15, color: "text.secondary" }}
+                  />
+                  <Typography
+                    variant="caption"
+                    fontWeight={700}
+                    color="text.secondary"
+                    sx={{ textTransform: "uppercase", letterSpacing: 0.4 }}
+                  >
+                    Companies
+                  </Typography>
+                  <Typography variant="caption" color="text.disabled">
+                    (click × to remove all bikes from that company)
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={0.75} flexWrap="wrap" gap={0.75}>
+                  {companyMappings.map(({ name, count }) => (
+                    <Chip
+                      key={name}
+                      label={`${name} (${count})`}
+                      size="small"
+                      onDelete={() => handleRemoveByCompany(name)}
+                      sx={{ fontWeight: 600 }}
+                    />
+                  ))}
+                </Stack>
+              </Paper>
+            )}
+
+            {/* ── CC mapping chips ── */}
+            {ccMappings.length > 0 && (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 1.5,
+                  mb: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 2,
+                  bgcolor: "grey.50",
+                }}
+              >
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                  mb={0.75}
+                  flexWrap="wrap"
+                >
+                  <FilterListIcon
+                    sx={{ fontSize: 15, color: "text.secondary" }}
+                  />
+                  <Typography
+                    variant="caption"
+                    fontWeight={700}
+                    color="text.secondary"
+                    sx={{ textTransform: "uppercase", letterSpacing: 0.4 }}
+                  >
+                    CC Ranges
+                  </Typography>
+                  <Typography variant="caption" color="text.disabled">
+                    (click × to remove all bikes with that CC)
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={0.75} flexWrap="wrap" gap={0.75}>
+                  {ccMappings.map(({ cc, count }) => (
+                    <Chip
+                      key={cc}
+                      label={`${cc} cc (${count} bike${count !== 1 ? "s" : ""})`}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                      onDelete={() => handleRemoveByCC(cc)}
+                      sx={{ fontWeight: 600 }}
+                    />
+                  ))}
+                </Stack>
+              </Paper>
+            )}
+
+            {/* ── Search + price count ── */}
             <Stack direction="row" spacing={2} alignItems="center" mb={2}>
               <TextField
                 size="small"
@@ -347,7 +514,10 @@ const EditServiceDialog = ({
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon fontSize="small" sx={{ color: "text.disabled" }} />
+                      <SearchIcon
+                        fontSize="small"
+                        sx={{ color: "text.disabled" }}
+                      />
                     </InputAdornment>
                   ),
                 }}
@@ -365,7 +535,7 @@ const EditServiceDialog = ({
                 border: "1px solid",
                 borderColor: "divider",
                 borderRadius: 2,
-                maxHeight: 380,
+                maxHeight: 320,
               }}
             >
               <Table size="small" stickyHeader>
@@ -396,7 +566,9 @@ const EditServiceDialog = ({
                         align="center"
                         sx={{ py: 4, color: "text.disabled" }}
                       >
-                        No bikes match your search.
+                        {currentBikes.length === 0
+                          ? 'No bikes added yet. Use "Add More Bikes" tab.'
+                          : "No bikes match your search."}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -459,8 +631,15 @@ const EditServiceDialog = ({
             </Typography>
 
             <Box sx={{ mb: 2 }}>
-              <Stack direction="row" spacing={0.5} flexWrap="wrap" alignItems="center">
-                <BusinessIcon sx={{ fontSize: 16, color: "text.secondary", mr: 0.5 }} />
+              <Stack
+                direction="row"
+                spacing={0.5}
+                flexWrap="wrap"
+                alignItems="center"
+              >
+                <BusinessIcon
+                  sx={{ fontSize: 16, color: "text.secondary", mr: 0.5 }}
+                />
                 <Typography variant="body2" fontWeight={600} mr={1}>
                   Filter by company:
                 </Typography>
@@ -504,8 +683,10 @@ const EditServiceDialog = ({
                     columns={ADD_BIKE_COLUMNS}
                     checkboxSelection
                     disableRowSelectionOnClick
-                    // MUI X v8: rowSelectionModel is { type, ids: Set } not string[]
-                    rowSelectionModel={{ type: "include", ids: new Set(addSelection) }}
+                    rowSelectionModel={{
+                      type: "include",
+                      ids: new Set(addSelection),
+                    }}
                     onRowSelectionModelChange={(newModel) =>
                       setAddSelection(Array.from(newModel.ids))
                     }
@@ -562,7 +743,12 @@ const EditServiceDialog = ({
           startIcon={
             isSaving ? <CircularProgress size={16} color="inherit" /> : null
           }
-          sx={{ fontWeight: 800, textTransform: "none", borderRadius: 2, px: 4 }}
+          sx={{
+            fontWeight: 800,
+            textTransform: "none",
+            borderRadius: 2,
+            px: 4,
+          }}
         >
           {isSaving ? "Saving…" : "Save Changes"}
         </Button>

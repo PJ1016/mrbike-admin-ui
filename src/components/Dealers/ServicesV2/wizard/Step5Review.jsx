@@ -17,6 +17,7 @@ import TwoWheelerIcon from "@mui/icons-material/TwoWheeler";
 import BusinessIcon from "@mui/icons-material/Business";
 import CurrencyRupeeIcon from "@mui/icons-material/CurrencyRupee";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import FilterListIcon from "@mui/icons-material/FilterList";
 
 const StatCard = ({ icon, value, label, color }) => (
   <Paper
@@ -41,11 +42,22 @@ const StatCard = ({ icon, value, label, color }) => (
 );
 
 const Step5Review = ({ state, serviceType }) => {
+  // Only include bikes in selected CC ranges — exactly what will be saved
+  const bikesToSave = useMemo(
+    () =>
+      state.selectedBikes.filter((b) =>
+        state.selectedCCRanges.includes(Number(b.cc || b.engine_cc || 0))
+      ),
+    [state.selectedBikes, state.selectedCCRanges]
+  );
+
+  const excludedCount = state.selectedBikes.length - bikesToSave.length;
+
   const { companies, avgPrice, minPrice, maxPrice } = useMemo(() => {
     const names = new Set(
-      state.selectedBikes.map((b) => b.company_name).filter(Boolean)
+      bikesToSave.map((b) => b.company_name).filter(Boolean)
     );
-    const prices = state.selectedBikes
+    const prices = bikesToSave
       .map((b) => Number(state.pricing[b._id] || 0))
       .filter((p) => p > 0);
     const total = prices.reduce((s, p) => s + p, 0);
@@ -55,7 +67,12 @@ const Step5Review = ({ state, serviceType }) => {
       minPrice: prices.length ? Math.min(...prices) : 0,
       maxPrice: prices.length ? Math.max(...prices) : 0,
     };
-  }, [state.selectedBikes, state.pricing]);
+  }, [bikesToSave, state.pricing]);
+
+  const sortedCCRanges = useMemo(
+    () => [...state.selectedCCRanges].sort((a, b) => a - b),
+    [state.selectedCCRanges]
+  );
 
   return (
     <Box>
@@ -70,13 +87,21 @@ const Step5Review = ({ state, serviceType }) => {
         make changes.
       </Typography>
 
+      {excludedCount > 0 && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <strong>{excludedCount} bike(s)</strong> were excluded because their
+          CC range was not selected. Only the <strong>{bikesToSave.length}</strong> bikes
+          below will be saved.
+        </Alert>
+      )}
+
       {/* Stats row */}
       <Grid container spacing={1.5} mb={3}>
         <Grid item xs={6} sm={3}>
           <StatCard
             icon={<TwoWheelerIcon />}
-            value={state.selectedBikes.length}
-            label="TOTAL BIKES"
+            value={bikesToSave.length}
+            label="BIKES SAVING"
             color="primary"
           />
         </Grid>
@@ -90,9 +115,9 @@ const Step5Review = ({ state, serviceType }) => {
         </Grid>
         <Grid item xs={6} sm={3}>
           <StatCard
-            icon={<ReceiptLongIcon />}
-            value={state.selectedBikes.length}
-            label="PRICE RECORDS"
+            icon={<FilterListIcon />}
+            value={sortedCCRanges.length}
+            label="CC RANGES"
             color="warning"
           />
         </Grid>
@@ -108,10 +133,16 @@ const Step5Review = ({ state, serviceType }) => {
 
       <Grid container spacing={2} mb={2}>
         {/* Service chip */}
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={12} sm={4}>
           <Paper
             elevation={0}
-            sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}
+            sx={{
+              p: 2,
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 2,
+              height: "100%",
+            }}
           >
             <Typography
               variant="caption"
@@ -132,10 +163,16 @@ const Step5Review = ({ state, serviceType }) => {
         </Grid>
 
         {/* Companies */}
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={12} sm={4}>
           <Paper
             elevation={0}
-            sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}
+            sx={{
+              p: 2,
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 2,
+              height: "100%",
+            }}
           >
             <Typography
               variant="caption"
@@ -152,12 +189,52 @@ const Step5Review = ({ state, serviceType }) => {
             </Stack>
           </Paper>
         </Grid>
+
+        {/* CC Ranges */}
+        <Grid item xs={12} sm={4}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2,
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 2,
+              height: "100%",
+            }}
+          >
+            <Typography
+              variant="caption"
+              fontWeight={700}
+              color="text.secondary"
+              sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}
+            >
+              CC Ranges ({sortedCCRanges.length})
+            </Typography>
+            <Stack direction="row" flexWrap="wrap" gap={0.5} mt={1}>
+              {sortedCCRanges.map((cc) => (
+                <Chip
+                  key={cc}
+                  label={`${cc} cc`}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                  sx={{ fontWeight: 600 }}
+                />
+              ))}
+            </Stack>
+          </Paper>
+        </Grid>
       </Grid>
 
-      {/* Price range */}
+      {/* Price range summary */}
       {minPrice > 0 && (
-        <Alert severity="info" icon={<CurrencyRupeeIcon fontSize="small" />} sx={{ mb: 2 }}>
-          Price range: ₹{minPrice} — ₹{maxPrice} &nbsp;|&nbsp; Average: ₹{avgPrice}
+        <Alert
+          severity="info"
+          icon={<CurrencyRupeeIcon fontSize="small" />}
+          sx={{ mb: 2 }}
+        >
+          Price range: ₹{minPrice} — ₹{maxPrice} &nbsp;|&nbsp; Average: ₹
+          {avgPrice}
         </Alert>
       )}
 
@@ -182,18 +259,26 @@ const Step5Review = ({ state, serviceType }) => {
           }}
         >
           <Typography variant="body2" fontWeight={700}>
-            Price Summary — {state.selectedBikes.length} bikes
+            Price Summary — {bikesToSave.length} bike{bikesToSave.length !== 1 ? "s" : ""} will be saved
           </Typography>
         </Box>
         <List dense disablePadding>
-          {state.selectedBikes.map((b, idx) => (
+          {bikesToSave.map((b, idx) => (
             <React.Fragment key={b._id}>
               <ListItem sx={{ px: 2, py: 0.75 }}>
                 <ListItemText
                   primary={
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
                       <Box>
-                        <Typography variant="body2" fontWeight={600} component="span">
+                        <Typography
+                          variant="body2"
+                          fontWeight={600}
+                          component="span"
+                        >
                           {b.variant_name}
                         </Typography>
                         <Typography
@@ -216,9 +301,7 @@ const Step5Review = ({ state, serviceType }) => {
                   }
                 />
               </ListItem>
-              {idx < state.selectedBikes.length - 1 && (
-                <Divider component="li" />
-              )}
+              {idx < bikesToSave.length - 1 && <Divider component="li" />}
             </React.Fragment>
           ))}
         </List>

@@ -15,7 +15,6 @@ import {
   InputAdornment,
   Alert,
   Chip,
-  Divider,
 } from "@mui/material";
 import CurrencyRupeeIcon from "@mui/icons-material/CurrencyRupee";
 
@@ -47,6 +46,25 @@ const PriceInput = React.memo(({ bikeId, value, onChange }) => {
 const Step4Pricing = ({ state, dispatch: wizardDispatch }) => {
   const [bulkPrice, setBulkPrice] = useState("");
 
+  // Only price bikes whose CC is in the selected CC ranges
+  const pricedBikes = useMemo(
+    () =>
+      state.selectedBikes.filter((b) =>
+        state.selectedCCRanges.includes(Number(b.cc || b.engine_cc || 0))
+      ),
+    [state.selectedBikes, state.selectedCCRanges]
+  );
+
+  // Bikes excluded because their CC was not selected
+  const excludedBikes = useMemo(
+    () =>
+      state.selectedBikes.filter(
+        (b) =>
+          !state.selectedCCRanges.includes(Number(b.cc || b.engine_cc || 0))
+      ),
+    [state.selectedBikes, state.selectedCCRanges]
+  );
+
   const handlePriceChange = useCallback(
     (bikeId, price) => {
       wizardDispatch({ type: "SET_PRICE", bikeId, price });
@@ -58,41 +76,54 @@ const Step4Pricing = ({ state, dispatch: wizardDispatch }) => {
     const p = Number(bulkPrice);
     if (!bulkPrice || p <= 0) return;
     const newPricing = {};
-    state.selectedBikes.forEach((b) => {
+    pricedBikes.forEach((b) => {
       newPricing[b._id] = bulkPrice;
     });
     wizardDispatch({ type: "SET_PRICING", payload: newPricing });
-  }, [bulkPrice, state.selectedBikes, wizardDispatch]);
+  }, [bulkPrice, pricedBikes, wizardDispatch]);
 
   const { filledCount, isAllValid } = useMemo(() => {
     let filled = 0;
-    state.selectedBikes.forEach((b) => {
+    pricedBikes.forEach((b) => {
       const p = state.pricing[b._id];
       if (p !== undefined && p !== "" && Number(p) > 0) filled++;
     });
     return {
       filledCount: filled,
-      isAllValid: filled === state.selectedBikes.length,
+      isAllValid: filled === pricedBikes.length,
     };
-  }, [state.selectedBikes, state.pricing]);
+  }, [pricedBikes, state.pricing]);
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={0.5}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        mb={0.5}
+      >
         <Typography variant="subtitle1" fontWeight={700}>
           Set Service Prices
         </Typography>
         <Chip
-          label={`${filledCount} / ${state.selectedBikes.length} filled`}
+          label={`${filledCount} / ${pricedBikes.length} filled`}
           color={isAllValid ? "success" : "warning"}
           size="small"
           sx={{ fontWeight: 700 }}
         />
       </Stack>
       <Typography variant="body2" color="text.secondary" mb={2}>
-        Set a price for this service for each selected bike. All prices are
+        Set a price for each bike in your selected CC ranges. All prices are
         required and must be greater than 0.
       </Typography>
+
+      {/* Info about excluded bikes */}
+      {excludedBikes.length > 0 && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <strong>{excludedBikes.length} bike(s)</strong> were excluded because
+          their CC range was not selected in the previous step.
+        </Alert>
+      )}
 
       {/* Bulk price tool */}
       <Paper
@@ -119,7 +150,9 @@ const Step4Pricing = ({ state, dispatch: wizardDispatch }) => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <CurrencyRupeeIcon sx={{ fontSize: 14, color: "text.secondary" }} />
+                  <CurrencyRupeeIcon
+                    sx={{ fontSize: 14, color: "text.secondary" }}
+                  />
                 </InputAdornment>
               ),
               inputProps: { min: 0 },
@@ -133,7 +166,7 @@ const Step4Pricing = ({ state, dispatch: wizardDispatch }) => {
             disabled={!bulkPrice || Number(bulkPrice) <= 0}
             sx={{ fontWeight: 700, textTransform: "none" }}
           >
-            Apply to All {state.selectedBikes.length} Bikes
+            Apply to All {pricedBikes.length} Bikes
           </Button>
           <Typography variant="caption" color="text.secondary">
             You can still override individual prices below.
@@ -175,7 +208,7 @@ const Step4Pricing = ({ state, dispatch: wizardDispatch }) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {state.selectedBikes.map((bike, idx) => (
+            {pricedBikes.map((bike, idx) => (
               <TableRow
                 key={bike._id}
                 hover
@@ -215,17 +248,16 @@ const Step4Pricing = ({ state, dispatch: wizardDispatch }) => {
         </Table>
       </TableContainer>
 
-      {!isAllValid && state.selectedBikes.length > 0 && (
+      {!isAllValid && pricedBikes.length > 0 && (
         <Alert severity="warning" sx={{ mt: 2 }}>
-          {state.selectedBikes.length - filledCount} bike(s) still need a
-          valid price before you can proceed.
+          {pricedBikes.length - filledCount} bike(s) still need a valid price
+          before you can proceed.
         </Alert>
       )}
 
-      {isAllValid && (
+      {isAllValid && pricedBikes.length > 0 && (
         <Alert severity="success" sx={{ mt: 2 }}>
-          All {state.selectedBikes.length} bikes have prices set. Ready to
-          review!
+          All {pricedBikes.length} bikes have prices set. Ready to review!
         </Alert>
       )}
     </Box>
