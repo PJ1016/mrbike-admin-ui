@@ -25,7 +25,7 @@ import EmailIcon from "@mui/icons-material/Email";
 import BadgeIcon from "@mui/icons-material/Badge";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
-import { approveDealer, updateDealerField } from "../../../api";
+import { approveDealer, rejectDealer, updateDealerField } from "../../../api";
 
 const statusApprovalConfig = (status) => {
   const s = String(status ?? "").toLowerCase();
@@ -38,7 +38,7 @@ const DealerProfileHeader = ({ dealer, id, onRefresh, onExportPDF, pdfLoading })
   const navigate = useNavigate();
   const [actionLoading, setActionLoading] = useState("");
 
-  const approvalCfg = statusApprovalConfig(dealer.status);
+  const approvalCfg = statusApprovalConfig(dealer.registrationStatus);
   const isBlocked = !!dealer.isBlocked;
 
   const handleActivateToggle = async () => {
@@ -87,7 +87,7 @@ const DealerProfileHeader = ({ dealer, id, onRefresh, onExportPDF, pdfLoading })
       if (!result.isConfirmed) return;
       setActionLoading("block");
       try {
-        await updateDealerField(id, { isBlocked: true, blockReason: result.value.trim() });
+        await updateDealerField(id, { isBlocked: true, blockedReason: result.value.trim() });
         await onRefresh();
         Swal.fire("Blocked", `${dealer.shopName} has been blocked.`, "success");
       } catch (e) {
@@ -107,7 +107,7 @@ const DealerProfileHeader = ({ dealer, id, onRefresh, onExportPDF, pdfLoading })
       if (!result.isConfirmed) return;
       setActionLoading("block");
       try {
-        await updateDealerField(id, { isBlocked: false, blockReason: "" });
+        await updateDealerField(id, { isBlocked: false, blockedReason: "" });
         await onRefresh();
         Swal.fire("Unblocked", `${dealer.shopName} has been unblocked.`, "success");
       } catch (e) {
@@ -143,16 +143,22 @@ const DealerProfileHeader = ({ dealer, id, onRefresh, onExportPDF, pdfLoading })
   const handleReject = async () => {
     const result = await Swal.fire({
       title: "Reject Dealer?",
-      text: `Reject registration for ${dealer.shopName}? This action will mark the dealer as rejected.`,
+      text: `Reject registration for ${dealer.shopName}? Please provide a reason.`,
       icon: "warning",
+      input: "textarea",
+      inputPlaceholder: "Enter reason for rejection...",
+      inputAttributes: { "aria-label": "Rejection reason" },
       showCancelButton: true,
       confirmButtonText: "Reject",
       confirmButtonColor: "#e53e3e",
+      inputValidator: (value) => {
+        if (!value || !value.trim()) return "A reason is required to reject a dealer.";
+      },
     });
     if (!result.isConfirmed) return;
     setActionLoading("reject");
     try {
-      await updateDealerField(id, { status: "rejected" });
+      await rejectDealer(id, result.value.trim());
       await onRefresh();
       Swal.fire("Rejected", "Dealer has been rejected.", "success");
     } catch (e) {
@@ -303,7 +309,7 @@ const DealerProfileHeader = ({ dealer, id, onRefresh, onExportPDF, pdfLoading })
               variant="outlined"
               size="small"
               startIcon={<EditIcon />}
-              onClick={() => navigate(`/dealers/edit/${id}`)}
+              onClick={() => navigate(`/updateDealer/${id}`)}
             >
               Edit
             </Button>

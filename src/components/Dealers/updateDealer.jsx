@@ -426,7 +426,7 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
 
     try {
       const response = isEdit ? await updateDealer(form) : await addDealer(form);
-      if (response?.success) {
+      if (response?.success || response?.status === true || response?.status === 200) {
         setIsDirty(false);
         setSubmitAttempted(false);
         Swal.fire("Saved!", response.message || "Dealer profile updated.", "success").then(() => {

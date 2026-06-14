@@ -4,7 +4,8 @@ import { useDownloadExcel } from "react-export-table-to-excel";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
-import { deleteDealer, getAllBookings } from "../../api";
+import { useSelector } from "react-redux";
+import { getAllBookings, updateDealerField, deleteDealer } from "../../api";
 import {
   Table,
   TableBody,
@@ -14,12 +15,7 @@ import {
   TableRow,
   Paper,
   Typography,
-  Button,
   Box,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Chip,
   IconButton,
   Avatar,
@@ -28,13 +24,13 @@ import {
   InputAdornment,
   TableSortLabel,
   Stack,
-  Switch,
   Tooltip,
   Menu,
   MenuItem,
-  Grid,
   Divider,
   CircularProgress,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -43,18 +39,54 @@ import {
   Phone as PhoneIcon,
   MoreVert as MoreIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
-  LocationOn as LocationIcon,
-  AccountBalance as BankIcon,
-  Description as DocIcon,
   Verified as VerifiedIcon,
   PendingActions as PendingIcon,
   Cancel as CancelIcon,
-  Person as PersonIcon,
   Analytics as AnalyticsIcon,
+  Block as BlockIcon,
+  LockOpen as LockOpenIcon,
+  PowerSettingsNew as PowerIcon,
+  TwoWheeler as TwoWheelerIcon,
+  LocalShipping as DropIcon,
+  CalendarToday as CalendarIcon,
+  DeleteForever as DeleteForeverIcon,
 } from "@mui/icons-material";
 
-const UserTable = ({
+const FILTER_TABS = [
+  { id: "all",      label: "All" },
+  { id: "pending",  label: "Pending Approval" },
+  { id: "approved", label: "Approved" },
+  { id: "active",   label: "Active" },
+  { id: "inactive", label: "Inactive" },
+  { id: "blocked",  label: "Blocked" },
+];
+
+const TABLE_HEADERS = [
+  { id: "id",        label: "#",           sortable: false },
+  { id: "shopName",  label: "Shop Details", sortable: true },
+  { id: "ownerName", label: "Owner",        sortable: true },
+  { id: "contact",   label: "Contact Info", sortable: false },
+  { id: "location",  label: "Location",     sortable: true },
+  { id: "services",  label: "Services",     sortable: false },
+  { id: "status",    label: "Status",       sortable: false },
+  { id: "cancelRate",label: "Perf.",        sortable: true },
+  { id: "createdAt", label: "Created",      sortable: true },
+  { id: "actions",   label: "Actions",      sortable: false },
+];
+
+const getRegStatusConfig = (status) => {
+  const s = (status || "").toLowerCase();
+  if (s === "approved") return { color: "#38a169", bgColor: "#f0fff4", icon: <VerifiedIcon fontSize="inherit" />, label: "Approved" };
+  if (s === "rejected") return { color: "#e53e3e", bgColor: "#fff5f5", icon: <CancelIcon fontSize="inherit" />, label: "Rejected" };
+  return { color: "#d69e2e", bgColor: "#fffaf0", icon: <PendingIcon fontSize="inherit" />, label: "Pending" };
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+};
+
+const DealerTable = ({
   triggerDownloadExcel,
   triggerDownloadPDF,
   datas = [],
@@ -64,28 +96,27 @@ const UserTable = ({
 }) => {
   const tableRef = useRef(null);
   const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
+  const isSuperAdmin = !user?.role || user?.role?.toLowerCase() === "admin";
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [order, setOrder] = useState("desc");
   const [orderBy, setOrderBy] = useState("createdAt");
-  const [selectedDealer, setSelectedDealer] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuDealer, setMenuDealer] = useState(null);
   const [allBookings, setAllBookings] = useState([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
 
-  // Fetch bookings to calculate cancellation rates
   useEffect(() => {
     const fetchBookings = async () => {
       try {
         setLoadingBookings(true);
         const response = await getAllBookings();
-        if (response.status === 200) {
-          setAllBookings(response.data);
-        }
+        if (response.status === 200) setAllBookings(response.data);
       } catch (error) {
-        console.error("Error fetching bookings for dealer table:", error);
+        console.error("Error fetching bookings:", error);
       } finally {
         setLoadingBookings(false);
       }
@@ -101,12 +132,9 @@ const UserTable = ({
         const dId = b.dealer_id._id;
         if (!stats[dId]) stats[dId] = { total: 0, cancelled: 0 };
         stats[dId].total++;
-        if (b.status?.toLowerCase().includes("cancel")) {
-          stats[dId].cancelled++;
-        }
+        if (b.status?.toLowerCase().includes("cancel")) stats[dId].cancelled++;
       }
     });
-
     const rates = {};
     Object.keys(stats).forEach(id => {
       rates[id] = ((stats[id].cancelled / stats[id].total) * 100).toFixed(1);
@@ -132,6 +160,15 @@ const UserTable = ({
     if (triggerDownloadPDF) triggerDownloadPDF.current = exportToPDF;
   }, [onDownload]);
 
+  const filterCounts = useMemo(() => ({
+    all:      datas.length,
+    pending:  datas.filter(d => (d.registrationStatus || "").toLowerCase() === "pending").length,
+    approved: datas.filter(d => (d.registrationStatus || "").toLowerCase() === "approved").length,
+    active:   datas.filter(d => d.isActive === true).length,
+    inactive: datas.filter(d => !d.isActive).length,
+    blocked:  datas.filter(d => !!d.isBlocked).length,
+  }), [datas]);
+
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === "asc";
     setOrder(isAsc ? "desc" : "asc");
@@ -140,48 +177,55 @@ const UserTable = ({
 
   const filteredData = useMemo(() => {
     let result = datas;
+
+    if (activeFilter !== "all") {
+      result = result.filter(d => {
+        const rs = (d.registrationStatus || "").toLowerCase();
+        switch (activeFilter) {
+          case "pending":  return rs === "pending";
+          case "approved": return rs === "approved";
+          case "active":   return d.isActive === true;
+          case "inactive": return !d.isActive;
+          case "blocked":  return !!d.isBlocked;
+          default:         return true;
+        }
+      });
+    }
+
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
-      result = result.filter(
-        (item) =>
-          (item.shopName || "")?.toLowerCase().includes(term) ||
-          (item.ownerName || "")?.toLowerCase().includes(term) ||
-          (item.dealerId || "")?.toLowerCase().includes(term) ||
-          (item.shopEmail || item.personalEmail || item.email || "")?.toLowerCase().includes(term) ||
-          (item.shopContact || item.phone || "")?.toLowerCase().includes(term) ||
-          (item.permanentAddress?.city || item.city || "")?.toLowerCase().includes(term)
+      result = result.filter(d =>
+        (d.shopName || "").toLowerCase().includes(term) ||
+        (d.ownerName || "").toLowerCase().includes(term) ||
+        (d.shopContact || d.phone || "").toLowerCase().includes(term) ||
+        (d.shopEmail || d.email || d.personalEmail || "").toLowerCase().includes(term)
       );
     }
 
     return [...result].sort((a, b) => {
-      let valueA, valueB;
+      let vA, vB;
       if (orderBy === "cancelRate") {
-        valueA = parseFloat(dealerCancellationRates[a._id] || 0);
-        valueB = parseFloat(dealerCancellationRates[b._id] || 0);
+        vA = parseFloat(dealerCancellationRates[a._id] || 0);
+        vB = parseFloat(dealerCancellationRates[b._id] || 0);
       } else if (orderBy === "createdAt" || orderBy === "updatedAt") {
-        valueA = new Date(a[orderBy] || 0).getTime();
-        valueB = new Date(b[orderBy] || 0).getTime();
+        vA = new Date(a[orderBy] || 0).getTime();
+        vB = new Date(b[orderBy] || 0).getTime();
       } else {
-        valueA = String(a[orderBy] || "").toLowerCase();
-        valueB = String(b[orderBy] || "").toLowerCase();
+        vA = String(a[orderBy] || "").toLowerCase();
+        vB = String(b[orderBy] || "").toLowerCase();
       }
-
-      if (order === "asc") {
-        return valueA < valueB ? -1 : valueA > valueB ? 1 : 0;
-      } else {
-        return valueB < valueA ? -1 : valueB > valueA ? 1 : 0;
-      }
+      return order === "asc" ? (vA < vB ? -1 : vA > vB ? 1 : 0) : (vB < vA ? -1 : vB > vA ? 1 : 0);
     });
-  }, [datas, searchTerm, order, orderBy, dealerCancellationRates]);
+  }, [datas, searchTerm, activeFilter, order, orderBy, dealerCancellationRates]);
 
   const currentData = useMemo(() => {
     const start = page * rowsPerPage;
     return filteredData.slice(start, start + rowsPerPage);
   }, [filteredData, page, rowsPerPage]);
 
-  const handleChangePage = (event, newPage) => setPage(newPage);
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+  const handleChangePage = (_, newPage) => setPage(newPage);
+  const handleChangeRowsPerPage = (e) => {
+    setRowsPerPage(parseInt(e.target.value, 10));
     setPage(0);
   };
 
@@ -195,83 +239,156 @@ const UserTable = ({
     setMenuDealer(null);
   };
 
-  const handleDelete = async (dealerId) => {
+  const handleMenuActivate = async (dealer) => {
     handleMenuClose();
-    Swal.fire({
-      title: "Delete Dealer?",
-      text: "This action will remove the dealer permanently.",
-      icon: "warning",
+    const next = !dealer.isActive;
+    const label = next ? "Activate" : "Deactivate";
+    const result = await Swal.fire({
+      title: `${label} Dealer?`,
+      text: `This will ${label.toLowerCase()} ${dealer.shopName}.`,
+      icon: "question",
       showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Yes, Delete",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const response = await deleteDealer(dealerId);
-          if (response.status === 200) {
-            onDealerDeleted();
-            Swal.fire("Deleted!", "Dealer removed successfully.", "success");
-          }
-        } catch (error) {
-          Swal.fire("Error", "Failed to delete dealer.", "error");
-        }
-      }
+      confirmButtonText: label,
+      confirmButtonColor: next ? "#38a169" : "#e53e3e",
     });
-  };
-
-  const handleToggleStatus = async (dealerId, newStatus) => {
+    if (!result.isConfirmed) return;
     try {
-      const response = await fetch(`https://api.mrbikedoctor.cloud/bikedoctor/dealer/${dealerId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: newStatus })
-      });
-
-      if (response.ok) {
-        onDealerDeleted();
-      } else {
-        throw new Error('Failed to update status');
-      }
+      await updateDealerField(dealer._id, { isActive: next });
+      onDealerDeleted();
+      Swal.fire("Done", `Dealer ${label.toLowerCase()}d successfully.`, "success");
     } catch (error) {
       Swal.fire("Error", error.message, "error");
     }
   };
 
-  const getStatusConfig = (status) => {
-    const s = status?.toLowerCase() || "";
-    if (s === "approved") return { color: "#38a169", bgColor: "#f0fff4", icon: <VerifiedIcon fontSize="inherit" /> };
-    if (s === "pending") return { color: "#d69e2e", bgColor: "#fffaf0", icon: <PendingIcon fontSize="inherit" /> };
-    if (s === "rejected") return { color: "#e53e3e", bgColor: "#fff5f5", icon: <CancelIcon fontSize="inherit" /> };
-    return { color: "#4a5568", bgColor: "#f7fafc", icon: <DocIcon fontSize="inherit" /> };
+  const handleMenuBlock = async (dealer) => {
+    handleMenuClose();
+    const isCurrentlyBlocked = !!dealer.isBlocked;
+    if (!isCurrentlyBlocked) {
+      const result = await Swal.fire({
+        title: "Block Dealer?",
+        text: `Provide a reason for blocking ${dealer.shopName}.`,
+        icon: "warning",
+        input: "textarea",
+        inputPlaceholder: "Enter reason for blocking...",
+        showCancelButton: true,
+        confirmButtonText: "Block",
+        confirmButtonColor: "#e53e3e",
+        inputValidator: (v) => (!v?.trim() ? "A reason is required." : undefined),
+      });
+      if (!result.isConfirmed) return;
+      try {
+        await updateDealerField(dealer._id, { isBlocked: true, blockedReason: result.value.trim() });
+        onDealerDeleted();
+        Swal.fire("Blocked", `${dealer.shopName} has been blocked.`, "success");
+      } catch (e) {
+        Swal.fire("Error", e.message, "error");
+      }
+    } else {
+      const result = await Swal.fire({
+        title: "Unblock Dealer?",
+        text: `This will restore access for ${dealer.shopName}.`,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Unblock",
+        confirmButtonColor: "#38a169",
+      });
+      if (!result.isConfirmed) return;
+      try {
+        await updateDealerField(dealer._id, { isBlocked: false, blockedReason: "" });
+        onDealerDeleted();
+        Swal.fire("Unblocked", `${dealer.shopName} has been unblocked.`, "success");
+      } catch (e) {
+        Swal.fire("Error", e.message, "error");
+      }
+    }
   };
 
-  const headers = [
-    { id: "id", label: "#", sortable: false },
-    { id: "shopName", label: "Shop Details", sortable: true },
-    { id: "ownerName", label: "Owner Name", sortable: true },
-    { id: "contact", label: "Contact Info", sortable: false },
-    { id: "location", label: "Location", sortable: true },
-    { id: "cancelRate", label: "Perf. (Cancel Rate)", sortable: true },
-    { id: "status", label: "Reg. Status", sortable: true },
-    { id: "active", label: "Active", sortable: false },
-    { id: "actions", label: "Actions", sortable: false },
-  ];
+  const handleMenuDelete = async (dealer) => {
+    handleMenuClose();
+    const { value: typed } = await Swal.fire({
+      title: "Delete Dealer Permanently?",
+      html: `<p style="color:#e53e3e;font-weight:600;margin-bottom:12px">This action cannot be undone.</p>
+             <p style="margin-bottom:8px">Type <strong>DELETE</strong> to confirm:</p>`,
+      input: "text",
+      inputPlaceholder: "Type DELETE here",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Delete Permanently",
+      confirmButtonColor: "#e53e3e",
+      inputValidator: (value) => {
+        if (value !== "DELETE") return 'You must type exactly "DELETE" to confirm.';
+      },
+    });
+    if (typed !== "DELETE") return;
+    try {
+      await deleteDealer(dealer._id);
+      onDealerDeleted();
+    } catch (e) {
+      Swal.fire("Error", e.message, "error");
+    }
+  };
 
   return (
     <Box sx={{ width: "100%" }}>
-      {/* Search Header */}
-      <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      {/* Quick Filter Tabs */}
+      <Paper
+        elevation={0}
+        sx={{ mb: 2, borderRadius: 3, border: "1px solid #edf2f7", overflow: "hidden" }}
+      >
+        <Tabs
+          value={activeFilter}
+          onChange={(_, v) => { setActiveFilter(v); setPage(0); }}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{
+            "& .MuiTab-root": {
+              textTransform: "none",
+              fontWeight: 600,
+              minHeight: 48,
+              fontSize: "0.875rem",
+              color: "#64748b",
+            },
+            "& .Mui-selected": { color: "#2e83ff" },
+            "& .MuiTabs-indicator": { backgroundColor: "#2e83ff" },
+          }}
+        >
+          {FILTER_TABS.map(tab => (
+            <Tab
+              key={tab.id}
+              value={tab.id}
+              label={
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                  {tab.label}
+                  <Chip
+                    label={filterCounts[tab.id]}
+                    size="small"
+                    sx={{
+                      height: 18,
+                      fontSize: "0.65rem",
+                      fontWeight: 700,
+                      bgcolor: activeFilter === tab.id ? "#2e83ff" : "#f1f5f9",
+                      color: activeFilter === tab.id ? "white" : "#64748b",
+                      "& .MuiChip-label": { px: 0.75 },
+                      transition: "all 0.2s",
+                    }}
+                  />
+                </Box>
+              }
+            />
+          ))}
+        </Tabs>
+      </Paper>
+
+      {/* Search + Result Count */}
+      <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
         <TextField
           variant="outlined"
           size="small"
-          placeholder="Search by Shop, Owner, ID, City..."
+          placeholder="Search by Dealer Name, Shop Name, Phone, Email..."
           value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setPage(0);
-          }}
-          sx={{ width: { xs: "100%", sm: 400 }, backgroundColor: "white" }}
+          onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
+          sx={{ width: { xs: "100%", sm: 460 }, backgroundColor: "white", borderRadius: 2 }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -280,133 +397,258 @@ const UserTable = ({
             ),
           }}
         />
+        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>
+          {filteredData.length} {filteredData.length === 1 ? "dealer" : "dealers"} found
+        </Typography>
       </Box>
 
+      {/* Table */}
       <TableContainer
         component={Paper}
         elevation={3}
-        sx={{
-          borderRadius: 3,
-          overflow: "hidden",
-          border: "1px solid #edf2f7",
-        }}
+        sx={{ borderRadius: 3, overflow: "auto", border: "1px solid #edf2f7" }}
       >
-        <Table id="dealer-table-mui" ref={tableRef} sx={{ minWidth: 1200 }}>
+        <Table id="dealer-table-mui" ref={tableRef} sx={{ minWidth: 1100 }}>
           <TableHead sx={{ backgroundColor: "#2e83ff" }}>
             <TableRow>
-              {headers.map((header) => (
+              {TABLE_HEADERS.map(h => (
                 <TableCell
-                  key={header.id}
-                  sx={{ color: "white", fontWeight: "bold", py: 2.5 }}
+                  key={h.id}
+                  sx={{ color: "white", fontWeight: 700, py: 2, whiteSpace: "nowrap" }}
                 >
-                  {header.sortable ? (
+                  {h.sortable ? (
                     <TableSortLabel
-                      active={orderBy === header.id}
-                      direction={orderBy === header.id ? order : "asc"}
-                      onClick={() => handleRequestSort(header.id)}
+                      active={orderBy === h.id}
+                      direction={orderBy === h.id ? order : "asc"}
+                      onClick={() => handleRequestSort(h.id)}
                       sx={{
                         color: "white !important",
                         "&.MuiTableSortLabel-active": { color: "white !important" },
                         "& .MuiTableSortLabel-icon": { color: "white !important" },
                       }}
                     >
-                      {header.label}
+                      {h.label}
                     </TableSortLabel>
                   ) : (
-                    header.label
+                    h.label
                   )}
                 </TableCell>
               ))}
             </TableRow>
           </TableHead>
+
           <TableBody>
             {parentLoading ? (
               <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
-                  <CircularProgress size={40} sx={{ mb: 2 }} />
-                  <Typography variant="body1" color="text.secondary">Loading dealer analytics...</Typography>
+                <TableCell colSpan={10} align="center" sx={{ py: 10 }}>
+                  <CircularProgress size={40} />
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                    Loading dealers...
+                  </Typography>
                 </TableCell>
               </TableRow>
             ) : filteredData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
-                  <Typography variant="body1" sx={{ color: "text.secondary", fontStyle: "italic" }}>
+                <TableCell colSpan={10} align="center" sx={{ py: 8 }}>
+                  <Typography variant="body1" color="text.secondary" sx={{ fontStyle: "italic" }}>
                     No dealers found matching your criteria.
                   </Typography>
                 </TableCell>
               </TableRow>
             ) : (
               currentData.map((dealer, index) => {
-                const regStatus = getStatusConfig(dealer.registrationStatus);
+                const regStatus = getRegStatusConfig(dealer.registrationStatus);
                 const cancelRate = dealerCancellationRates[dealer._id] || "0.0";
                 const isHighCancel = parseFloat(cancelRate) > 15;
+                const isBlocked = !!dealer.isBlocked;
 
                 return (
-                  <TableRow key={dealer._id} hover>
-                    <TableCell>{page * rowsPerPage + index + 1}</TableCell>
-                    
-                    <TableCell>
-                      <Box sx={{ display: "flex", alignItems: "center" }}>
-                        <Avatar sx={{ bgcolor: "#eef5ff", color: "#2e83ff", mr: 2, fontWeight: 700 }}>
-                          {dealer.shopName?.charAt(0)}
+                  <TableRow
+                    key={dealer._id}
+                    hover
+                    sx={{
+                      "&:hover": { bgcolor: "#f8fafc" },
+                      bgcolor: isBlocked ? "#fff8f8" : "inherit",
+                    }}
+                  >
+                    {/* # */}
+                    <TableCell sx={{ color: "#94a3b8", fontWeight: 600, fontSize: "0.8rem", width: 48 }}>
+                      {page * rowsPerPage + index + 1}
+                    </TableCell>
+
+                    {/* Shop Details */}
+                    <TableCell sx={{ minWidth: 200 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                        <Avatar
+                          sx={{
+                            bgcolor: "#eef5ff",
+                            color: "#2e83ff",
+                            fontWeight: 800,
+                            width: 44,
+                            height: 44,
+                            fontSize: "1.1rem",
+                            flexShrink: 0,
+                            border: "2px solid #dbeafe",
+                          }}
+                        >
+                          {(dealer.shopName || "?").charAt(0).toUpperCase()}
                         </Avatar>
-                        <Box>
-                          <Button 
-                            variant="text" 
-                            size="small" 
-                            onClick={() => navigate(`/view-dealer/${dealer._id}`)}
-                            sx={{ 
-                              p: 0, 
-                              textTransform: "none", 
-                              fontWeight: 700, 
-                              color: "#2d3748",
-                              minWidth: "unset",
-                              justifyContent: "flex-start",
-                              "&:hover": { color: "#2e83ff", backgroundColor: "transparent" }
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 700,
+                              color: "#1e293b",
+                              cursor: "pointer",
+                              "&:hover": { color: "#2e83ff" },
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              maxWidth: 160,
                             }}
-                          >
-                            {dealer.shopName}
-                          </Button>
-                          <Typography 
-                            variant="caption" 
-                            display="block" 
-                            color="primary" 
-                            sx={{ fontWeight: 600, mt: 0.5, cursor: "pointer" }}
                             onClick={() => navigate(`/view-dealer/${dealer._id}`)}
                           >
-                            {dealer.dealerId}
+                            {dealer.shopName || "N/A"}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "#2e83ff", fontWeight: 600, fontFamily: "monospace" }}
+                          >
+                            {dealer.dealerId || dealer._id?.slice(-8)}
                           </Typography>
                         </Box>
                       </Box>
                     </TableCell>
 
-                    <TableCell sx={{ fontWeight: 600, color: "#4a5568" }}>
-                      {dealer.ownerName || "N/A"}
+                    {/* Owner */}
+                    <TableCell sx={{ minWidth: 120 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: "#4a5568" }}>
+                        {dealer.ownerName || "N/A"}
+                      </Typography>
                     </TableCell>
 
-                    <TableCell>
+                    {/* Contact Info */}
+                    <TableCell sx={{ minWidth: 180 }}>
                       <Stack spacing={0.5}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          <EmailIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-                          <Typography variant="caption">{dealer.shopEmail || dealer.email || "N/A"}</Typography>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                          <EmailIcon sx={{ fontSize: 13, color: "text.secondary", flexShrink: 0 }} />
+                          <Typography variant="caption" sx={{ color: "#4a5568" }}>
+                            {dealer.shopEmail || dealer.email || "N/A"}
+                          </Typography>
                         </Box>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          <PhoneIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-                          <Typography variant="caption">{dealer.shopContact || dealer.phone || "N/A"}</Typography>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                          <PhoneIcon sx={{ fontSize: 13, color: "text.secondary", flexShrink: 0 }} />
+                          <Typography variant="caption" sx={{ color: "#4a5568" }}>
+                            {dealer.shopContact || dealer.phone || "N/A"}
+                          </Typography>
                         </Box>
                       </Stack>
                     </TableCell>
 
-                    <TableCell>
+                    {/* Location */}
+                    <TableCell sx={{ minWidth: 110 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: "#2d3748" }}>
+                        {dealer.permanentAddress?.city || dealer.city || "N/A"}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {dealer.permanentAddress?.state || dealer.state || "N/A"}
+                      </Typography>
+                    </TableCell>
+
+                    {/* Services: Pickup / Drop */}
+                    <TableCell sx={{ minWidth: 90 }}>
                       <Stack spacing={0.5}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{dealer.permanentAddress?.city || dealer.city || "N/A"}</Typography>
-                        <Typography variant="caption" color="text.secondary">{dealer.permanentAddress?.state || dealer.state || "N/A"}</Typography>
+                        <Tooltip title={dealer.providesPickup ? "Pickup available" : "Pickup not available"}>
+                          <Chip
+                            icon={<TwoWheelerIcon sx={{ fontSize: "12px !important" }} />}
+                            label="Pickup"
+                            size="small"
+                            variant={dealer.providesPickup ? "filled" : "outlined"}
+                            color={dealer.providesPickup ? "primary" : "default"}
+                            sx={{
+                              height: 20,
+                              fontSize: "0.65rem",
+                              fontWeight: 700,
+                              opacity: dealer.providesPickup ? 1 : 0.45,
+                              "& .MuiChip-label": { px: 0.75 },
+                            }}
+                          />
+                        </Tooltip>
+                        <Tooltip title={dealer.providesDrop ? "Drop available" : "Drop not available"}>
+                          <Chip
+                            icon={<DropIcon sx={{ fontSize: "12px !important" }} />}
+                            label="Drop"
+                            size="small"
+                            variant={dealer.providesDrop ? "filled" : "outlined"}
+                            color={dealer.providesDrop ? "secondary" : "default"}
+                            sx={{
+                              height: 20,
+                              fontSize: "0.65rem",
+                              fontWeight: 700,
+                              opacity: dealer.providesDrop ? 1 : 0.45,
+                              "& .MuiChip-label": { px: 0.75 },
+                            }}
+                          />
+                        </Tooltip>
                       </Stack>
                     </TableCell>
 
-                    <TableCell>
+                    {/* Status chips */}
+                    <TableCell sx={{ minWidth: 110 }}>
+                      <Stack spacing={0.5} alignItems="flex-start">
+                        <Chip
+                          icon={regStatus.icon}
+                          label={regStatus.label}
+                          size="small"
+                          sx={{
+                            height: 22,
+                            fontSize: "0.7rem",
+                            fontWeight: 700,
+                            color: regStatus.color,
+                            bgcolor: regStatus.bgColor,
+                            border: `1px solid ${regStatus.color}44`,
+                            borderRadius: 1,
+                            "& .MuiChip-label": { px: 0.75 },
+                          }}
+                        />
+                        <Chip
+                          label={dealer.isActive ? "Active" : "Inactive"}
+                          size="small"
+                          sx={{
+                            height: 20,
+                            fontSize: "0.65rem",
+                            fontWeight: 700,
+                            color: dealer.isActive ? "#38a169" : "#718096",
+                            bgcolor: dealer.isActive ? "#f0fff4" : "#f7fafc",
+                            border: `1px solid ${dealer.isActive ? "#38a16944" : "#71809644"}`,
+                            borderRadius: 1,
+                            "& .MuiChip-label": { px: 0.75 },
+                          }}
+                        />
+                        {isBlocked && (
+                          <Chip
+                            icon={<BlockIcon sx={{ fontSize: "11px !important" }} />}
+                            label="Blocked"
+                            size="small"
+                            sx={{
+                              height: 20,
+                              fontSize: "0.65rem",
+                              fontWeight: 700,
+                              color: "#e53e3e",
+                              bgcolor: "#fff5f5",
+                              border: "1px solid #e53e3e44",
+                              borderRadius: 1,
+                              "& .MuiChip-label": { px: 0.75 },
+                            }}
+                          />
+                        )}
+                      </Stack>
+                    </TableCell>
+
+                    {/* Performance */}
+                    <TableCell sx={{ minWidth: 80 }}>
                       {loadingBookings ? (
-                        <CircularProgress size={16} />
+                        <CircularProgress size={14} />
                       ) : (
                         <Tooltip title={isHighCancel ? "High cancellation rate detected!" : "Dealer performance"}>
                           <Chip
@@ -414,53 +656,24 @@ const UserTable = ({
                             size="small"
                             color={isHighCancel ? "error" : "success"}
                             variant="outlined"
-                            icon={<AnalyticsIcon />}
-                            sx={{ fontWeight: 700 }}
+                            icon={<AnalyticsIcon sx={{ fontSize: "14px !important" }} />}
+                            sx={{ fontWeight: 700, height: 24 }}
                           />
                         </Tooltip>
                       )}
                     </TableCell>
 
-                    <TableCell>
-                      <Chip
-                        icon={regStatus.icon}
-                        label={dealer.registrationStatus || "Unknown"}
-                        size="small"
-                        sx={{
-                          height: 24,
-                          fontSize: "0.75rem",
-                          fontWeight: 700,
-                          color: regStatus.color,
-                          backgroundColor: regStatus.bgColor,
-                          border: `1px solid ${regStatus.color}33`,
-                          borderRadius: 1,
-                        }}
-                      />
-                    </TableCell>
-
-                    <TableCell>
-                      <Box sx={{ display: "flex", alignItems: "center" }}>
-                        <Tooltip title={dealer.isActive ? "Deactivate" : "Activate"}>
-                          <Switch
-                            size="small"
-                            checked={dealer.isActive}
-                            onChange={() => handleToggleStatus(dealer._id, !dealer.isActive)}
-                            color="success"
-                          />
-                        </Tooltip>
-                        <Typography 
-                          variant="caption" 
-                          sx={{ 
-                            ml: 0.5, 
-                            fontWeight: 700, 
-                            color: dealer.isActive ? "#38a169" : "#718096" 
-                          }}
-                        >
-                          {dealer.isActive ? "ON" : "OFF"}
+                    {/* Created Date */}
+                    <TableCell sx={{ minWidth: 110 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                        <CalendarIcon sx={{ fontSize: 13, color: "text.secondary" }} />
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: "#4a5568", whiteSpace: "nowrap" }}>
+                          {formatDate(dealer.createdAt)}
                         </Typography>
                       </Box>
                     </TableCell>
 
+                    {/* Actions */}
                     <TableCell>
                       <IconButton size="small" onClick={(e) => handleMenuOpen(e, dealer)}>
                         <MoreIcon fontSize="small" />
@@ -472,6 +685,7 @@ const UserTable = ({
             )}
           </TableBody>
         </Table>
+
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
@@ -484,152 +698,79 @@ const UserTable = ({
         />
       </TableContainer>
 
-      {/* Action Menu */}
-      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-        <MenuItem onClick={() => { handleMenuClose(); navigate(`/view-dealer/${menuDealer._id}`); }}>
-          <VisibilityIcon sx={{ mr: 1.5, color: "info.main", fontSize: 18 }} /> View Detailed Profile
-        </MenuItem>
-        <MenuItem onClick={() => { handleMenuClose(); navigate(`/updateDealer/${menuDealer._id}`); }}>
-          <EditIcon sx={{ mr: 1.5, color: "primary.main", fontSize: 18 }} /> Edit Dealer
-        </MenuItem>
-        <Divider sx={{ my: 1 }} />
-        <MenuItem onClick={() => handleDelete(menuDealer?._id)}>
-          <DeleteIcon sx={{ mr: 1.5, color: "error.main", fontSize: 18 }} /> Delete
-        </MenuItem>
-      </Menu>
-
-      {/* Dealer Business Profile Dialog */}
-      <Dialog 
-        open={Boolean(selectedDealer)} 
-        onClose={() => setSelectedDealer(null)} 
-        maxWidth="md" 
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 3, overflow: "hidden" } }}
+      {/* Quick Action Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        PaperProps={{
+          sx: { borderRadius: 2, minWidth: 190, boxShadow: "0 4px 20px rgba(0,0,0,0.12)" },
+        }}
       >
-        <DialogTitle sx={{ bgcolor: "#2e83ff", color: "white", py: 2.5 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                {selectedDealer?.shopName || "Business Profile"}
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                Dealer ID: {selectedDealer?.dealerId} • Since {selectedDealer?.createdAt ? new Date(selectedDealer.createdAt).getFullYear() : "N/A"}
-              </Typography>
-            </Box>
-            <Chip 
-              label={selectedDealer?.registrationStatus} 
-              size="small" 
-              sx={{ bgcolor: "rgba(255,255,255,0.2)", color: "white", fontWeight: 700, borderRadius: 1 }} 
-            />
-          </Box>
-        </DialogTitle>
-        <DialogContent sx={{ p: 4 }}>
-          {selectedDealer && (
-            <Grid container spacing={4}>
-              {/* Basic Info */}
-              <Grid item xs={12} md={6}>
-                <Typography variant="overline" sx={{ color: "#2e83ff", fontWeight: 700 }}>Basic Information</Typography>
-                <Stack spacing={2} sx={{ mt: 1 }}>
-                  {[
-                    { label: "Owner Name", value: selectedDealer.ownerName || "N/A", icon: <PersonIcon sx={{ fontSize: 18 }} /> },
-                    { label: "Shop Contact", value: selectedDealer.phone || "N/A", icon: <PhoneIcon sx={{ fontSize: 18 }} /> },
-                    { label: "Alt. Number", value: selectedDealer.alternatePhone || "N/A", icon: <PhoneIcon sx={{ fontSize: 18 }} /> },
-                    { label: "Shop Email", value: selectedDealer.email || "N/A", icon: <EmailIcon sx={{ fontSize: 18 }} /> },
-                  ].map((row, i) => (
-                    <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <Box sx={{ color: "text.secondary" }}>{row.icon}</Box>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">{row.label}</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{row.value || "N/A"}</Typography>
-                      </Box>
-                    </Box>
-                  ))}
-                </Stack>
-              </Grid>
+        <MenuItem
+          onClick={() => { handleMenuClose(); navigate(`/view-dealer/${menuDealer?._id}`); }}
+        >
+          <VisibilityIcon sx={{ mr: 1.5, color: "info.main", fontSize: 18 }} />
+          <Typography variant="body2" fontWeight={600}>View Profile</Typography>
+        </MenuItem>
 
-              {/* Bank Details */}
-              <Grid item xs={12} md={6}>
-                <Typography variant="overline" sx={{ color: "#2e83ff", fontWeight: 700 }}>Bank Details</Typography>
-                <Paper variant="outlined" sx={{ p: 2, mt: 1, borderRadius: 2, bgcolor: "#f8fafc" }}>
-                  <Stack spacing={1.5}>
-                    {[
-                      { label: "Bank Name", value: selectedDealer.bankDetails?.bankName },
-                      { label: "Account Holder", value: selectedDealer.bankDetails?.accountHolderName },
-                      { label: "Account No.", value: selectedDealer.bankDetails?.accountNumber },
-                      { label: "IFSC Code", value: selectedDealer.bankDetails?.ifscCode },
-                    ].map((row, i) => (
-                      <Box key={i} sx={{ display: "flex", justifyContent: "space-between" }}>
-                        <Typography variant="caption" color="text.secondary">{row.label}</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{row.value || "N/A"}</Typography>
-                      </Box>
-                    ))}
-                  </Stack>
-                </Paper>
-              </Grid>
+        <MenuItem
+          onClick={() => { handleMenuClose(); navigate(`/updateDealer/${menuDealer?._id}`); }}
+        >
+          <EditIcon sx={{ mr: 1.5, color: "primary.main", fontSize: 18 }} />
+          <Typography variant="body2" fontWeight={600}>Edit Dealer</Typography>
+        </MenuItem>
 
-              <Grid item xs={12}><Divider /></Grid>
+        <Divider sx={{ my: 0.5 }} />
 
-              {/* Location */}
-              <Grid item xs={12} md={6}>
-                <Typography variant="overline" sx={{ color: "#2e83ff", fontWeight: 700 }}>Shop Location</Typography>
-                <Box sx={{ mt: 1, display: "flex", gap: 2 }}>
-                  <LocationIcon color="primary" />
-                  <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {[selectedDealer.shopNumber, selectedDealer.locality].filter(Boolean).join(", ") || selectedDealer.fullAddress || "Address not provided"}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {selectedDealer.city || "N/A"}, {selectedDealer.state || "N/A"} - {selectedDealer.shopPincode || "N/A"}
-                    </Typography>
-                  </Box>
-                </Box>
-              </Grid>
-
-              {/* Document Status */}
-              <Grid item xs={12} md={6}>
-                <Typography variant="overline" sx={{ color: "#2e83ff", fontWeight: 700 }}>Document Verification</Typography>
-                <Grid container spacing={1} sx={{ mt: 1 }}>
-                  {[
-                    { label: "Aadhar", ok: selectedDealer.documentVerification?.aadhar },
-                    { label: "PAN", ok: selectedDealer.documentVerification?.pan },
-                    { label: "Shop Cert", ok: selectedDealer.documentVerification?.shop },
-                    { label: "Bank", ok: selectedDealer.documentVerification?.bank },
-                  ].map((doc, i) => (
-                    <Grid item key={i}>
-                      <Chip 
-                        label={doc.label} 
-                        size="small" 
-                        color={doc.ok ? "success" : "default"}
-                        variant={doc.ok ? "filled" : "outlined"}
-                        icon={doc.ok ? <VerifiedIcon /> : <CancelIcon />}
-                        sx={{ fontWeight: 600, fontSize: "0.65rem" }}
-                      />
-                    </Grid>
-                  ))}
-                </Grid>
-              </Grid>
-            </Grid>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ p: 3, bgcolor: "#f8fafc" }}>
-          <Button 
-            onClick={() => {
-              const id = selectedDealer?._id;
-              setSelectedDealer(null);
-              navigate(`/updateDealer/${id}`);
-            }} 
-            variant="text" 
-            startIcon={<EditIcon />}
+        <MenuItem onClick={() => menuDealer && handleMenuActivate(menuDealer)}>
+          <PowerIcon
+            sx={{
+              mr: 1.5,
+              fontSize: 18,
+              color: menuDealer?.isActive ? "error.main" : "success.main",
+            }}
+          />
+          <Typography
+            variant="body2"
+            fontWeight={600}
+            color={menuDealer?.isActive ? "error.main" : "success.main"}
           >
-            Edit Profile
-          </Button>
-          <Button onClick={() => setSelectedDealer(null)} variant="contained" sx={{ px: 4, borderRadius: 2 }}>
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+            {menuDealer?.isActive ? "Deactivate" : "Activate"}
+          </Typography>
+        </MenuItem>
+
+        <MenuItem onClick={() => menuDealer && handleMenuBlock(menuDealer)}>
+          {menuDealer?.isBlocked ? (
+            <LockOpenIcon sx={{ mr: 1.5, color: "success.main", fontSize: 18 }} />
+          ) : (
+            <BlockIcon sx={{ mr: 1.5, color: "error.main", fontSize: 18 }} />
+          )}
+          <Typography
+            variant="body2"
+            fontWeight={600}
+            color={menuDealer?.isBlocked ? "success.main" : "error.main"}
+          >
+            {menuDealer?.isBlocked ? "Unblock" : "Block"}
+          </Typography>
+        </MenuItem>
+
+        {isSuperAdmin && [
+          <Divider key="delete-divider" sx={{ my: 0.5 }} />,
+          <MenuItem
+            key="delete-permanently"
+            onClick={() => menuDealer && handleMenuDelete(menuDealer)}
+            sx={{ bgcolor: "#fff5f5", "&:hover": { bgcolor: "#fed7d7" } }}
+          >
+            <DeleteForeverIcon sx={{ mr: 1.5, color: "error.main", fontSize: 18 }} />
+            <Typography variant="body2" fontWeight={700} color="error.main">
+              Delete Permanently
+            </Typography>
+          </MenuItem>,
+        ]}
+      </Menu>
     </Box>
   );
 };
 
-export default UserTable;
+export default DealerTable;

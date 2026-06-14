@@ -21,14 +21,11 @@ import {
 } from "@mui/material";
 import {
   TrendingUp,
-  TrendingDown,
   ShoppingCart,
   Build,
-  TwoWheeler,
   Redeem,
   People,
   Storefront,
-  Description,
   Refresh,
   Warning,
   CheckCircle,
@@ -38,10 +35,15 @@ import {
   AttachMoney,
   EventNote,
   ArrowForwardIos,
+  Block,
+  HourglassEmpty,
+  Percent,
+  AccountBalanceWallet,
+  PowerSettingsNew,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { AgCharts } from "ag-charts-react";
-import { getAllBookings, getDealerList } from "../../api";
+import { getAllBookings, getDealerList, getFinanceSummary, getAllPayouts } from "../../api";
 import moment from "moment";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -62,81 +64,119 @@ const STATUS_META = {
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 
+// ─── Section Label ────────────────────────────────────────────────────────────
+const SectionLabel = ({ children }) => (
+  <Typography
+    variant="caption"
+    sx={{
+      display: "block",
+      fontWeight: 700,
+      color: "#94a3b8",
+      textTransform: "uppercase",
+      letterSpacing: "0.1em",
+      fontSize: "0.62rem",
+      mb: 1.5,
+      mt: 0.5,
+    }}
+  >
+    {children}
+  </Typography>
+);
+
 // ─── Stat Card ───────────────────────────────────────────────────────────────
-const StatCard = ({ title, value, subtitle, icon, color, bg, onClick }) => (
+const StatCard = ({ title, value, subtitle, icon, color, onClick }) => (
   <Card
     elevation={0}
     onClick={onClick}
     sx={{
-      borderRadius: "16px",
+      borderRadius: "14px",
       border: "1px solid #f1f5f9",
       bgcolor: "#ffffff",
       cursor: onClick ? "pointer" : "default",
-      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-      "&:hover": onClick ? { 
-        transform: "translateY(-4px)", 
-        boxShadow: "0 12px 24px -10px rgba(0,0,0,0.1)",
-        borderColor: color ? `${color}40` : "#e2e8f0"
-      } : {},
+      transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
       height: "100%",
+      position: "relative",
+      overflow: "hidden",
+      "&:hover": onClick
+        ? {
+            transform: "translateY(-3px)",
+            boxShadow: `0 12px 28px -8px ${color}35`,
+            borderColor: `${color}50`,
+          }
+        : {},
+      "&::before": {
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: "3px",
+        background: color || "#e2e8f0",
+        opacity: 0.8,
+      },
     }}
   >
-    <CardContent sx={{ p: 3 }}>
-      <Stack direction="row" spacing={2} alignItems="center">
-        <Avatar 
-          sx={{ 
-            bgcolor: bg || `${color}10`, 
-            color: color || "primary.main", 
-            width: 48, 
-            height: 48, 
-            borderRadius: "12px",
-            flexShrink: 0 
+    <CardContent sx={{ p: 2.5, pt: 3 }}>
+      <Stack direction="row" spacing={1.5} alignItems="flex-start">
+        <Avatar
+          sx={{
+            bgcolor: `${color}12`,
+            color: color || "primary.main",
+            width: 44,
+            height: 44,
+            borderRadius: "11px",
+            flexShrink: 0,
           }}
         >
           {icon}
         </Avatar>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              fontWeight: 700, 
-              color: "neutral.500", 
-              textTransform: "uppercase", 
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 700,
+              color: "#94a3b8",
+              textTransform: "uppercase",
               letterSpacing: "0.05em",
-              fontSize: "0.65rem" 
+              fontSize: "0.6rem",
+              display: "block",
             }}
           >
             {title}
           </Typography>
-          <Typography 
-            variant="h4" 
-            sx={{ 
-              fontWeight: 800, 
-              color: "neutral.800", 
-              mt: 0.2, 
-              fontSize: "1.5rem",
-              lineHeight: 1.2 
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 800,
+              color: "#0f172a",
+              mt: 0.3,
+              fontSize: "1.4rem",
+              lineHeight: 1.2,
             }}
           >
             {value}
           </Typography>
           {subtitle && (
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                mt: 0.4, 
-                display: "block", 
-                color: "neutral.400",
+            <Typography
+              variant="caption"
+              sx={{
+                mt: 0.4,
+                display: "block",
+                color: "#94a3b8",
                 fontWeight: 500,
+                fontSize: "0.68rem",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
-                textOverflow: "ellipsis"
+                textOverflow: "ellipsis",
               }}
             >
               {subtitle}
             </Typography>
           )}
         </Box>
+        {onClick && (
+          <ArrowForwardIos sx={{ fontSize: 11, color: "#cbd5e1", mt: 0.5, flexShrink: 0 }} />
+        )}
       </Stack>
     </CardContent>
   </Card>
@@ -181,20 +221,59 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ bookings: [], dealers: [] });
+  const [finance, setFinance] = useState(null); // null = loading, false = failed, object = loaded
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [bookingsRes, dealersRes] = await Promise.all([
+
+      // Main data + finance data all in parallel
+      const [bookingsRes, dealersRes, financeSettled] = await Promise.all([
         getAllBookings(),
         getDealerList(),
+        Promise.allSettled([getFinanceSummary(), getAllPayouts("ALL")]),
       ]);
+
       setData({
         bookings: bookingsRes.data || [],
         dealers: dealersRes.data || [],
       });
+
+      // Process finance results (both optional — failures don't block the dashboard)
+      const [summarySettled, payoutsSettled] = financeSettled;
+
+      const rawSummary =
+        summarySettled.status === "fulfilled"
+          ? summarySettled.value?.data || summarySettled.value
+          : null;
+
+      const rawPayouts =
+        payoutsSettled.status === "fulfilled"
+          ? (() => {
+              const v = payoutsSettled.value;
+              if (Array.isArray(v?.data)) return v.data;
+              if (Array.isArray(v?.payouts)) return v.payouts;
+              if (Array.isArray(v?.withdrawals)) return v.withdrawals;
+              return [];
+            })()
+          : [];
+
+      if (rawSummary || rawPayouts.length > 0) {
+        setFinance({
+          totalRevenue: rawSummary?.totalBookingValue || 0,
+          totalCommission: rawSummary?.totalCommissionEarned || 0,
+          pendingSettlements: rawPayouts.filter((p) => p.order_status === "PENDING").length,
+          totalWithdrawals: rawPayouts.filter((p) =>
+            ["APPROVED", "COMPLETED"].includes(p.order_status)
+          ).length,
+          available: true,
+        });
+      } else {
+        setFinance({ available: false });
+      }
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
+      setFinance({ available: false });
     } finally {
       setLoading(false);
     }
@@ -204,14 +283,27 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  // ── computed analytics ────────────────────────────────────────────────────
+  // ── dealer metrics ────────────────────────────────────────────────────────
+  const dealerMetrics = useMemo(() => {
+    const { dealers } = data;
+    return {
+      total: dealers.length,
+      active: dealers.filter((d) => d.isActive === true && !d.isBlocked).length,
+      inactive: dealers.filter((d) => !d.isActive && !d.isBlocked).length,
+      blocked: dealers.filter((d) => !!d.isBlocked).length,
+      pending: dealers.filter(
+        (d) => (d.registrationStatus || "").toLowerCase() === "pending"
+      ).length,
+    };
+  }, [data.dealers]);
+
+  // ── booking analytics ─────────────────────────────────────────────────────
   const analytics = useMemo(() => {
     const { bookings } = data;
     if (!bookings.length) return null;
 
     const today = moment().startOf("day");
 
-    // 6-month labels
     const labels = [];
     const monthlyBookings = {};
     const monthlyCancelled = {};
@@ -226,7 +318,6 @@ const Dashboard = () => {
     let todayBookings = 0;
     let todayRevenue = 0;
     const statusCounts = {};
-    const recentBookings = [];
 
     bookings.forEach((b) => {
       const month = moment(b.createdAt).format("MMM");
@@ -245,15 +336,13 @@ const Dashboard = () => {
       }
       if (moment(b.createdAt).isSame(today, "day")) todayBookings++;
 
-      // Status bucket
       statusCounts[status] = (statusCounts[status] || 0) + 1;
     });
 
-    // Recent 5 bookings sorted newest first
-    const sorted = [...bookings].sort((a, b) =>
-      moment(b.createdAt).valueOf() - moment(a.createdAt).valueOf()
+    const sorted = [...bookings].sort(
+      (a, b) => moment(b.createdAt).valueOf() - moment(a.createdAt).valueOf()
     );
-    recentBookings.push(...sorted.slice(0, 5));
+    const recentBookings = sorted.slice(0, 5);
 
     const completedCount =
       (statusCounts["completed"] || 0) +
@@ -323,129 +412,273 @@ const Dashboard = () => {
   // ─── Loading State ─────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "80vh", gap: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "80vh",
+          gap: 2,
+        }}
+      >
         <CircularProgress size={48} thickness={3} />
-        <Typography variant="body2" color="text.secondary">Loading dashboard…</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Loading dashboard…
+        </Typography>
       </Box>
     );
   }
 
   const today = moment().format("dddd, D MMMM YYYY");
-  const statusOrder = ["confirmed", "pickedup", "arrived", "awaiting_payment", "payment_selected", "ready_for_delivery", "delivered", "completed", "cash received", "user_cancelled", "cancelled", "rejected"];
+  const statusOrder = [
+    "confirmed", "pickedup", "arrived", "awaiting_payment", "payment_selected",
+    "ready_for_delivery", "delivered", "completed", "cash received",
+    "user_cancelled", "cancelled", "rejected",
+  ];
+
+  // Effective revenue: prefer finance API value, fall back to bookings-computed
+  const displayRevenue =
+    finance?.available && finance.totalRevenue > 0
+      ? finance.totalRevenue
+      : analytics?.totalRevenue;
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: "neutral.50", minHeight: "100vh" }}>
+    <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: "#f8fafc", minHeight: "100vh" }}>
       {/* ── Header ── */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 5 }}>
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ mb: 4 }}
+      >
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: "neutral.800", letterSpacing: "-0.03em" }}>
+          <Typography
+            variant="h4"
+            sx={{ fontWeight: 800, color: "#0f172a", letterSpacing: "-0.03em" }}
+          >
             Hi, Admin 👋
           </Typography>
-          <Typography variant="body2" sx={{ color: "neutral.500", fontWeight: 500, mt: 0.5 }}>
+          <Typography
+            variant="body2"
+            sx={{ color: "#64748b", fontWeight: 500, mt: 0.5 }}
+          >
             {today} — Here's what's happening today.
           </Typography>
         </Box>
         <Tooltip title="Refresh Dashboard">
-          <IconButton 
-            onClick={fetchData} 
-            sx={{ 
-              bgcolor: "white", 
-              boxShadow: "var(--shadow-sm)",
+          <IconButton
+            onClick={fetchData}
+            sx={{
+              bgcolor: "white",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
               border: "1px solid #f1f5f9",
-              "&:hover": { bgcolor: "neutral.50" }
+              "&:hover": { bgcolor: "#f8fafc" },
             }}
           >
-            <Refresh sx={{ fontSize: 20, color: "neutral.600" }} />
+            <Refresh sx={{ fontSize: 20, color: "#64748b" }} />
           </IconButton>
         </Tooltip>
       </Stack>
 
-      {/* ── Row 1: KPI Cards ── */}
-      <Grid container spacing={2.5} sx={{ mb: 3 }}>
+      {/* ── Section 1: Dealer Overview ── */}
+      <SectionLabel>Dealer Overview</SectionLabel>
+      <Box
+        sx={{
+          display: "flex",
+          gap: 2,
+          flexWrap: "wrap",
+          mb: 3.5,
+        }}
+      >
+        {[
+          {
+            title: "Total Dealers",
+            value: dealerMetrics.total,
+            subtitle: "All registered dealers",
+            icon: <Storefront fontSize="small" />,
+            color: "#6366f1",
+            route: "/dealers",
+          },
+          {
+            title: "Active Dealers",
+            value: dealerMetrics.active,
+            subtitle: "Currently active",
+            icon: <CheckCircle fontSize="small" />,
+            color: "#10b981",
+            route: "/dealers",
+          },
+          {
+            title: "Inactive Dealers",
+            value: dealerMetrics.inactive,
+            subtitle: "Not currently active",
+            icon: <PowerSettingsNew fontSize="small" />,
+            color: "#94a3b8",
+            route: "/dealers",
+          },
+          {
+            title: "Blocked Dealers",
+            value: dealerMetrics.blocked,
+            subtitle: "Access restricted",
+            icon: <Block fontSize="small" />,
+            color: "#ef4444",
+            route: "/dealers",
+          },
+          {
+            title: "Pending Verification",
+            value: dealerMetrics.pending,
+            subtitle: "Awaiting approval",
+            icon: <HourglassEmpty fontSize="small" />,
+            color: "#f59e0b",
+            route: "/dealers-verify",
+          },
+        ].map((card, i) => (
+          <Box key={i} sx={{ flex: "1 1 170px", minWidth: 0 }}>
+            <StatCard
+              title={card.title}
+              value={card.value}
+              subtitle={card.subtitle}
+              icon={card.icon}
+              color={card.color}
+              onClick={() => navigate(card.route)}
+            />
+          </Box>
+        ))}
+      </Box>
+
+      {/* ── Section 2: Booking Metrics ── */}
+      <SectionLabel>Booking Metrics</SectionLabel>
+      <Grid container spacing={2} sx={{ mb: 3.5 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Total Bookings"
             value={analytics?.totalBookings ?? 0}
             subtitle="All time service requests"
-            icon={<ShoppingCart />}
+            icon={<ShoppingCart fontSize="small" />}
             color="#6366f1"
             onClick={() => navigate("/booking")}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Jobs in Progress"
+            title="Active Bookings"
             value={analytics?.activeCount ?? 0}
-            subtitle="Confirmed + In Progress + In Payment Flow"
-            icon={<Build />}
+            subtitle="Confirmed · In progress · Payment flow"
+            icon={<Build fontSize="small" />}
             color="#f59e0b"
             onClick={() => navigate("/booking")}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Completed Services"
+            title="Completed Bookings"
             value={analytics?.completedCount ?? 0}
-            subtitle="Successfully done"
-            icon={<CheckCircle />}
+            subtitle="Successfully delivered"
+            icon={<CheckCircle fontSize="small" />}
             color="#10b981"
             onClick={() => navigate("/booking")}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Cancellations"
+            title="Cancelled Bookings"
             value={analytics?.cancelledCount ?? 0}
             subtitle={`${analytics?.cancelRate ?? 0}% of all bookings`}
-            icon={<Cancel />}
+            icon={<Cancel fontSize="small" />}
             color="#ef4444"
             onClick={() => navigate("/booking")}
           />
         </Grid>
       </Grid>
 
-      {/* ── Row 2: Revenue Cards ── */}
-      <Grid container spacing={2.5} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={4}>
+      {/* ── Section 3: Financial Metrics ── */}
+      <SectionLabel>Financial Metrics</SectionLabel>
+      {finance?.available === false && (
+        <Typography
+          variant="caption"
+          sx={{
+            display: "block",
+            color: "#f59e0b",
+            fontWeight: 600,
+            mb: 1.5,
+            fontSize: "0.72rem",
+          }}
+        >
+          ⚠ Commission & settlement data unavailable (finance API unreachable).
+          Revenue is estimated from booking records.
+        </Typography>
+      )}
+      <Grid container spacing={2} sx={{ mb: 3.5 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Today's New Bookings"
-            value={analytics?.todayBookings ?? 0}
-            subtitle="Booked today"
-            icon={<EventNote />}
-            color="#8b5cf6"
-            onClick={() => navigate("/booking")}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <StatCard
-            title="Today's Earnings"
-            value={fmt(analytics?.todayRevenue)}
-            subtitle="Revenue collected today"
-            icon={<TrendingUp />}
+            title="Total Revenue"
+            value={fmt(displayRevenue)}
+            subtitle={
+              finance?.available
+                ? "From finance summary"
+                : "Estimated from bookings"
+            }
+            icon={<AttachMoney fontSize="small" />}
             color="#10b981"
-            onClick={() => navigate("/booking")}
+            onClick={() => navigate("/finance")}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Total Revenue Earned"
-            value={fmt(analytics?.totalRevenue)}
-            subtitle="All time estimated revenue"
-            icon={<AttachMoney />}
-            color="#0ea5e9"
-            onClick={() => navigate("/booking")}
+            title="Total Commission"
+            value={finance?.available ? fmt(finance.totalCommission) : "—"}
+            subtitle="Platform commission earned"
+            icon={<Percent fontSize="small" />}
+            color="#2563eb"
+            onClick={finance?.available ? () => navigate("/finance") : undefined}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Pending Settlements"
+            value={finance?.available ? finance.pendingSettlements : "—"}
+            subtitle="Withdrawal requests awaiting review"
+            icon={<HourglassEmpty fontSize="small" />}
+            color="#f59e0b"
+            onClick={finance?.available ? () => navigate("/finance/withdrawals") : undefined}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Total Withdrawals"
+            value={finance?.available ? finance.totalWithdrawals : "—"}
+            subtitle="Approved payout requests"
+            icon={<AccountBalanceWallet fontSize="small" />}
+            color="#8b5cf6"
+            onClick={finance?.available ? () => navigate("/finance/withdrawals") : undefined}
           />
         </Grid>
       </Grid>
 
-      {/* ── Row 3: Chart + Status Breakdown + Quick Actions ── */}
+      {/* ── Row: Chart + Status Breakdown + Quick Actions ── */}
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
         {/* Trend Chart */}
         <Grid item xs={12} lg={7}>
-          <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid #e8ecf0", height: "100%" }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              border: "1px solid #e8ecf0",
+              height: "100%",
+            }}
+          >
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              sx={{ mb: 1 }}
+            >
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: "#0f172a" }}>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 700, color: "#0f172a" }}
+                >
                   📊 Monthly Bookings
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
@@ -477,7 +710,11 @@ const Dashboard = () => {
                 ],
                 axes: [
                   { type: "category", position: "bottom" },
-                  { type: "number", position: "left", label: { formatter: (p) => `${p.value}` } },
+                  {
+                    type: "number",
+                    position: "left",
+                    label: { formatter: (p) => `${p.value}` },
+                  },
                 ],
                 legend: { position: "bottom" },
                 background: { fill: "transparent" },
@@ -488,11 +725,26 @@ const Dashboard = () => {
 
         {/* Status Breakdown */}
         <Grid item xs={12} sm={6} lg={3}>
-          <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid #e8ecf0", height: "100%" }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: "#0f172a", mb: 0.5 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              border: "1px solid #e8ecf0",
+              height: "100%",
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 700, color: "#0f172a", mb: 0.5 }}
+            >
               📋 Booking Status
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mb: 2 }}
+            >
               What's the status of all bookings?
             </Typography>
             {statusOrder.map((key) =>
@@ -510,20 +762,60 @@ const Dashboard = () => {
 
         {/* Quick Actions */}
         <Grid item xs={12} sm={6} lg={2}>
-          <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid #e8ecf0", height: "100%" }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: "#0f172a", mb: 0.5 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              border: "1px solid #e8ecf0",
+              height: "100%",
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 700, color: "#0f172a", mb: 0.5 }}
+            >
               ⚡ Quick Actions
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mb: 2 }}
+            >
               Jump to important sections
             </Typography>
             <Stack spacing={1}>
               {[
-                { label: "View All Bookings", icon: <ShoppingCart fontSize="small" />, route: "/booking", color: "#6366f1" },
-                { label: "Approve Dealers", icon: <Storefront fontSize="small" />, route: "/dealers-verify", color: "#f59e0b" },
-                { label: "Manage Services", icon: <Build fontSize="small" />, route: "/dealers", color: "#10b981" },
-                { label: "View Customers", icon: <People fontSize="small" />, route: "/customers", color: "#8b5cf6" },
-                { label: "Check Offers", icon: <Redeem fontSize="small" />, route: "/offers", color: "#ec4899" },
+                {
+                  label: "View All Bookings",
+                  icon: <ShoppingCart fontSize="small" />,
+                  route: "/booking",
+                  color: "#6366f1",
+                },
+                {
+                  label: "Approve Dealers",
+                  icon: <Storefront fontSize="small" />,
+                  route: "/dealers-verify",
+                  color: "#f59e0b",
+                },
+                {
+                  label: "Manage Services",
+                  icon: <Build fontSize="small" />,
+                  route: "/dealers",
+                  color: "#10b981",
+                },
+                {
+                  label: "View Customers",
+                  icon: <People fontSize="small" />,
+                  route: "/customers",
+                  color: "#8b5cf6",
+                },
+                {
+                  label: "Check Offers",
+                  icon: <Redeem fontSize="small" />,
+                  route: "/offers",
+                  color: "#ec4899",
+                },
               ].map((a, i) => (
                 <Box
                   key={i}
@@ -537,11 +829,17 @@ const Dashboard = () => {
                     cursor: "pointer",
                     border: "1px solid #e8ecf0",
                     transition: "all 0.15s",
-                    "&:hover": { bgcolor: `${a.color}10`, borderColor: a.color },
+                    "&:hover": {
+                      bgcolor: `${a.color}10`,
+                      borderColor: a.color,
+                    },
                   }}
                 >
                   <Box sx={{ color: a.color, display: "flex" }}>{a.icon}</Box>
-                  <Typography variant="caption" sx={{ fontWeight: 600, color: "#334155", flex: 1 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ fontWeight: 600, color: "#334155", flex: 1 }}
+                  >
                     {a.label}
                   </Typography>
                   <ArrowForwardIos sx={{ fontSize: 10, color: "#94a3b8" }} />
@@ -552,14 +850,25 @@ const Dashboard = () => {
         </Grid>
       </Grid>
 
-      {/* ── Row 4: Recent Bookings + Dealer Alerts ── */}
+      {/* ── Row: Recent Bookings + Dealer Alerts ── */}
       <Grid container spacing={2.5}>
         {/* Recent Bookings */}
         <Grid item xs={12} md={7}>
-          <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid #e8ecf0" }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Paper
+            elevation={0}
+            sx={{ p: 3, borderRadius: 3, border: "1px solid #e8ecf0" }}
+          >
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              sx={{ mb: 2 }}
+            >
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: "#0f172a" }}>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 700, color: "#0f172a" }}
+                >
                   🕐 Recent Bookings
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
@@ -576,21 +885,36 @@ const Dashboard = () => {
             <List disablePadding>
               {analytics?.recentBookings?.map((b, i) => {
                 const status = (b.status || "").toLowerCase();
-                const meta = STATUS_META[status] || { label: status, color: "#64748b", bg: "#f1f5f9" };
-                const dealer = b.dealer_id?.shopName || b.dealer_id?.name || "Unknown Dealer";
+                const meta = STATUS_META[status] || {
+                  label: status,
+                  color: "#64748b",
+                  bg: "#f1f5f9",
+                };
+                const dealer =
+                  b.dealer_id?.shopName || b.dealer_id?.name || "Unknown Dealer";
                 const ago = moment(b.createdAt).fromNow();
                 return (
                   <React.Fragment key={b._id}>
                     <ListItem sx={{ px: 0, py: 1.5 }}>
                       <ListItemAvatar>
-                        <Avatar sx={{ bgcolor: meta.bg, color: meta.color, width: 40, height: 40 }}>
+                        <Avatar
+                          sx={{
+                            bgcolor: meta.bg,
+                            color: meta.color,
+                            width: 40,
+                            height: 40,
+                          }}
+                        >
                           <DirectionsBike fontSize="small" />
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText
                         primary={
                           <Stack direction="row" alignItems="center" spacing={1}>
-                            <Typography variant="body2" sx={{ fontWeight: 600, color: "#0f172a" }}>
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: 600, color: "#0f172a" }}
+                            >
                               Booking #{b.id || i + 1}
                             </Typography>
                             <Chip
@@ -612,11 +936,14 @@ const Dashboard = () => {
                           </Typography>
                         }
                       />
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: "#0f172a" }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 700, color: "#0f172a" }}
+                      >
                         {fmt(b.totalBill)}
                       </Typography>
                     </ListItem>
-                    {i < (analytics.recentBookings.length - 1) && <Divider />}
+                    {i < analytics.recentBookings.length - 1 && <Divider />}
                   </React.Fragment>
                 );
               })}
@@ -639,7 +966,10 @@ const Dashboard = () => {
             <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
               <Warning sx={{ color: "#ef4444" }} />
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: "#7f1d1d" }}>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 700, color: "#7f1d1d" }}
+                >
                   ⚠️ Dealer Alerts
                 </Typography>
                 <Typography variant="caption" sx={{ color: "#b91c1c" }}>
@@ -660,17 +990,33 @@ const Dashboard = () => {
                       bgcolor: "white",
                     }}
                   >
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: "#0f172a" }}>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      sx={{ mb: 1 }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 700, color: "#0f172a" }}
+                      >
                         {d.name}
                       </Typography>
                       <Chip
                         label={`${d.rate}% cancelled`}
                         size="small"
-                        sx={{ bgcolor: "#fef2f2", color: "#ef4444", fontWeight: 700 }}
+                        sx={{
+                          bgcolor: "#fef2f2",
+                          color: "#ef4444",
+                          fontWeight: 700,
+                        }}
                       />
                     </Stack>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: "block", mb: 1 }}
+                    >
                       Out of {d.total} bookings, {d.cancelled} were cancelled
                     </Typography>
                     <LinearProgress
@@ -688,7 +1034,10 @@ const Dashboard = () => {
             ) : (
               <Box sx={{ textAlign: "center", py: 4 }}>
                 <CheckCircle sx={{ color: "#10b981", fontSize: 40, mb: 1 }} />
-                <Typography variant="body2" sx={{ fontWeight: 600, color: "#065f46" }}>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 600, color: "#065f46" }}
+                >
                   All dealers are performing well! 🎉
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
