@@ -33,8 +33,12 @@ const Dealer = () => {
       setLoading(true);
       try {
         const response = await getDealerList();
-        if (response.status === 200) {
-          setData(response.data);
+        if (
+          response.status === true ||
+          response.status === 200 ||
+          response.success === true
+        ) {
+          setData(response.data || response.dealers || []);
         }
       } catch (error) {
         console.error("Error fetching dealer list:", error);

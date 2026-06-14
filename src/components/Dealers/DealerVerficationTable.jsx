@@ -44,12 +44,15 @@ import {
   AccountBalance as BankIcon,
   LocationOn as LocationIcon,
   CloudDone as SuccessDocIcon,
+  AccessTime as TimelineIcon,
+  NoteAdd as NotesIcon,
+  Assignment as RequestDocIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import {
   approveDealer,
-  deleteDealer,
+  rejectDealer,
   verifyDealerDocument,
   updateDealerField,
   IMAGE_BASE_URL,
@@ -72,6 +75,10 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
   const [minWalletAmount, setMinWalletAmount] = useState("");
   const [isSavingWallet, setIsSavingWallet] = useState(false);
   const [walletSaveSuccess, setWalletSaveSuccess] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [notesSaving, setNotesSaving] = useState(false);
+  const [notesSaved, setNotesSaved] = useState(false);
 
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === "asc";
@@ -172,6 +179,9 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
     setDocVerification(selectedDealer?.documentVerification || {});
     setMinWalletAmount(selectedDealer?.minWalletAmount ?? "");
     setWalletSaveSuccess(false);
+    setRejectionReason("");
+    setReviewNotes(selectedDealer?.reviewNotes || "");
+    setNotesSaved(false);
     handleActionClose();
   };
 
@@ -189,6 +199,23 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
       );
     } finally {
       setIsSavingWallet(false);
+    }
+  };
+
+  const handleSaveNotes = async () => {
+    if (!selectedDealer) return;
+    setNotesSaving(true);
+    setActionError(null);
+    try {
+      await updateDealerField(selectedDealer._id, { reviewNotes });
+      setNotesSaved(true);
+      setTimeout(() => setNotesSaved(false), 3000);
+    } catch (error) {
+      setActionError(
+        error?.response?.data?.message || "Failed to save review notes.",
+      );
+    } finally {
+      setNotesSaving(false);
     }
   };
 
@@ -227,7 +254,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
         setReviewDialogOpen(false);
         navigate("/dealers");
       } else if (confirmAction === "reject") {
-        await deleteDealer(selectedDealer._id);
+        await rejectDealer(selectedDealer._id, rejectionReason.trim() || undefined);
         setConfirmAction(null);
         setReviewDialogOpen(false);
         if (onRefresh) onRefresh();
@@ -987,6 +1014,127 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                     </Box>
                   ))}
                 </Box>
+
+                {/* Approval Timeline */}
+                <Box sx={{ mb: 3 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+                    <TimelineIcon color="primary" fontSize="small" />
+                    <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main" }}>
+                      REVIEW TIMELINE
+                    </Typography>
+                  </Box>
+                  {[
+                    {
+                      label: "Application Submitted",
+                      date: selectedDealer.createdAt,
+                      done: true,
+                      color: "#3b82f6",
+                    },
+                    {
+                      label: "Under Review",
+                      date: null,
+                      done: true,
+                      color: "#f59e0b",
+                    },
+                    {
+                      label:
+                        selectedDealer.registrationStatus?.toLowerCase() === "rejected"
+                          ? "Rejected"
+                          : selectedDealer.registrationStatus?.toLowerCase() === "approved"
+                          ? "Approved"
+                          : "Decision Pending",
+                      date:
+                        selectedDealer.registrationStatus?.toLowerCase() !== "pending"
+                          ? selectedDealer.updatedAt
+                          : null,
+                      done: selectedDealer.registrationStatus?.toLowerCase() !== "pending",
+                      color:
+                        selectedDealer.registrationStatus?.toLowerCase() === "rejected"
+                          ? "#ef4444"
+                          : selectedDealer.registrationStatus?.toLowerCase() === "approved"
+                          ? "#22c55e"
+                          : "#94a3b8",
+                    },
+                  ].map((step, idx, arr) => (
+                    <Box key={idx} sx={{ display: "flex", gap: 1.5 }}>
+                      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <Box
+                          sx={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: "50%",
+                            bgcolor: step.done ? step.color : "#e2e8f0",
+                            border: `2px solid ${step.done ? step.color : "#cbd5e1"}`,
+                            flexShrink: 0,
+                            mt: 0.3,
+                          }}
+                        />
+                        {idx < arr.length - 1 && (
+                          <Box sx={{ width: 2, flex: 1, bgcolor: "#e2e8f0", my: 0.25, minHeight: 16 }} />
+                        )}
+                      </Box>
+                      <Box sx={{ pb: idx < arr.length - 1 ? 1 : 0 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 700, display: "block", lineHeight: 1.2 }}>
+                          {step.label}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {step.date
+                            ? new Date(step.date).toLocaleDateString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              })
+                            : "—"}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+
+                {/* Rejection Reason Display */}
+                {selectedDealer.rejectionReason && (
+                  <Alert severity="error" sx={{ mb: 2, py: 0.5, fontSize: "0.75rem" }}>
+                    <strong>Rejection Reason:</strong> {selectedDealer.rejectionReason}
+                  </Alert>
+                )}
+
+                {/* Review Notes */}
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+                    <NotesIcon color="primary" fontSize="small" />
+                    <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main" }}>
+                      REVIEW NOTES
+                    </Typography>
+                  </Box>
+                  <TextField
+                    multiline
+                    rows={3}
+                    fullWidth
+                    size="small"
+                    placeholder="Add internal review notes (not visible to dealer)..."
+                    value={reviewNotes}
+                    onChange={(e) => setReviewNotes(e.target.value)}
+                    disabled={notesSaving}
+                    sx={{ mb: 1 }}
+                  />
+                  <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1 }}>
+                    {notesSaved && (
+                      <Typography variant="caption" sx={{ color: "success.main", fontWeight: 700 }}>
+                        ✓ Notes saved
+                      </Typography>
+                    )}
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={handleSaveNotes}
+                      disabled={notesSaving || !reviewNotes.trim()}
+                      startIcon={notesSaving ? <CircularProgress size={14} color="inherit" /> : null}
+                      sx={{ textTransform: "none", fontWeight: 700, fontSize: "0.75rem" }}
+                    >
+                      {notesSaving ? "Saving…" : "Save Notes"}
+                    </Button>
+                  </Box>
+                </Box>
               </Grid>
 
               {/* RIGHT COLUMN: Documents */}
@@ -1324,10 +1472,6 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                 borderTop: "1px solid",
                 borderColor:
                   confirmAction === "approve" ? "#a5d6a7" : "#ef9a9a",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 2,
               }}
             >
               <Typography
@@ -1335,13 +1479,27 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                 sx={{
                   fontWeight: 500,
                   color: confirmAction === "approve" ? "#2e7d32" : "#c62828",
+                  mb: confirmAction === "reject" ? 1.5 : 0,
                 }}
               >
                 {confirmAction === "approve"
                   ? `Confirm approval of "${selectedDealer?.shopName}"?`
-                  : `Permanently delete "${selectedDealer?.shopName}"? This cannot be undone.`}
+                  : `Reject "${selectedDealer?.shopName}"? Provide a reason below (optional).`}
               </Typography>
-              <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
+              {confirmAction === "reject" && (
+                <TextField
+                  multiline
+                  rows={2}
+                  fullWidth
+                  size="small"
+                  placeholder="Enter rejection reason (e.g. incomplete documents, invalid PAN)..."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  disabled={actionLoading}
+                  sx={{ mb: 1.5, bgcolor: "white", borderRadius: 1 }}
+                />
+              )}
+              <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
                 <Button
                   size="small"
                   variant="outlined"
@@ -1363,7 +1521,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                     ) : null
                   }
                 >
-                  {confirmAction === "approve" ? "Yes, Approve" : "Yes, Delete"}
+                  {confirmAction === "approve" ? "Yes, Approve" : "Yes, Reject"}
                 </Button>
               </Box>
             </Box>
@@ -1442,6 +1600,27 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
               >
                 Close
               </Button>
+              <Tooltip title="Mark individual documents as rejected to prompt the dealer to re-upload. (Automated notification API: pending backend support)">
+                <span>
+                  <Button
+                    variant="outlined"
+                    color="warning"
+                    startIcon={<RequestDocIcon />}
+                    onClick={() => {
+                      Swal.fire({
+                        title: "Request Additional Documents",
+                        html: `<p style="text-align:left;font-size:0.9rem;">To request re-upload, reject individual documents in the <strong>Document Review</strong> panel on the right.<br/><br/><span style="color:#ef4444;font-weight:600;">⚠ Automated dealer notification is pending backend support.</span></p>`,
+                        icon: "info",
+                        confirmButtonText: "Got it",
+                      });
+                    }}
+                    disabled={actionLoading}
+                    sx={{ textTransform: "none", fontWeight: 700 }}
+                  >
+                    Request Docs
+                  </Button>
+                </span>
+              </Tooltip>
               <Button
                 variant="contained"
                 color="error"
@@ -1453,14 +1632,13 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
               </Button>
               <Tooltip
                 title={
-                  !allDocsVerified(docVerification)
+                  selectedDealer?.registrationStatus?.toLowerCase() === "approved"
+                    ? "Dealer is already approved"
+                    : !allDocsVerified(docVerification)
                     ? "Review and approve all documents first"
-                    : !(
-                          selectedDealer?.minWalletAmount > 0 ||
-                          walletSaveSuccess
-                        )
-                      ? "Set and save a Min Wallet Amount before approving"
-                      : ""
+                    : !(selectedDealer?.minWalletAmount > 0 || walletSaveSuccess)
+                    ? "Set and save a Min Wallet Amount before approving"
+                    : ""
                 }
               >
                 <span>
@@ -1469,10 +1647,14 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                     color="success"
                     startIcon={<CheckCircleIcon />}
                     onClick={() => setConfirmAction("approve")}
-                    disabled={actionLoading || confirmAction === "approve"}
+                    disabled={
+                      actionLoading ||
+                      confirmAction === "approve" ||
+                      selectedDealer?.registrationStatus?.toLowerCase() === "approved"
+                    }
                   >
-                    {selectedDealer?.isVerify
-                      ? "Already Verified"
+                    {selectedDealer?.registrationStatus?.toLowerCase() === "approved"
+                      ? "Already Approved"
                       : "Approve Dealer"}
                   </Button>
                 </span>

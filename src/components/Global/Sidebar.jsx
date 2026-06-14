@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
+import { getDealersVerify } from "../../api";
 import { logout } from "../../redux/slices/authSlice";
 import {
   Drawer,
@@ -163,6 +164,20 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [openMenus, setOpenMenus] = useState({});
+  const [pendingVerifyCount, setPendingVerifyCount] = useState(0);
+
+  useEffect(() => {
+    getDealersVerify()
+      .then((res) => {
+        if (res.success) {
+          const count = (res.vendors || []).filter(
+            (v) => (v.registrationStatus || "").toLowerCase() === "pending",
+          ).length;
+          setPendingVerifyCount(count);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleMenuClick = (title, path, hasChildren) => {
     if (hasChildren) {
@@ -241,6 +256,20 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
                 color: isDisabled ? "#cbd5e1" : undefined,
               }}
             />
+            {isChild && item.path === "/dealers-verify" && pendingVerifyCount > 0 && (
+              <Chip
+                label={pendingVerifyCount}
+                size="small"
+                color="error"
+                sx={{
+                  height: 18,
+                  fontSize: "0.6rem",
+                  fontWeight: 700,
+                  minWidth: 24,
+                  "& .MuiChip-label": { px: 0.75 },
+                }}
+              />
+            )}
             {isDisabled && (
               <Chip
                 label="Soon"
