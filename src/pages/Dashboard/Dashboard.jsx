@@ -447,9 +447,9 @@ const Dashboard = () => {
     <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: "#f8fafc", minHeight: "100vh" }}>
       {/* ── Header ── */}
       <Stack
-        direction="row"
+        direction={{ xs: "column", sm: "row" }}
         justifyContent="space-between"
-        alignItems="center"
+        alignItems={{ xs: "flex-start", sm: "center" }}
         sx={{ mb: 4 }}
       >
         <Box>

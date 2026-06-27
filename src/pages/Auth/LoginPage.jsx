@@ -7,42 +7,57 @@ import {
   Container,
   Alert,
   Fade,
-  Avatar,
-  Paper,
+  TextField,
+  Button,
+  CircularProgress,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import { GoogleLogin } from "@react-oauth/google";
-import { jwtDecode } from "jwt-decode";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "../../redux/slices/authSlice";
+import { API_BASE_URL } from "../../api";
 import TwoWheelerIcon from "@mui/icons-material/TwoWheeler";
 
 const LoginPage = () => {
   const dispatch = useDispatch();
-  const [error, setError] = useState("");
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const handleSuccess = (credentialResponse) => {
-    try {
-      const decoded = jwtDecode(credentialResponse.credential);
-      dispatch(
-        setCredentials({
-          user: decoded,
-          token: credentialResponse.credential,
-        }),
-      );
-      navigate("/");
-    } catch (err) {
-      setError("Failed to decode login information. Please try again.");
-    }
-  };
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleError = () => {
-    setError("Google Sign-In failed. Please try again.");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const { data } = await axios.post(
+        `${API_BASE_URL}/adminauth/suadminLogin`,
+        { email, password },
+      );
+      if (data.status) {
+        dispatch(
+          setCredentials({
+            user: { name: data.name, email: data.email },
+            token: data.token,
+          }),
+        );
+        navigate("/");
+      } else {
+        setError(data.message || "Login failed. Please check your credentials.");
+      }
+    } catch (err) {
+      setError(
+        err?.response?.data?.message || "Login failed. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -160,44 +175,51 @@ const LoginPage = () => {
                 )}
 
                 <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    mt: 1,
-                    mb: 4,
-                    "& > div": {
-                      width: "100% !important",
-                      display: "flex",
-                      justifyContent: "center",
-                      transition: "transform 0.2s",
-                      "&:hover": {
-                        transform: "translateY(-2px)",
-                      },
-                    },
-                  }}
+                  component="form"
+                  onSubmit={handleSubmit}
+                  sx={{ textAlign: "left" }}
                 >
-                  <GoogleLogin
-                    onSuccess={handleSuccess}
-                    onError={handleError}
-                    useOneTap
-                    theme="filled_blue"
-                    shape="pill"
-                    size="large"
-                    text="continue_with"
-                    width="100%"
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    autoFocus
+                    sx={{ mb: 2 }}
                   />
+                  <TextField
+                    fullWidth
+                    label="Password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    sx={{ mb: 3 }}
+                  />
+                  <Button
+                    type="submit"
+                    fullWidth
+                    variant="contained"
+                    size="large"
+                    disabled={loading}
+                    sx={{
+                      py: 1.5,
+                      borderRadius: "12px",
+                      fontSize: "1rem",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {loading ? (
+                      <CircularProgress size={24} color="inherit" />
+                    ) : (
+                      "Sign In"
+                    )}
+                  </Button>
                 </Box>
-
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "#94a3b8",
-                    fontWeight: 400,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  Use your authorized Google account to access the admin portal
-                </Typography>
               </CardContent>
             </Card>
 

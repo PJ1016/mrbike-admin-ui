@@ -97,7 +97,7 @@ const Bikes = () => {
           </Breadcrumbs>
         </Box>
 
-        <Stack direction="row" spacing={2}>
+        <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap sx={{ justifyContent: { xs: "flex-start", md: "flex-end" } }}>
           <Button
             variant="outlined"
             startIcon={<DownloadIcon />}

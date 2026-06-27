@@ -348,7 +348,7 @@ const EditServiceDialog = ({
       maxWidth="md"
       fullWidth
       PaperProps={{
-        sx: { borderRadius: 3, minHeight: 540, maxHeight: "92vh" },
+        sx: { borderRadius: 3, minHeight: { xs: "unset", sm: 540 }, maxHeight: "92vh", m: { xs: 1, sm: 2 } },
       }}
     >
       {/* Header */}

@@ -1,19 +1,34 @@
 import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { jwtDecode } from "jwt-decode";
+import { logout } from "../../redux/slices/authSlice";
 
-// Set VITE_SKIP_LOGIN=true in .env.local to bypass login during development
 const SKIP_LOGIN = false;
 
 const ProtectedRoute = ({ children }) => {
   const { token } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
 
-  if (!SKIP_LOGIN && !token) {
-    // Redirect to login if not authenticated
+  if (SKIP_LOGIN) {
+    return children ? children : <Outlet />;
+  }
+
+  if (!token) {
     return <Navigate to="/login" replace />;
   }
 
-  // If authenticated (or login skipped), render children or the nested route
+  try {
+    const decoded = jwtDecode(token);
+    if (decoded.user_type !== 1) {
+      dispatch(logout());
+      return <Navigate to="/login" replace />;
+    }
+  } catch {
+    dispatch(logout());
+    return <Navigate to="/login" replace />;
+  }
+
   return children ? children : <Outlet />;
 };
 

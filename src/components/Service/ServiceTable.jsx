@@ -429,12 +429,12 @@ const ServiceTable = ({
       </Dialog>
 
       {/* View Details Dialog */}
-      <Dialog open={showEditModal} onClose={() => setShowEditModal(false)} maxWidth="md" fullWidth>
+      <Dialog open={showEditModal} onClose={() => setShowEditModal(false)} maxWidth="md" fullWidth PaperProps={{ sx: { maxHeight: "90vh", m: { xs: 1, sm: 2 } } }}>
         <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 2, borderBottom: "1px solid #e0e0e0" }}>
           <SettingsIcon sx={{ color: "primary.main" }} /> 
           <Typography variant="h6" fontWeight="bold">Service Details</Typography>
         </DialogTitle>
-        <DialogContent sx={{ mt: 2 }}>
+        <DialogContent sx={{ mt: 2, overflowY: "auto" }}>
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <Typography variant="caption" color="text.secondary" fontWeight="bold">SERVICE NAME</Typography>

@@ -294,7 +294,7 @@ const BikeTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, dat
       </Paper>
 
       {/* Table Section */}
-      <TableContainer component={Paper} elevation={0} sx={{ borderRadius: "12px", border: "1px solid", borderColor: "divider", overflow: "hidden" }}>
+      <TableContainer component={Paper} elevation={0} sx={{ borderRadius: "12px", border: "1px solid", borderColor: "divider", overflowX: "auto" }}>
         <Table sx={{ minWidth: 650 }}>
           <TableHead sx={{ bgcolor: alpha("#2e83ff", 0.05) }}>
             <TableRow>

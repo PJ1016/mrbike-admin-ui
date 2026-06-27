@@ -389,7 +389,7 @@ const Alladmins = ({ triggerDownloadExcel, triggerDownloadPDF }) => {
         elevation={3}
         sx={{
           borderRadius: 3,
-          overflow: "hidden",
+          overflowX: "auto",
           border: "1px solid #edf2f7",
         }}
       >

@@ -250,8 +250,9 @@ const AddServiceWizard = ({
       PaperProps={{
         sx: {
           borderRadius: 3,
-          minHeight: 580,
+          minHeight: { xs: "unset", sm: 580 },
           maxHeight: "92vh",
+          m: { xs: 1, sm: 2 },
         },
       }}
     >

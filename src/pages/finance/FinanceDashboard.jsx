@@ -253,9 +253,9 @@ const FinanceDashboard = () => {
     <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: "#f8fafc", minHeight: "100vh" }}>
       {/* ── Header ── */}
       <Stack
-        direction="row"
+        direction={{ xs: "column", sm: "row" }}
         justifyContent="space-between"
-        alignItems="flex-start"
+        alignItems={{ xs: "flex-start", sm: "flex-start" }}
         sx={{ mb: 4 }}
       >
         <Box>

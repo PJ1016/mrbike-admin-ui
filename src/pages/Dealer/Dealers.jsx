@@ -103,7 +103,7 @@ const Dealer = () => {
                 </Breadcrumbs>
               </Box>
 
-              <Stack direction="row" spacing={2}>
+              <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ justifyContent: { xs: "flex-start", sm: "flex-end" } }}>
                 <Button
                   variant="outlined"
                   startIcon={<DownloadIcon />}
@@ -132,7 +132,7 @@ const Dealer = () => {
                     textTransform: "none",
                     fontWeight: 600,
                     background: "linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)",
-                    "&:hover": { 
+                    "&:hover": {
                       background: "linear-gradient(45deg, #1976D2 30%, #0288D1 90%)"
                     },
                     boxShadow: "0 3px 5px 2px rgba(33, 203, 243, .3)",

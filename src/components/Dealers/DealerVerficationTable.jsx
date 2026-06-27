@@ -175,6 +175,10 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
   };
 
   const handleOpenReview = () => {
+    console.log('[ReviewModal] selectedDealer data:', JSON.stringify({ shopEmail: selectedDealer?.shopEmail, email: selectedDealer?.email, shopNumber: selectedDealer?.shopNumber, locality: selectedDealer?.locality, fullAddress: selectedDealer?.fullAddress, latitude: selectedDealer?.latitude, longitude: selectedDealer?.longitude }));
+    console.log('[ReviewModal] liveVerification object:', JSON.stringify(selectedDealer?.liveVerification));
+    console.log('[ReviewModal] live shopLivePhoto URL:', selectedDealer?.liveVerification?.shopLivePhoto);
+    console.log('[ReviewModal] live latitude:', selectedDealer?.liveVerification?.latitude, '| longitude:', selectedDealer?.liveVerification?.longitude);
     setReviewDialogOpen(true);
     setDocVerification(selectedDealer?.documentVerification || {});
     setMinWalletAmount(selectedDealer?.minWalletAmount ?? "");
@@ -645,6 +649,13 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
         }}
         maxWidth="md"
         fullWidth
+        PaperProps={{
+          sx: {
+            maxHeight: "90vh",
+            m: { xs: 1, sm: 2, md: 3 },
+            width: { xs: "calc(100% - 16px)", sm: "calc(100% - 32px)", md: "calc(100% - 48px)" },
+          },
+        }}
       >
         <DialogTitle
           sx={{
@@ -652,6 +663,10 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
             justifyContent: "space-between",
             alignItems: "center",
             bgcolor: "#f8faff",
+            flexWrap: "wrap",
+            gap: 1,
+            py: { xs: 1.5, sm: 2 },
+            px: { xs: 2, sm: 3 },
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -687,9 +702,9 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
             {actionError}
           </Alert>
         )}
-        <DialogContent dividers sx={{ p: 4 }}>
+        <DialogContent dividers sx={{ p: { xs: 2, sm: 3, md: 4 }, overflowY: "auto" }}>
           {selectedDealer && (
-            <Grid container spacing={4}>
+            <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
               {/* LEFT COLUMN */}
               <Grid item xs={12} md={6}>
                 {/* Business Profile */}
@@ -713,7 +728,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                   {[
                     { label: "Shop Name", value: selectedDealer.shopName },
                     { label: "Owner Name", value: selectedDealer.ownerName },
-                    { label: "Shop Email", value: selectedDealer.email },
+                    { label: "Shop Email", value: selectedDealer.shopEmail || selectedDealer.email },
                     { label: "Phone Number", value: selectedDealer.phone },
                     {
                       label: "Alternative Number",
@@ -917,6 +932,124 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                     </Button>
                   )}
                 </Box>
+
+                {/* Live Shop Verification */}
+                {selectedDealer.liveVerification && (
+                  <Box sx={{ mb: 3 }}>
+                    <Box
+                      sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}
+                    >
+                      <VerifiedIcon color="primary" fontSize="small" />
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: "bold", color: "primary.main" }}
+                      >
+                        LIVE SHOP VERIFICATION
+                      </Typography>
+                    </Box>
+
+                    {selectedDealer.liveVerification.shopLivePhoto ? (
+                      <Box
+                        component="img"
+                        src={getImageUrl(selectedDealer.liveVerification.shopLivePhoto)}
+                        alt="Live Shop Photo"
+                        onClick={() =>
+                          window.open(
+                            getImageUrl(selectedDealer.liveVerification.shopLivePhoto),
+                            "_blank",
+                          )
+                        }
+                        sx={{
+                          width: "100%",
+                          height: 160,
+                          objectFit: "cover",
+                          borderRadius: 1,
+                          cursor: "pointer",
+                          mb: 1.5,
+                          border: "1px solid #e2e8f0",
+                          display: "block",
+                          "&:hover": { opacity: 0.85 },
+                        }}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          height: 60,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: "1px dashed #e2e8f0",
+                          borderRadius: 1,
+                          mb: 1.5,
+                        }}
+                      >
+                        <Typography variant="caption" color="text.secondary">
+                          Live photo not uploaded
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {[
+                      {
+                        label: "Latitude",
+                        value:
+                          selectedDealer.liveVerification.latitude != null
+                            ? String(selectedDealer.liveVerification.latitude)
+                            : null,
+                      },
+                      {
+                        label: "Longitude",
+                        value:
+                          selectedDealer.liveVerification.longitude != null
+                            ? String(selectedDealer.liveVerification.longitude)
+                            : null,
+                      },
+                      {
+                        label: "Verified At",
+                        value:
+                          selectedDealer.liveVerification.timestamp ||
+                          selectedDealer.liveVerification.capturedAt
+                            ? new Date(
+                                selectedDealer.liveVerification.timestamp ||
+                                  selectedDealer.liveVerification.capturedAt,
+                              ).toLocaleString()
+                            : null,
+                      },
+                    ].map((item) => (
+                      <Box key={item.label} sx={{ display: "flex", mb: 0.75 }}>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: "bold",
+                            minWidth: 110,
+                            color: "text.secondary",
+                          }}
+                        >
+                          {item.label}:
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ wordBreak: "break-word" }}
+                        >
+                          {item.value || "N/A"}
+                        </Typography>
+                      </Box>
+                    ))}
+
+                    {selectedDealer.liveVerification.latitude != null && (
+                      <Button
+                        variant="text"
+                        size="small"
+                        startIcon={<LocationIcon />}
+                        href={`https://www.google.com/maps?q=${selectedDealer.liveVerification.latitude},${selectedDealer.liveVerification.longitude}`}
+                        target="_blank"
+                        sx={{ textTransform: "none", mt: 0.5 }}
+                      >
+                        View on Google Maps
+                      </Button>
+                    )}
+                  </Box>
+                )}
 
                 {/* Banking */}
                 <Box sx={{ mb: 3 }}>
@@ -1466,7 +1599,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
           {confirmAction && (
             <Box
               sx={{
-                px: 3,
+                px: { xs: 2, sm: 3 },
                 py: 2,
                 bgcolor: confirmAction === "approve" ? "#e8f5e9" : "#fdecea",
                 borderTop: "1px solid",
@@ -1531,10 +1664,11 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
           <Box
             sx={{
               display: "flex",
-              p: 2,
+              p: { xs: 1.5, sm: 2 },
               gap: 1,
               justifyContent: "space-between",
-              alignItems: "center",
+              alignItems: { xs: "flex-start", sm: "center" },
+              flexWrap: "wrap",
             }}
           >
             {/* Left: pending checklist hint */}
@@ -1588,7 +1722,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
             )}
 
             {/* Right: action buttons */}
-            <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: "flex-end" }}>
               <Button
                 onClick={() => {
                   setReviewDialogOpen(false);
