@@ -482,7 +482,7 @@ const WithdrawalManagement = () => {
             Manage dealer payout lifecycle across all statuses
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1} flexShrink={0}>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           <Tooltip title="Export Excel">
             <button className="btn btn-outline-secondary btn-sm" onClick={onDownload} style={{ fontSize: 12 }}>
               Excel
@@ -721,7 +721,7 @@ const WithdrawalManagement = () => {
 
                   return (
                     <>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginBottom: 20 }}>
                         <WalletStatCell label="Current Balance" value={fmt(balance)}      valueColor={balance < 0 ? "#dc2626" : "#166534"} />
                         <WalletStatCell label="Credit Limit"    value={fmt(creditLimit)}  valueColor="#374151" />
                         <WalletStatCell label="Total Credits"   value={fmt(totalCredits)} valueColor="#166534" />

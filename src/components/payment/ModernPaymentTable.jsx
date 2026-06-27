@@ -35,11 +35,11 @@ const getMethodIcon = (method) => {
 };
 
 const CustomToolbar = () => (
-  <GridToolbarContainer sx={{ p: 2, justifyContent: "space-between" }}>
+  <GridToolbarContainer sx={{ p: 2, justifyContent: "space-between", flexWrap: "wrap", gap: 1 }}>
     <GridToolbarQuickFilter
       placeholder="Search Payments..."
       sx={{
-        width: 300,
+        width: { xs: "100%", sm: 300 },
         "& .MuiInputBase-root": {
           borderRadius: "8px",
           bgcolor: "background.paper",

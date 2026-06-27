@@ -64,8 +64,8 @@ const DealerVerify = () => {
   return (
     <div className="page-wrapper">
       <div className="content container-fluid">
-        <Box sx={{ p: 4 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
+        <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+          <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "center" }} sx={{ mb: 4 }}>
             <Box>
               <Typography variant="h4" sx={{ fontWeight: 800, color: "#1e293b", letterSpacing: "-0.025em" }}>
                 Verification Queue

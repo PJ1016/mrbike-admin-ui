@@ -168,7 +168,7 @@ const CustomerTable = ({ datas, loading, onRefresh }) => {
   return (
     <Box sx={{ width: "100%", mt: 2 }}>
       {/* Search bar */}
-      <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: { xs: "flex-start", sm: "center" }, flexWrap: "wrap", gap: 1 }}>
         <TextField
           variant="outlined"
           size="small"
@@ -182,9 +182,9 @@ const CustomerTable = ({ datas, loading, onRefresh }) => {
               </InputAdornment>
             ),
           }}
-          sx={{ width: 340 }}
+          sx={{ width: { xs: "100%", sm: 340 } }}
         />
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
           {filteredData.length} customer{filteredData.length !== 1 ? "s" : ""}
         </Typography>
       </Box>
@@ -361,9 +361,16 @@ const CustomerTable = ({ datas, loading, onRefresh }) => {
         onClose={() => { if (!actionLoading) handleCloseDialog(); }}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            maxHeight: "90vh",
+            m: { xs: 1, sm: 2 },
+            width: { xs: "calc(100% - 16px)", sm: "calc(100% - 32px)" },
+          },
+        }}
       >
         <DialogTitle
-          sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", bgcolor: "#f8faff", pb: 2 }}
+          sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", bgcolor: "#f8faff", pb: 2, flexWrap: "wrap", gap: 1 }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <Avatar
@@ -399,7 +406,7 @@ const CustomerTable = ({ datas, loading, onRefresh }) => {
           </Alert>
         )}
 
-        <DialogContent dividers sx={{ p: 3 }}>
+        <DialogContent dividers sx={{ p: { xs: 2, sm: 3 }, overflowY: "auto" }}>
           {selectedCustomer && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
 

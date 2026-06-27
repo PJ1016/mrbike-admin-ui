@@ -70,7 +70,7 @@ const Admin = () => {
               </Breadcrumbs>
             </Box>
 
-            <Stack direction="row" spacing={2} sx={{ width: { xs: "100%", sm: "auto" } }}>
+            <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap sx={{ width: { xs: "100%", sm: "auto" } }}>
               <Button
                 variant="outlined"
                 onClick={handleDownloadClick}

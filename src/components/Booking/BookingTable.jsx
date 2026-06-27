@@ -554,6 +554,7 @@ const BookingTable = ({
         onClose={() => setSelectedUser(null)}
         maxWidth="sm"
         fullWidth
+        PaperProps={{ sx: { maxHeight: "90vh", m: { xs: 1, sm: 2 } } }}
       >
         <DialogTitle sx={{ bgcolor: "primary.main", color: "white", mb: 2 }}>
           Customer Dashboard
@@ -653,6 +654,7 @@ const BookingTable = ({
         onClose={() => setSelectedDealer(null)}
         maxWidth="sm"
         fullWidth
+        PaperProps={{ sx: { maxHeight: "90vh", m: { xs: 1, sm: 2 } } }}
       >
         <DialogTitle sx={{ bgcolor: "info.main", color: "white", mb: 2 }}>
           Dealer Business Profile
@@ -745,17 +747,24 @@ const BookingTable = ({
         maxWidth="md"
         fullWidth
         PaperProps={{
-          sx: { borderRadius: 3, boxShadow: "0 8px 32px rgba(0,0,0,0.12)" },
+          sx: {
+            borderRadius: 3,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+            maxHeight: "90vh",
+            m: { xs: 1, sm: 2, md: 3 },
+          },
         }}
       >
         <DialogTitle
           sx={{
             bgcolor: "#f8f9fa",
             borderBottom: "1px solid #eee",
-            p: 3,
+            p: { xs: 2, sm: 3 },
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            flexWrap: "wrap",
+            gap: 1,
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -802,18 +811,19 @@ const BookingTable = ({
             }}
           />
         </DialogTitle>
-        <DialogContent sx={{ p: 4, bgcolor: "#fff" }}>
+        <DialogContent sx={{ p: { xs: 2, sm: 3, md: 4 }, bgcolor: "#fff", overflowY: "auto" }}>
           {selectedBooking && (
             <>
               {/* Lifecycle Stepper */}
               <Box
                 sx={{
                   width: "100%",
-                  py: 5,
+                  py: { xs: 2, sm: 5 },
                   mb: 4,
                   bgcolor: "#f8fafc",
                   borderRadius: "16px",
                   border: "1px solid #f1f5f9",
+                  overflowX: "auto",
                 }}
               >
                 <Stepper
