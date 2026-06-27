@@ -155,7 +155,7 @@ const MapPreview = ({ locationName, lat, lng, radius }) => {
   );
 };
 
-const GOOGLE_MAPS_KEY = 'AIzaSyB_Lz_b22Sf5eKRSHhgxOnoZ8InrtXkpSM';
+const GOOGLE_MAPS_KEY = 'AIzaSyCM15ry8lewwj6YZ-04_m7Z58dsQo_hBBA';
 
 const loadGoogleMapsScript = (onReady) => {
   if (window.google?.maps?.places) { onReady(); return; }
