@@ -103,7 +103,9 @@ const BookingTable = ({
     if (booking.totalBill && booking.totalBill > 0) return booking.totalBill;
     if (!booking.services || booking.services.length === 0) return 0;
 
-    const bikeCC = parseInt(booking.userBike_id?.bike_cc || 0);
+    const bikeCC = parseInt(
+      booking.bike?.engine_cc || booking.userBike_id?.bike_cc || 0,
+    );
     return booking.services.reduce((total, service) => {
       // Handle both cases where service might be an ID or a populated object
       const bikes = service.bikes || [];
@@ -131,8 +133,9 @@ const BookingTable = ({
           item.dealer_id?.shopName?.toLowerCase().includes(term) ||
           item.user_id?.customerId?.toLowerCase().includes(term) || // ✅ Added Search by Customer ID
           item.dealer_id?.dealerId?.toLowerCase().includes(term) || // ✅ Added Search by Dealer ID
-          item.userBike_id?.name?.toLowerCase().includes(term) || // ✅ Added Search by Bike Brand
-          item.userBike_id?.model?.toLowerCase().includes(term) || // ✅ Added Search by Bike Model
+          item.bike?.company_name?.toLowerCase().includes(term) || // ✅ Added Search by Bike Brand
+          item.bike?.model_name?.toLowerCase().includes(term) || // ✅ Added Search by Bike Model
+          item.bike?.variant_name?.toLowerCase().includes(term) || // ✅ Added Search by Bike Variant
           item.services?.[0]?.base_service_id?.name
             ?.toLowerCase()
             .includes(term), // ✅ Added Search by Service Name
@@ -435,7 +438,9 @@ const BookingTable = ({
                           variant="subtitle2"
                           sx={{ fontWeight: "bold" }}
                         >
-                          {booking.userBike_id?.name || (
+                          {[booking.bike?.company_name, booking.bike?.model_name]
+                            .filter(Boolean)
+                            .join(" ") || (
                             <Typography
                               variant="caption"
                               sx={{
@@ -448,7 +453,13 @@ const BookingTable = ({
                           )}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {booking.userBike_id?.model || ""}
+                          {[
+                            booking.bike?.engine_cc &&
+                              `${booking.bike.engine_cc} CC`,
+                            booking.bike?.variant_name,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
                         </Typography>
                       </Stack>
                     </TableCell>
@@ -1036,8 +1047,18 @@ const BookingTable = ({
                               mb: 0.5,
                             }}
                           >
-                            {selectedBooking.userBike_id?.name}{" "}
-                            {selectedBooking.userBike_id?.model}
+                            {[
+                              selectedBooking.bike?.company_name,
+                              selectedBooking.bike?.model_name,
+                            ]
+                              .filter(Boolean)
+                              .join(" ") || "Unassigned"}
+                            {selectedBooking.bike?.variant_name
+                              ? ` (${selectedBooking.bike.variant_name})`
+                              : ""}
+                            {selectedBooking.bike?.engine_cc
+                              ? ` · ${selectedBooking.bike.engine_cc} CC`
+                              : ""}
                           </Typography>
                           <Typography
                             variant="caption"
@@ -1052,7 +1073,8 @@ const BookingTable = ({
                               letterSpacing: "0.05em",
                             }}
                           >
-                            {selectedBooking.userBike_id?.plate_number ||
+                            {selectedBooking.bike?.plate_number ||
+                              selectedBooking.userBike_id?.plate_number ||
                               "No Plate"}
                           </Typography>
                         </Box>
