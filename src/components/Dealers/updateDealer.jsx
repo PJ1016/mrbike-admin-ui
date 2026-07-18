@@ -48,6 +48,7 @@ import StateCitySelect from "../Global/StateCitySelect";
 import Swal from "sweetalert2";
 import { addDealer, updateDealer } from "../../api";
 import { useNavigate } from "react-router-dom";
+import { initBusinessSettings, validateBusinessSettings } from "./businessSettings";
 
 const IMAGE_BASE_URL = process.env.REACT_APP_IMAGE_BASE_URL || "";
 const getImageUrl = (path) =>
@@ -212,14 +213,7 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
         accountNumber: dealerData.bankDetails?.accountNumber || "",
         ifscCode: dealerData.bankDetails?.ifscCode || "",
         upiId: dealerData.bankDetails?.upiId || "",
-        comission: dealerData.commission ?? "",
-        tax: dealerData.tax ?? "",
-        pickupCharges: dealerData.pickupCharges ?? "",
-        dropCharges: dealerData.dropCharges ?? "",
-        providesPickup: !!dealerData.providesPickup,
-        providesDrop: !!dealerData.providesDrop,
-        minWalletAmount: dealerData.minWalletAmount ?? "",
-        adminNotes: dealerData.adminNotes ?? "",
+        ...initBusinessSettings(dealerData),
         notifyEmail: !!dealerData.notifications?.email,
         notifySms: !!dealerData.notifications?.sms,
         notifyApp: !!dealerData.notifications?.app,
@@ -237,9 +231,7 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
       presentAddress: "", presentState: "", presentCity: "",
       latitude: "", longitude: "",
       accountHolderName: "", bankName: "", accountNumber: "", ifscCode: "", upiId: "",
-      comission: "", tax: "", pickupCharges: "", dropCharges: "",
-      providesPickup: false, providesDrop: false,
-      minWalletAmount: "", adminNotes: "",
+      ...initBusinessSettings(),
       notifyEmail: false, notifySms: false, notifyApp: false,
     };
   }, [isEdit, dealerData]);
@@ -320,10 +312,7 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
     if (!data.fullAddress?.trim()) e.fullAddress = "Address is required";
     if (!data.state?.trim()) e.state = "State is required";
     if (!data.city?.trim()) e.city = "City is required";
-    if (data.comission !== "" && (isNaN(data.comission) || Number(data.comission) < 0 || Number(data.comission) > 100))
-      e.comission = "Must be between 0 and 100";
-    if (data.tax !== "" && (isNaN(data.tax) || Number(data.tax) < 0 || Number(data.tax) > 18))
-      e.tax = "Must be between 0 and 18";
+    Object.assign(e, validateBusinessSettings(data));
     if (data.accountNumber && !/^\d{9,18}$/.test(data.accountNumber))
       e.accountNumber = "Account number must be 9–18 digits";
     if (data.ifscCode && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(data.ifscCode.toUpperCase()))

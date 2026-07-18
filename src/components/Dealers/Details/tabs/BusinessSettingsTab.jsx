@@ -23,39 +23,34 @@ import NoteAltIcon from "@mui/icons-material/NoteAlt";
 import Swal from "sweetalert2";
 import { updateDealer } from "../../../../api";
 import { SectionHeader } from "../DealerShared";
+import {
+  initBusinessSettings,
+  validateBusinessSettings,
+  appendBusinessSettingsToForm,
+} from "../../businessSettings";
 
 const BusinessSettingsTab = ({ dealer, onRefresh }) => {
-  const [settings, setSettings] = useState({
-    commission: dealer.commission ?? "",
-    tax: dealer.tax ?? "",
-    pickupCharges: dealer.pickupCharges ?? "",
-    dropCharges: dealer.dropCharges ?? "",
-    providesPickup: !!dealer.providesPickup,
-    providesDrop: !!dealer.providesDrop,
-    minWalletAmount: dealer.minWalletAmount ?? "",
-    adminNotes: dealer.adminNotes ?? "",
-  });
+  const [settings, setSettings] = useState(initBusinessSettings(dealer));
+  const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
   const handleChange = (field) => (e) => {
     const value =
       e.target.type === "checkbox" ? e.target.checked : e.target.value;
     setSettings((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
   const handleSave = async () => {
+    const errs = validateBusinessSettings(settings);
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
     setSaving(true);
     try {
       const form = new FormData();
       form.append("id", dealer._id);
-      form.append("comission", settings.commission);   // keep original typo matching existing form
-      form.append("tax", settings.tax);
-      form.append("pickupCharges", settings.pickupCharges);
-      form.append("dropCharges", settings.dropCharges);
-      form.append("providesPickup", settings.providesPickup);
-      form.append("providesDrop", settings.providesDrop);
-      form.append("minWalletAmount", settings.minWalletAmount);
-      form.append("adminNotes", settings.adminNotes);
+      appendBusinessSettingsToForm(form, settings);
 
       const res = await updateDealer(form);
       if (res && res.success) {
@@ -169,8 +164,10 @@ const BusinessSettingsTab = ({ dealer, onRefresh }) => {
                     type="number"
                     size="small"
                     fullWidth
-                    value={settings.commission}
-                    onChange={handleChange("commission")}
+                    value={settings.comission}
+                    onChange={handleChange("comission")}
+                    error={!!errors.comission}
+                    helperText={errors.comission || " "}
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
@@ -189,6 +186,8 @@ const BusinessSettingsTab = ({ dealer, onRefresh }) => {
                     fullWidth
                     value={settings.tax}
                     onChange={handleChange("tax")}
+                    error={!!errors.tax}
+                    helperText={errors.tax || "0–18"}
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
@@ -196,7 +195,7 @@ const BusinessSettingsTab = ({ dealer, onRefresh }) => {
                         </InputAdornment>
                       ),
                     }}
-                    inputProps={{ min: 0, max: 100, step: 0.1 }}
+                    inputProps={{ min: 0, max: 18, step: 0.1 }}
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -248,18 +247,10 @@ const BusinessSettingsTab = ({ dealer, onRefresh }) => {
           <Stack direction="row" justifyContent="flex-end" spacing={2}>
             <Button
               variant="outlined"
-              onClick={() =>
-                setSettings({
-                  commission: dealer.commission ?? "",
-                  tax: dealer.tax ?? "",
-                  pickupCharges: dealer.pickupCharges ?? "",
-                  dropCharges: dealer.dropCharges ?? "",
-                  providesPickup: !!dealer.providesPickup,
-                  providesDrop: !!dealer.providesDrop,
-                  minWalletAmount: dealer.minWalletAmount ?? "",
-                  adminNotes: dealer.adminNotes ?? "",
-                })
-              }
+              onClick={() => {
+                setSettings(initBusinessSettings(dealer));
+                setErrors({});
+              }}
               disabled={saving}
               sx={{ fontWeight: 700, borderRadius: 2, textTransform: "none" }}
             >
