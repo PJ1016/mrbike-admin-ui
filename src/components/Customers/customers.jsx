@@ -18,14 +18,8 @@ import {
   TableSortLabel,
   Menu,
   MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Avatar,
-  Divider,
   CircularProgress,
-  Alert,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -33,16 +27,10 @@ import {
   Visibility as VisibilityIcon,
   DeleteOutline as DeleteIcon,
   CheckCircle as CheckCircleIcon,
-  AccountCircle as AccountCircleIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
-  LocationOn as LocationIcon,
   EmojiEvents as RewardIcon,
-  DirectionsBike as BikeIcon,
-  Close as CloseIcon,
   Person as PersonIcon,
 } from "@mui/icons-material";
-import { useDeleteCustomerMutation } from "../../redux/services/customerApi";
+import CustomerDetailsModal from "./CustomerDetailsModal";
 
 const API_IMAGE_BASE = "https://api.mrbikedoctor.cloud/";
 
@@ -55,10 +43,6 @@ const CustomerTable = ({ datas, loading, onRefresh }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [actionError, setActionError] = useState(null);
-  
-  const [deleteCustomer, { isLoading: actionLoading }] = useDeleteCustomerMutation();
 
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === "asc";
@@ -127,30 +111,11 @@ const CustomerTable = ({ datas, loading, onRefresh }) => {
 
   const handleOpenProfile = () => {
     setProfileDialogOpen(true);
-    setActionError(null);
-    setConfirmDelete(false);
     handleActionClose();
   };
 
   const handleCloseDialog = () => {
     setProfileDialogOpen(false);
-    setConfirmDelete(false);
-    setActionError(null);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!selectedCustomer) return;
-    setActionError(null);
-    try {
-      await deleteCustomer(selectedCustomer._id).unwrap();
-      setProfileDialogOpen(false);
-      setConfirmDelete(false);
-      // No need to manually refresh, RTK Query tag invalidation handles it!
-    } catch (error) {
-      const msg = error?.data?.message || "Failed to delete customer.";
-      setActionError(msg);
-      setConfirmDelete(false);
-    }
   };
 
   const headers = [
@@ -261,8 +226,6 @@ const CustomerTable = ({ datas, loading, onRefresh }) => {
                           onClick={() => {
                             setSelectedCustomer(customer);
                             setProfileDialogOpen(true);
-                            setActionError(null);
-                            setConfirmDelete(false);
                           }}
                           sx={{ textTransform: "none", fontWeight: "bold", p: 0, justifyContent: "flex-start", lineHeight: 1.2 }}
                         >
@@ -345,8 +308,6 @@ const CustomerTable = ({ datas, loading, onRefresh }) => {
           onClick={() => {
             handleActionClose();
             setProfileDialogOpen(true);
-            setConfirmDelete(true);
-            setActionError(null);
           }}
           sx={{ color: "error.main" }}
         >
@@ -355,178 +316,11 @@ const CustomerTable = ({ datas, loading, onRefresh }) => {
         </MenuItem>
       </Menu>
 
-      {/* Customer Profile Dialog */}
-      <Dialog
+      <CustomerDetailsModal
         open={profileDialogOpen}
-        onClose={() => { if (!actionLoading) handleCloseDialog(); }}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            maxHeight: "90vh",
-            m: { xs: 1, sm: 2 },
-            width: { xs: "calc(100% - 16px)", sm: "calc(100% - 32px)" },
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", bgcolor: "#f8faff", pb: 2, flexWrap: "wrap", gap: 1 }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Avatar
-              src={getAvatarUrl(selectedCustomer?.image)}
-              sx={{ width: 52, height: 52, bgcolor: "#2e83ff", fontSize: "1.1rem" }}
-            >
-              {getInitials(selectedCustomer)}
-            </Avatar>
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: "bold", lineHeight: 1.2 }}>
-                {selectedCustomer?.first_name} {selectedCustomer?.last_name}
-              </Typography>
-              <Typography variant="caption" sx={{ fontFamily: "monospace", color: "#2e83ff", fontWeight: "bold" }}>
-                {selectedCustomer?.customerId}
-              </Typography>
-            </Box>
-          </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Chip
-              label={selectedCustomer?.isProfile ? "Profile Complete" : "Incomplete"}
-              color={selectedCustomer?.isProfile ? "success" : "default"}
-              size="small"
-            />
-            <IconButton size="small" onClick={handleCloseDialog} disabled={actionLoading}>
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-
-        {actionError && (
-          <Alert severity="error" onClose={() => setActionError(null)} sx={{ mx: 3, mt: 2, borderRadius: 2 }}>
-            {actionError}
-          </Alert>
-        )}
-
-        <DialogContent dividers sx={{ p: { xs: 2, sm: 3 }, overflowY: "auto" }}>
-          {selectedCustomer && (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-
-              {/* Contact Info */}
-              <Box>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
-                  <PhoneIcon color="primary" fontSize="small" />
-                  <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main" }}>CONTACT DETAILS</Typography>
-                </Box>
-                {[
-                  { icon: <EmailIcon sx={{ fontSize: 14, color: "text.secondary" }} />, label: "Email", value: selectedCustomer.email },
-                  { icon: <PhoneIcon sx={{ fontSize: 14, color: "text.secondary" }} />, label: "Phone", value: selectedCustomer.phone?.toString() },
-                  { icon: <LocationIcon sx={{ fontSize: 14, color: "text.secondary" }} />, label: "Address", value: selectedCustomer.address },
-                  { icon: <LocationIcon sx={{ fontSize: 14, color: "text.secondary" }} />, label: "City / State", value: [selectedCustomer.city, selectedCustomer.state].filter(Boolean).join(", ") || null },
-                  { icon: <LocationIcon sx={{ fontSize: 14, color: "text.secondary" }} />, label: "Pincode", value: selectedCustomer.pincode },
-                ].map((item) => (
-                  <Box key={item.label} sx={{ display: "flex", alignItems: "flex-start", mb: 0.75, gap: 0.75 }}>
-                    {item.icon}
-                    <Typography variant="caption" sx={{ fontWeight: "bold", minWidth: 90, color: "text.secondary" }}>{item.label}:</Typography>
-                    <Typography variant="caption">{item.value || "N/A"}</Typography>
-                  </Box>
-                ))}
-              </Box>
-
-              <Divider />
-
-              {/* Account Info */}
-              <Box>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
-                  <AccountCircleIcon color="primary" fontSize="small" />
-                  <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main" }}>ACCOUNT INFO</Typography>
-                </Box>
-                <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 1.5 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    <RewardIcon sx={{ fontSize: 18, color: "#f5a623" }} />
-                    <Typography variant="body2" sx={{ fontWeight: "bold" }}>{selectedCustomer.reward_points ?? 0}</Typography>
-                    <Typography variant="caption" color="text.secondary">reward pts</Typography>
-                  </Box>
-                </Box>
-                {[
-                  { label: "Customer ID", value: selectedCustomer.customerId },
-                  { label: "Profile Complete", value: selectedCustomer.isProfile ? "Yes" : "No" },
-                  { label: "Joined", value: formatDate(selectedCustomer.createdAt) },
-                  { label: "Last Updated", value: formatDate(selectedCustomer.updatedAt) },
-                ].map((item) => (
-                  <Box key={item.label} sx={{ display: "flex", mb: 0.75 }}>
-                    <Typography variant="caption" sx={{ fontWeight: "bold", minWidth: 110, color: "text.secondary" }}>{item.label}:</Typography>
-                    <Typography variant="caption">{item.value || "N/A"}</Typography>
-                  </Box>
-                ))}
-              </Box>
-
-              {/* Bikes */}
-              {selectedCustomer.userBike && selectedCustomer.userBike.length > 0 && (
-                <>
-                  <Divider />
-                  <Box>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
-                      <BikeIcon color="primary" fontSize="small" />
-                      <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main" }}>
-                        REGISTERED BIKES ({selectedCustomer.userBike.length})
-                      </Typography>
-                    </Box>
-                    {selectedCustomer.userBike.map((bike, i) => (
-                      <Paper key={i} elevation={0} sx={{ p: 1.5, mb: 1, border: "1px solid #e8edf3", borderRadius: 2 }}>
-                        <Typography variant="caption" sx={{ fontWeight: "bold" }}>
-                          {bike.brand} {bike.model} — {bike.registrationNumber || "No Reg."}
-                        </Typography>
-                      </Paper>
-                    ))}
-                  </Box>
-                </>
-              )}
-            </Box>
-          )}
-        </DialogContent>
-
-        <DialogActions sx={{ p: 0, flexDirection: "column", alignItems: "stretch", bgcolor: "#f8faff" }}>
-          {confirmDelete && (
-            <Box
-              sx={{
-                px: 3, py: 2,
-                bgcolor: "#fdecea",
-                borderTop: "1px solid #ef9a9a",
-                display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2,
-              }}
-            >
-              <Typography variant="body2" sx={{ fontWeight: 500, color: "#c62828" }}>
-                Permanently delete "{selectedCustomer?.first_name} {selectedCustomer?.last_name}"? This cannot be undone.
-              </Typography>
-              <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
-                <Button size="small" variant="outlined" color="inherit" onClick={() => setConfirmDelete(false)} disabled={actionLoading}>
-                  Cancel
-                </Button>
-                <Button
-                  size="small" variant="contained" color="error"
-                  onClick={handleConfirmDelete} disabled={actionLoading}
-                  startIcon={actionLoading ? <CircularProgress size={16} color="inherit" /> : null}
-                >
-                  Yes, Delete
-                </Button>
-              </Box>
-            </Box>
-          )}
-
-          <Box sx={{ display: "flex", p: 2, gap: 1, justifyContent: "flex-end" }}>
-            <Button variant="outlined" color="inherit" onClick={handleCloseDialog} disabled={actionLoading}>
-              Close
-            </Button>
-            <Button
-              variant="contained" color="error"
-              startIcon={<DeleteIcon />}
-              onClick={() => setConfirmDelete(true)}
-              disabled={actionLoading || confirmDelete}
-            >
-              Delete Customer
-            </Button>
-          </Box>
-        </DialogActions>
-      </Dialog>
+        customer={selectedCustomer}
+        onClose={handleCloseDialog}
+      />
     </Box>
   );
 };

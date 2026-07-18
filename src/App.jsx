@@ -17,6 +17,7 @@ import {
   Box,
 } from "@mui/material";
 import { fetchGlobalSearchData } from "./redux/slices/searchSlice";
+import { NetworkProvider } from "./context/NetworkContext";
 import "./App.css";
 import AddAdmin from "./pages/admin/AddAdmin";
 import Sidebar from "./components/Global/Sidebar";
@@ -135,9 +136,11 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Router basename="/">
-        <AppContent />
-      </Router>
+      <NetworkProvider>
+        <Router basename="/">
+          <AppContent />
+        </Router>
+      </NetworkProvider>
     </ThemeProvider>
   );
 }
