@@ -151,6 +151,9 @@ export const updateDealer = async (formData) => {
 export const getDealerList = () =>
   apiRequest("GET", "/dealer/dealerList", {}, false);
 
+export const getDashboardCounts = () =>
+  apiRequest("GET", "/adminauth/dashboard-counts", {}, false);
+
 export const getAllDealersWithVerifyFalse = () =>
   apiRequest("GET", "/dealer/dealersWithVerifyFalse", {}, false);
 

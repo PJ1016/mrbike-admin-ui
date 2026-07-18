@@ -25,7 +25,9 @@ import EmailIcon from "@mui/icons-material/Email";
 import BadgeIcon from "@mui/icons-material/Badge";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { approveDealer, rejectDealer, updateDealerField } from "../../../api";
+import { notifyDealerStatusChanged } from "../../../redux/dealerNotify";
 
 const statusApprovalConfig = (status) => {
   const s = String(status ?? "").toLowerCase();
@@ -36,6 +38,7 @@ const statusApprovalConfig = (status) => {
 
 const DealerProfileHeader = ({ dealer, id, onRefresh, onExportPDF, pdfLoading }) => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [actionLoading, setActionLoading] = useState("");
 
   const approvalCfg = statusApprovalConfig(dealer.registrationStatus);
@@ -56,6 +59,7 @@ const DealerProfileHeader = ({ dealer, id, onRefresh, onExportPDF, pdfLoading })
     setActionLoading("activate");
     try {
       await updateDealerField(id, { isActive: next });
+      notifyDealerStatusChanged(dispatch);
       await onRefresh();
       Swal.fire("Done", `Dealer ${label.toLowerCase()}d successfully.`, "success");
     } catch (e) {
@@ -88,6 +92,7 @@ const DealerProfileHeader = ({ dealer, id, onRefresh, onExportPDF, pdfLoading })
       setActionLoading("block");
       try {
         await updateDealerField(id, { isBlocked: true, blockedReason: result.value.trim() });
+        notifyDealerStatusChanged(dispatch);
         await onRefresh();
         Swal.fire("Blocked", `${dealer.shopName} has been blocked.`, "success");
       } catch (e) {
@@ -108,6 +113,7 @@ const DealerProfileHeader = ({ dealer, id, onRefresh, onExportPDF, pdfLoading })
       setActionLoading("block");
       try {
         await updateDealerField(id, { isBlocked: false, blockedReason: "" });
+        notifyDealerStatusChanged(dispatch);
         await onRefresh();
         Swal.fire("Unblocked", `${dealer.shopName} has been unblocked.`, "success");
       } catch (e) {

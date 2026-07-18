@@ -42,8 +42,10 @@ import {
   PowerSettingsNew,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { AgCharts } from "ag-charts-react";
-import { getAllBookings, getDealerList, getFinanceSummary, getAllPayouts } from "../../api";
+import { getAllBookings, getDealerList, getFinanceSummary, getAllPayouts, getDashboardCounts } from "../../api";
+import { selectDealerRefreshVersion } from "../../redux/slices/dealerRefreshSlice";
 import moment from "moment";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -221,16 +223,19 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ bookings: [], dealers: [] });
+  const [dealerCounts, setDealerCounts] = useState(null); // { totalDealers, blockedDealers, inactiveDealers } from backend
   const [finance, setFinance] = useState(null); // null = loading, false = failed, object = loaded
+  const dealerRefreshVersion = useSelector(selectDealerRefreshVersion);
 
   const fetchData = async () => {
     try {
       setLoading(true);
 
       // Main data + finance data all in parallel
-      const [bookingsRes, dealersRes, financeSettled] = await Promise.all([
+      const [bookingsRes, dealersRes, countsSettled, financeSettled] = await Promise.all([
         getAllBookings(),
         getDealerList(),
+        Promise.allSettled([getDashboardCounts()]),
         Promise.allSettled([getFinanceSummary(), getAllPayouts("ALL")]),
       ]);
 
@@ -238,6 +243,13 @@ const Dashboard = () => {
         bookings: bookingsRes.data || [],
         dealers: dealersRes.data || [],
       });
+
+      const [countsSettledResult] = countsSettled;
+      setDealerCounts(
+        countsSettledResult.status === "fulfilled"
+          ? countsSettledResult.value?.data || null
+          : null
+      );
 
       // Process finance results (both optional — failures don't block the dashboard)
       const [summarySettled, payoutsSettled] = financeSettled;
@@ -281,21 +293,42 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+    // dealerRefreshVersion bumps whenever a dealer is blocked/unblocked/activated/deactivated
+    // elsewhere (list or detail page), so the stat cards below stay in sync without a reload.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dealerRefreshVersion]);
 
   // ── dealer metrics ────────────────────────────────────────────────────────
+  // total/blocked/inactive come straight from the dashboardCounts backend endpoint
+  // (falls back to deriving from the dealer list if that call failed); pending isn't
+  // returned by that endpoint so it's still derived from the dealer list.
   const dealerMetrics = useMemo(() => {
     const { dealers } = data;
+    const pending = dealers.filter(
+      (d) => (d.registrationStatus || "").toLowerCase() === "pending"
+    ).length;
+
+    if (dealerCounts) {
+      const total = dealerCounts.totalDealers ?? dealers.length;
+      const blocked = dealerCounts.blockedDealers ?? 0;
+      const inactive = dealerCounts.inactiveDealers ?? 0;
+      return {
+        total,
+        blocked,
+        inactive,
+        active: total - blocked - inactive,
+        pending,
+      };
+    }
+
     return {
       total: dealers.length,
       active: dealers.filter((d) => d.isActive === true && !d.isBlocked).length,
       inactive: dealers.filter((d) => !d.isActive && !d.isBlocked).length,
       blocked: dealers.filter((d) => !!d.isBlocked).length,
-      pending: dealers.filter(
-        (d) => (d.registrationStatus || "").toLowerCase() === "pending"
-      ).length,
+      pending,
     };
-  }, [data.dealers]);
+  }, [data.dealers, dealerCounts]);
 
   // ── booking analytics ─────────────────────────────────────────────────────
   const analytics = useMemo(() => {

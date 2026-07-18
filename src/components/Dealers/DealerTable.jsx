@@ -4,8 +4,9 @@ import { useDownloadExcel } from "react-export-table-to-excel";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { getAllBookings, updateDealerField, deleteDealer } from "../../api";
+import { notifyDealerStatusChanged } from "../../redux/dealerNotify";
 import {
   Table,
   TableBody,
@@ -96,6 +97,7 @@ const DealerTable = ({
 }) => {
   const tableRef = useRef(null);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const isSuperAdmin = !user?.role || user?.role?.toLowerCase() === "admin";
   const [searchTerm, setSearchTerm] = useState("");
@@ -254,7 +256,8 @@ const DealerTable = ({
     if (!result.isConfirmed) return;
     try {
       await updateDealerField(dealer._id, { isActive: next });
-      onDealerDeleted();
+      notifyDealerStatusChanged(dispatch);
+      await onDealerDeleted();
       Swal.fire("Done", `Dealer ${label.toLowerCase()}d successfully.`, "success");
     } catch (error) {
       Swal.fire("Error", error.message, "error");
@@ -279,7 +282,8 @@ const DealerTable = ({
       if (!result.isConfirmed) return;
       try {
         await updateDealerField(dealer._id, { isBlocked: true, blockedReason: result.value.trim() });
-        onDealerDeleted();
+        notifyDealerStatusChanged(dispatch);
+        await onDealerDeleted();
         Swal.fire("Blocked", `${dealer.shopName} has been blocked.`, "success");
       } catch (e) {
         Swal.fire("Error", e.message, "error");
@@ -296,7 +300,8 @@ const DealerTable = ({
       if (!result.isConfirmed) return;
       try {
         await updateDealerField(dealer._id, { isBlocked: false, blockedReason: "" });
-        onDealerDeleted();
+        notifyDealerStatusChanged(dispatch);
+        await onDealerDeleted();
         Swal.fire("Unblocked", `${dealer.shopName} has been unblocked.`, "success");
       } catch (e) {
         Swal.fire("Error", e.message, "error");
