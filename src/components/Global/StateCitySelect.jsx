@@ -63,13 +63,26 @@ const StateCitySelect = ({
   const selectedCity = value?.[cityName] || "";
   const [cities, setCities] = useState([]);
 
+  // Keep the predefined dataset as the base list, but if the dealer's stored
+  // state/city isn't in it, add it so the existing value stays visible and
+  // editable instead of rendering blank / disappearing.
+  const stateOptions =
+    selectedState && !STATE_CITY_DATA[selectedState]
+      ? [selectedState, ...Object.keys(STATE_CITY_DATA)]
+      : Object.keys(STATE_CITY_DATA);
+
   useEffect(() => {
     if (selectedState) {
-      setCities(STATE_CITY_DATA[selectedState] || []);
+      const baseCities = STATE_CITY_DATA[selectedState] || [];
+      setCities(
+        selectedCity && !baseCities.includes(selectedCity)
+          ? [selectedCity, ...baseCities]
+          : baseCities
+      );
     } else {
-      setCities([]);
+      setCities(selectedCity ? [selectedCity] : []);
     }
-  }, [selectedState]);
+  }, [selectedState, selectedCity]);
 
   const handleStateChange = (e) => {
     onChange({
@@ -117,7 +130,7 @@ const StateCitySelect = ({
             <MenuItem value="">
               <em>Select State</em>
             </MenuItem>
-            {Object.keys(STATE_CITY_DATA).map((state) => (
+            {stateOptions.map((state) => (
               <MenuItem key={state} value={state}>
                 {state}
               </MenuItem>

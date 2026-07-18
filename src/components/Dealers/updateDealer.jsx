@@ -19,6 +19,10 @@ import {
   Alert,
   Card,
   CardContent,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import {
   Person as PersonIcon,
@@ -38,6 +42,7 @@ import {
   Save as SaveIcon,
   WarningAmber as WarningIcon,
   CheckCircle as CheckCircleIcon,
+  NotificationsActive as NotificationsIcon,
 } from "@mui/icons-material";
 import StateCitySelect from "../Global/StateCitySelect";
 import Swal from "sweetalert2";
@@ -47,6 +52,15 @@ import { useNavigate } from "react-router-dom";
 const IMAGE_BASE_URL = process.env.REACT_APP_IMAGE_BASE_URL || "";
 const getImageUrl = (path) =>
   !path ? null : path.startsWith("http") ? path : `${IMAGE_BASE_URL}${path}`;
+
+// Normalizes a stored date (ISO string or Date) to the yyyy-MM-dd shape <input type="date"> requires.
+const toDateInputValue = (value) => {
+  if (!value) return "";
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+};
+
+const GENDER_OPTIONS = ["Male", "Female", "Other"];
 
 // ─── Section card wrapper ─────────────────────────────────────────────────────
 const SectionCard = ({ icon, title, subtitle, errorCount = 0, children }) => (
@@ -154,15 +168,23 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
 
   const [shopImages, setShopImages] = useState([]);
   const [existingShopImages, setExistingShopImages] = useState([]);
-  const [existingImages, setExistingImages] = useState({ panCardFront: null, aadharFront: null, aadharBack: null });
+  const [existingImages, setExistingImages] = useState({
+    panCardFront: null, aadharFront: null, aadharBack: null,
+    shopCertificate: null, faceVerificationImage: null, passbookImage: null,
+  });
 
   const initFormData = useCallback(() => {
     if (isEdit && dealerData) {
       return {
         shopName: dealerData.shopName || "",
-        email: dealerData.shopEmail || dealerData.email || "",
+        shopEmail: dealerData.shopEmail || "",
         phone: dealerData.phone || "",
         shopPincode: dealerData.shopPincode || "",
+        shopContact: dealerData.shopContact || "",
+        locality: dealerData.locality || "",
+        gstNumber: dealerData.gstNumber || "",
+        shopOpeningDate: toDateInputValue(dealerData.shopOpeningDate),
+        holiday: dealerData.holiday || "",
         openingTime: dealerData.businessHours?.open || "",
         closingTime: dealerData.businessHours?.close || "",
         storeDescription: dealerData.storeDescription || "",
@@ -170,6 +192,8 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
         personalEmail: dealerData.personalEmail || "",
         personalPhone: dealerData.phone || "",
         alternatePhone: dealerData.alternatePhone || "",
+        gender: dealerData.gender || "",
+        dob: toDateInputValue(dealerData.dob),
         aadharCardNo: dealerData.aadharCardNo || "",
         panCardNo: dealerData.panCardNo || "",
         fullAddress: dealerData.permanentAddress?.address || "",
@@ -183,9 +207,6 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
         presentCity: dealerData.presentAddress?.city || "",
         latitude: dealerData.latitude || "",
         longitude: dealerData.longitude || "",
-        shopState: dealerData.shopState || "Madhya Pradesh",
-        shopCity: dealerData.shopCity || "Indore",
-        shopPinCode: dealerData.shopPinCode || "",
         accountHolderName: dealerData.bankDetails?.accountHolderName || "",
         bankName: dealerData.bankDetails?.bankName || "",
         accountNumber: dealerData.bankDetails?.accountNumber || "",
@@ -199,22 +220,27 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
         providesDrop: !!dealerData.providesDrop,
         minWalletAmount: dealerData.minWalletAmount ?? "",
         adminNotes: dealerData.adminNotes ?? "",
+        notifyEmail: !!dealerData.notifications?.email,
+        notifySms: !!dealerData.notifications?.sms,
+        notifyApp: !!dealerData.notifications?.app,
       };
     }
     return {
-      shopName: "", email: "", phone: "", shopPincode: "",
+      shopName: "", shopEmail: "", phone: "", shopPincode: "",
+      shopContact: "", locality: "", gstNumber: "", shopOpeningDate: "", holiday: "",
       openingTime: "", closingTime: "", storeDescription: "",
       ownerName: "", personalEmail: "", personalPhone: "", alternatePhone: "",
+      gender: "", dob: "",
       aadharCardNo: "", panCardNo: "",
       fullAddress: "", state: "", city: "",
       permanentAddress: "", permanentState: "", permanentCity: "",
       presentAddress: "", presentState: "", presentCity: "",
       latitude: "", longitude: "",
-      shopState: "Madhya Pradesh", shopCity: "Indore", shopPinCode: "",
       accountHolderName: "", bankName: "", accountNumber: "", ifscCode: "", upiId: "",
       comission: "", tax: "", pickupCharges: "", dropCharges: "",
       providesPickup: false, providesDrop: false,
       minWalletAmount: "", adminNotes: "",
+      notifyEmail: false, notifySms: false, notifyApp: false,
     };
   }, [isEdit, dealerData]);
 
@@ -224,6 +250,9 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
   const [panCardFront, setPanCardFront] = useState(null);
   const [aadharFront, setAadharFront] = useState(null);
   const [aadharBack, setAadharBack] = useState(null);
+  const [shopCertificate, setShopCertificate] = useState(null);
+  const [faceVerificationImage, setFaceVerificationImage] = useState(null);
+  const [passbookImage, setPassbookImage] = useState(null);
   const [sameAsPermanent, setSameAsPermanent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -243,6 +272,9 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
         panCardFront: getImageUrl(dealerData.documents?.panCardFront || dealerData.panCardFront),
         aadharFront: getImageUrl(dealerData.documents?.aadharFront || dealerData.aadharFront),
         aadharBack: getImageUrl(dealerData.documents?.aadharBack || dealerData.aadharBack),
+        shopCertificate: getImageUrl(dealerData.documents?.shopCertificate),
+        faceVerificationImage: getImageUrl(dealerData.documents?.faceVerificationImage),
+        passbookImage: getImageUrl(dealerData.bankDetails?.passbookImage),
       });
       setSameAsPermanent(
         dealerData.presentAddress?.address === dealerData.permanentAddress?.address &&
@@ -275,19 +307,23 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
     if (data.panCardNo && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(data.panCardNo))
       e.panCardNo = "Invalid PAN format (e.g. ABCDE1234F)";
     if (!data.shopName?.trim()) e.shopName = "Shop name is required";
-    if (!data.email?.trim()) e.email = "Shop email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim()))
-      e.email = "Enter a valid email address";
+    if (!data.shopEmail?.trim()) e.shopEmail = "Shop email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.shopEmail.trim()))
+      e.shopEmail = "Enter a valid email address";
     if (!data.shopPincode?.trim()) e.shopPincode = "Pincode is required";
     else if (!/^\d{6}$/.test(data.shopPincode.trim()))
       e.shopPincode = "Pincode must be 6 digits";
+    if (data.shopContact && !/^\d{10}$/.test(data.shopContact.trim()))
+      e.shopContact = "Must be a 10-digit number";
+    if (data.gstNumber && !/^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i.test(data.gstNumber.trim()))
+      e.gstNumber = "Invalid GSTIN format (e.g. 22AAAAA0000A1Z5)";
     if (!data.fullAddress?.trim()) e.fullAddress = "Address is required";
     if (!data.state?.trim()) e.state = "State is required";
     if (!data.city?.trim()) e.city = "City is required";
     if (data.comission !== "" && (isNaN(data.comission) || Number(data.comission) < 0 || Number(data.comission) > 100))
       e.comission = "Must be between 0 and 100";
-    if (data.tax !== "" && (isNaN(data.tax) || Number(data.tax) < 0 || Number(data.tax) > 100))
-      e.tax = "Must be between 0 and 100";
+    if (data.tax !== "" && (isNaN(data.tax) || Number(data.tax) < 0 || Number(data.tax) > 18))
+      e.tax = "Must be between 0 and 18";
     if (data.accountNumber && !/^\d{9,18}$/.test(data.accountNumber))
       e.accountNumber = "Account number must be 9–18 digits";
     if (data.ifscCode && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(data.ifscCode.toUpperCase()))
@@ -298,7 +334,7 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
   // errors per section for badge display
   const sectionErrors = {
     personal: ["ownerName", "phone", "aadharCardNo", "panCardNo"],
-    shop: ["shopName", "email", "shopPincode"],
+    shop: ["shopName", "shopEmail", "shopPincode", "shopContact", "gstNumber"],
     location: ["fullAddress", "state", "city"],
     bank: ["accountNumber", "ifscCode"],
     business: ["comission", "tax"],
@@ -407,7 +443,13 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
     const form = new FormData();
     if (isEdit && dealerId) form.append("id", dealerId);
 
-    const nestedKeys = ["openingTime", "closingTime", "upiId", "providesPickup", "providesDrop"];
+    const nestedKeys = [
+      "openingTime", "closingTime", "upiId", "providesPickup", "providesDrop",
+      "fullAddress", "state", "city",
+      "permanentAddress", "permanentState", "permanentCity",
+      "presentAddress", "presentState", "presentCity",
+      "notifyEmail", "notifySms", "notifyApp",
+    ];
     Object.keys(formData).forEach((key) => {
       if (!nestedKeys.includes(key)) form.append(key, formData[key]);
     });
@@ -418,9 +460,26 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
     form.append("providesPickup", formData.providesPickup);
     form.append("providesDrop", formData.providesDrop);
 
+    // Permanent/present address are nested objects on the backend
+    // (permanentAddress: { address, state, city }), so submit them
+    // with bracket notation instead of flattening to top-level fields.
+    form.append("permanentAddress[address]", formData.fullAddress || "");
+    form.append("permanentAddress[state]", formData.state || "");
+    form.append("permanentAddress[city]", formData.city || "");
+    form.append("presentAddress[address]", formData.presentAddress || "");
+    form.append("presentAddress[state]", formData.presentState || "");
+    form.append("presentAddress[city]", formData.presentCity || "");
+
+    form.append("notifications[email]", formData.notifyEmail);
+    form.append("notifications[sms]", formData.notifySms);
+    form.append("notifications[app]", formData.notifyApp);
+
     if (panCardFront) form.append("panCardFront", panCardFront);
     if (aadharFront) form.append("aadharFront", aadharFront);
     if (aadharBack) form.append("aadharBack", aadharBack);
+    if (shopCertificate) form.append("shopCertificate", shopCertificate);
+    if (faceVerificationImage) form.append("faceVerificationImage", faceVerificationImage);
+    if (passbookImage) form.append("passbookImage", passbookImage);
     existingShopImages.forEach((url) => form.append("existingShopImages", url));
     shopImages.forEach((file) => form.append("shopImages", file));
 
@@ -550,6 +609,41 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
               inputProps={{ maxLength: 10, style: { textTransform: "uppercase" } }}
             />
           </Grid>
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth>
+              <InputLabel id="gender-label">Gender</InputLabel>
+              <Select
+                labelId="gender-label"
+                label="Gender"
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+              >
+                <MenuItem value="">
+                  <em>Not specified</em>
+                </MenuItem>
+                {(formData.gender && !GENDER_OPTIONS.includes(formData.gender)
+                  ? [formData.gender, ...GENDER_OPTIONS]
+                  : GENDER_OPTIONS
+                ).map((g) => (
+                  <MenuItem key={g} value={g}>
+                    {g}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Date of Birth"
+              name="dob"
+              type="date"
+              value={formData.dob}
+              onChange={handleChange}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
         </Grid>
       </SectionCard>
 
@@ -580,12 +674,12 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
               fullWidth
               required
               label="Shop Email"
-              name="email"
+              name="shopEmail"
               type="email"
-              value={formData.email}
+              value={formData.shopEmail}
               onChange={handleChange}
-              error={!!errors.email}
-              helperText={errors.email || "Used for booking notifications"}
+              error={!!errors.shopEmail}
+              helperText={errors.shopEmail || "Used for booking notifications"}
             />
           </Grid>
           <Grid item xs={12} md={6}>
@@ -599,6 +693,47 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
               error={!!errors.shopPincode}
               helperText={errors.shopPincode || "6-digit postal code of the shop"}
               inputProps={{ maxLength: 6 }}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Shop Contact Number"
+              name="shopContact"
+              value={formData.shopContact}
+              onChange={handleChange}
+              error={!!errors.shopContact}
+              helperText={errors.shopContact || "Landline / mobile number displayed for the shop (if different from owner's phone)"}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PhoneIcon fontSize="small" color="action" />
+                  </InputAdornment>
+                ),
+              }}
+              inputProps={{ maxLength: 10 }}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Locality / Area"
+              name="locality"
+              value={formData.locality}
+              onChange={handleChange}
+              placeholder="e.g. Atmakur, Kurnool"
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="GST Number"
+              name="gstNumber"
+              value={formData.gstNumber}
+              onChange={handleChange}
+              error={!!errors.gstNumber}
+              helperText={errors.gstNumber || "15-character GSTIN (optional)"}
+              inputProps={{ maxLength: 15, style: { textTransform: "uppercase" } }}
             />
           </Grid>
           <Grid item xs={12} md={3}>
@@ -621,6 +756,29 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
               onChange={handleChange}
               placeholder="e.g. 07:00 PM"
               helperText="Daily closing time"
+            />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <TextField
+              fullWidth
+              label="Shop Opening Date"
+              name="shopOpeningDate"
+              type="date"
+              value={formData.shopOpeningDate}
+              onChange={handleChange}
+              InputLabelProps={{ shrink: true }}
+              helperText="Date the shop was established"
+            />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <TextField
+              fullWidth
+              label="Weekly Holiday"
+              name="holiday"
+              value={formData.holiday}
+              onChange={handleChange}
+              placeholder="e.g. Sunday"
+              helperText="Day the shop is closed weekly"
             />
           </Grid>
           <Grid item xs={12}>
@@ -802,6 +960,33 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
               onClear={() => { setAadharBack(null); setExistingImages((p) => ({ ...p, aadharBack: null })); setIsDirty(true); }}
             />
           </Grid>
+          <Grid item xs={12} sm={4}>
+            <DocUploadSlot
+              label="Shop Certificate"
+              existingUrl={existingImages.shopCertificate}
+              newFile={shopCertificate}
+              onUpload={handleFileUpload(setShopCertificate, "shopCertificate")}
+              onClear={() => { setShopCertificate(null); setExistingImages((p) => ({ ...p, shopCertificate: null })); setIsDirty(true); }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <DocUploadSlot
+              label="Face Verification Image"
+              existingUrl={existingImages.faceVerificationImage}
+              newFile={faceVerificationImage}
+              onUpload={handleFileUpload(setFaceVerificationImage, "faceVerificationImage")}
+              onClear={() => { setFaceVerificationImage(null); setExistingImages((p) => ({ ...p, faceVerificationImage: null })); setIsDirty(true); }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <DocUploadSlot
+              label="Passbook Image"
+              existingUrl={existingImages.passbookImage}
+              newFile={passbookImage}
+              onUpload={handleFileUpload(setPassbookImage, "passbookImage")}
+              onClear={() => { setPassbookImage(null); setExistingImages((p) => ({ ...p, passbookImage: null })); setIsDirty(true); }}
+            />
+          </Grid>
 
           {/* Shop images */}
           <Grid item xs={12}>
@@ -973,7 +1158,7 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
               value={formData.tax}
               onChange={handleChange}
               error={!!errors.tax}
-              helperText={errors.tax || "GST/tax applied to each booking (0–100)"}
+              helperText={errors.tax || "GST/tax applied to each booking (0–18)"}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -981,7 +1166,7 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
                   </InputAdornment>
                 ),
               }}
-              inputProps={{ min: 0, max: 100, step: 0.1 }}
+              inputProps={{ min: 0, max: 18, step: 0.1 }}
             />
           </Grid>
           <Grid item xs={12} sm={6} md={6}>
@@ -1094,6 +1279,66 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
               helperText={`${(formData.adminNotes || "").length}/1000 — visible to admins only`}
               inputProps={{ maxLength: 1000 }}
             />
+          </Grid>
+        </Grid>
+      </SectionCard>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SECTION 7 — Notification Preferences
+      ══════════════════════════════════════════════════════════════════════ */}
+      <SectionCard
+        icon={<NotificationsIcon />}
+        title="Notification Preferences"
+        subtitle="Channels the dealer receives booking and account alerts on"
+      >
+        <Grid container spacing={2.5}>
+          <Grid item xs={12} sm={4}>
+            <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    name="notifyEmail"
+                    checked={!!formData.notifyEmail}
+                    onChange={handleChange}
+                    color="primary"
+                    size="small"
+                  />
+                }
+                label={<Typography variant="body2" fontWeight="700">Email Notifications</Typography>}
+              />
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    name="notifySms"
+                    checked={!!formData.notifySms}
+                    onChange={handleChange}
+                    color="primary"
+                    size="small"
+                  />
+                }
+                label={<Typography variant="body2" fontWeight="700">SMS Notifications</Typography>}
+              />
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    name="notifyApp"
+                    checked={!!formData.notifyApp}
+                    onChange={handleChange}
+                    color="primary"
+                    size="small"
+                  />
+                }
+                label={<Typography variant="body2" fontWeight="700">App Notifications</Typography>}
+              />
+            </Box>
           </Grid>
         </Grid>
       </SectionCard>

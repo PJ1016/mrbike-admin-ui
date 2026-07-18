@@ -29,17 +29,39 @@ const StatusChip = ({ uploaded }) => (
   />
 );
 
+const VERIFICATION_STATUS_MAP = {
+  verified: { label: "Verified", color: "success" },
+  pending: { label: "Pending Review", color: "warning" },
+  rejected: { label: "Rejected", color: "error" },
+  none: { label: "Not Reviewed", color: "default" },
+};
+
+const VerificationChip = ({ status }) => {
+  const { label, color } = VERIFICATION_STATUS_MAP[status] || VERIFICATION_STATUS_MAP.none;
+  return (
+    <Chip
+      label={label}
+      color={color}
+      size="small"
+      variant={status === "verified" || status === "rejected" || status === "pending" ? "filled" : "outlined"}
+      sx={{ fontWeight: 700, fontSize: "0.7rem" }}
+    />
+  );
+};
+
 const DocumentsTab = ({ dealer }) => {
   const docs = dealer.documents || {};
   const bank = dealer.bankDetails || {};
 
+  const docVerification = dealer.documentVerification || {};
+
   const docStatus = [
-    { name: "Aadhar Card (Front)", uploaded: !!docs.aadharFront },
-    { name: "Aadhar Card (Back)", uploaded: !!docs.aadharBack },
-    { name: "PAN Card", uploaded: !!docs.panCardFront },
-    { name: "Shop Certificate", uploaded: !!docs.shopCertificate },
-    { name: "Face Verification", uploaded: !!docs.faceVerification },
-    { name: "Passbook / Cheque", uploaded: !!bank.passbookImage },
+    { name: "Aadhar Card (Front)", uploaded: !!docs.aadharFront, verifyKey: "aadharFront" },
+    { name: "Aadhar Card (Back)", uploaded: !!docs.aadharBack, verifyKey: "aadharBack" },
+    { name: "PAN Card", uploaded: !!docs.panCardFront, verifyKey: "pan" },
+    { name: "Shop Certificate", uploaded: !!docs.shopCertificate, verifyKey: "shop" },
+    { name: "Face Verification", uploaded: !!docs.faceVerificationImage, verifyKey: "face" },
+    { name: "Passbook / Cheque", uploaded: !!bank.passbookImage, verifyKey: "passbook" },
   ];
 
   return (
@@ -119,10 +141,10 @@ const DocumentsTab = ({ dealer }) => {
                   </Grid>
                 )}
 
-                {docs.faceVerification && (
+                {docs.faceVerificationImage && (
                   <Grid item xs={12} sm={6} md={4}>
                     <ImagePreview
-                      src={docs.faceVerification}
+                      src={docs.faceVerificationImage}
                       label="Face Verification"
                       showDownload
                     />
@@ -156,6 +178,9 @@ const DocumentsTab = ({ dealer }) => {
                       <TableCell sx={{ fontWeight: 700, fontSize: "0.75rem", textTransform: "uppercase" }}>
                         Status
                       </TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: "0.75rem", textTransform: "uppercase" }}>
+                        Verification
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -166,6 +191,9 @@ const DocumentsTab = ({ dealer }) => {
                         </TableCell>
                         <TableCell>
                           <StatusChip uploaded={row.uploaded} />
+                        </TableCell>
+                        <TableCell>
+                          <VerificationChip status={docVerification[row.verifyKey] || "none"} />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -181,6 +209,7 @@ const DocumentsTab = ({ dealer }) => {
                           sx={{ fontWeight: 700, fontSize: "0.7rem" }}
                         />
                       </TableCell>
+                      <TableCell />
                     </TableRow>
                     <TableRow hover>
                       <TableCell sx={{ fontWeight: 600, fontSize: "0.875rem" }}>
@@ -194,6 +223,7 @@ const DocumentsTab = ({ dealer }) => {
                           sx={{ fontWeight: 700, fontSize: "0.7rem" }}
                         />
                       </TableCell>
+                      <TableCell />
                     </TableRow>
                   </TableBody>
                 </Table>
