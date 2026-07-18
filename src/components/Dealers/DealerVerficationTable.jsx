@@ -49,14 +49,15 @@ import {
   Assignment as RequestDocIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-import Swal from "sweetalert2";
 import {
   approveDealer,
   rejectDealer,
   verifyDealerDocument,
+  requestDealerDocuments,
   updateDealerField,
   IMAGE_BASE_URL,
 } from "../../api";
+import RequestDocumentsDialog, { DEFAULT_DOC_OPTIONS } from "./RequestDocumentsDialog";
 
 const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
   const navigate = useNavigate();
@@ -72,6 +73,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
   const [confirmAction, setConfirmAction] = useState(null);
   const [actionError, setActionError] = useState(null);
   const [docVerification, setDocVerification] = useState({});
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [minWalletAmount, setMinWalletAmount] = useState("");
   const [isSavingWallet, setIsSavingWallet] = useState(false);
   const [walletSaveSuccess, setWalletSaveSuccess] = useState(false);
@@ -240,6 +242,19 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
         error?.response?.data?.message || "Failed to update document status.",
       );
     }
+  };
+
+  const handleRequestDocuments = async (docTypes, reason) => {
+    if (!selectedDealer) return;
+    await requestDealerDocuments(selectedDealer._id, docTypes, reason);
+    setDocVerification((prev) => {
+      const next = { ...prev };
+      docTypes.forEach((key) => {
+        next[key] = "requested";
+      });
+      return next;
+    });
+    onRefresh?.();
   };
 
   const allDocsVerified = (dv) =>
@@ -1734,27 +1749,16 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
               >
                 Close
               </Button>
-              <Tooltip title="Mark individual documents as rejected to prompt the dealer to re-upload. (Automated notification API: pending backend support)">
-                <span>
-                  <Button
-                    variant="outlined"
-                    color="warning"
-                    startIcon={<RequestDocIcon />}
-                    onClick={() => {
-                      Swal.fire({
-                        title: "Request Additional Documents",
-                        html: `<p style="text-align:left;font-size:0.9rem;">To request re-upload, reject individual documents in the <strong>Document Review</strong> panel on the right.<br/><br/><span style="color:#ef4444;font-weight:600;">⚠ Automated dealer notification is pending backend support.</span></p>`,
-                        icon: "info",
-                        confirmButtonText: "Got it",
-                      });
-                    }}
-                    disabled={actionLoading}
-                    sx={{ textTransform: "none", fontWeight: 700 }}
-                  >
-                    Request Docs
-                  </Button>
-                </span>
-              </Tooltip>
+              <Button
+                variant="outlined"
+                color="warning"
+                startIcon={<RequestDocIcon />}
+                onClick={() => setRequestDialogOpen(true)}
+                disabled={actionLoading}
+                sx={{ textTransform: "none", fontWeight: 700 }}
+              >
+                Request Docs
+              </Button>
               <Button
                 variant="contained"
                 color="error"
@@ -1797,6 +1801,13 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
           </Box>
         </DialogActions>
       </Dialog>
+
+      <RequestDocumentsDialog
+        open={requestDialogOpen}
+        onClose={() => setRequestDialogOpen(false)}
+        onSubmit={handleRequestDocuments}
+        docOptions={DEFAULT_DOC_OPTIONS}
+      />
     </Box>
   );
 };

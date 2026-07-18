@@ -809,6 +809,19 @@ export const verifyDealerDocument = (dealerId, docType, status) =>
     status,
   });
 
+export const requestDealerDocuments = (dealerId, docTypes, reason) =>
+  apiRequest("PUT", `/dealerAuth/verify-document/${dealerId}`, {
+    docType: docTypes,
+    status: "requested",
+    reason,
+  });
+
+export const getDealerActivityHistory = (dealerId) =>
+  apiRequest("GET", `/dealer/activity-history/${dealerId}`, {}, false);
+
+export const getDealerNotifications = (dealerId) =>
+  apiRequest("GET", `/notification/${dealerId}`, {}, false);
+
 export const updateDealerField = (dealerId, fields) =>
   apiRequest("PUT", "/dealer/editDealer", { id: dealerId, ...fields });
 

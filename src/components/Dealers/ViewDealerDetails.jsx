@@ -17,12 +17,20 @@ import ArticleIcon from "@mui/icons-material/Article";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import SettingsIcon from "@mui/icons-material/Settings";
+import HistoryIcon from "@mui/icons-material/History";
+import NotificationsIcon from "@mui/icons-material/Notifications";
 import { FaTools } from "react-icons/fa";
 import Swal from "sweetalert2";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
-import { getServiceList, getAdditionalServiceList, getDealerById } from "../../api";
+import {
+  getServiceList,
+  getAdditionalServiceList,
+  getDealerById,
+  getDealerActivityHistory,
+  getDealerNotifications,
+} from "../../api";
 import { getImageUrl } from "./Details/dealerUtils";
 
 import DealerProfileHeader from "./Details/DealerProfileHeader";
@@ -32,6 +40,8 @@ import DocumentsTab from "./Details/tabs/DocumentsTab";
 import BankingTab from "./Details/tabs/BankingTab";
 import LiveVerificationTab from "./Details/tabs/LiveVerificationTab";
 import BusinessSettingsTab from "./Details/tabs/BusinessSettingsTab";
+import ActivityTab from "./Details/tabs/ActivityTab";
+import NotificationsTab from "./Details/tabs/NotificationsTab";
 import DealerServicesManager from "./ServicesV2/DealerServicesManager";
 
 function CustomTabPanel({ children, value, index }) {
@@ -55,6 +65,8 @@ const TABS = [
   { label: "Live Verification", icon: <CameraAltIcon sx={{ fontSize: 18 }} /> },
   { label: "Business Settings", icon: <SettingsIcon sx={{ fontSize: 18 }} /> },
   { label: "Services", icon: <FaTools style={{ fontSize: 17 }} /> },
+  { label: "Activity", icon: <HistoryIcon sx={{ fontSize: 18 }} /> },
+  { label: "Notifications", icon: <NotificationsIcon sx={{ fontSize: 18 }} /> },
 ];
 
 const VendorDealerDetails = () => {
@@ -66,6 +78,12 @@ const VendorDealerDetails = () => {
   const [loading, setLoading] = useState(true);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
+  const [activityHistory, setActivityHistory] = useState([]);
+  const [activityLoading, setActivityLoading] = useState(true);
+  const [activityError, setActivityError] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [notificationsError, setNotificationsError] = useState(null);
 
   const fetchDealer = useCallback(async () => {
     try {
@@ -112,14 +130,51 @@ const VendorDealerDetails = () => {
     }
   }, [id]);
 
+  const fetchActivityHistory = useCallback(async () => {
+    setActivityLoading(true);
+    setActivityError(null);
+    try {
+      const res = await getDealerActivityHistory(id);
+      setActivityHistory(Array.isArray(res?.data) ? res.data : []);
+    } catch (err) {
+      setActivityError(
+        err?.response?.data?.message || "Failed to load activity history."
+      );
+      setActivityHistory([]);
+    } finally {
+      setActivityLoading(false);
+    }
+  }, [id]);
+
+  const fetchNotifications = useCallback(async () => {
+    setNotificationsLoading(true);
+    setNotificationsError(null);
+    try {
+      const res = await getDealerNotifications(id);
+      setNotifications(Array.isArray(res?.data) ? res.data : []);
+    } catch (err) {
+      setNotificationsError(
+        err?.response?.data?.message || "Failed to load notifications."
+      );
+      setNotifications([]);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }, [id]);
+
   useEffect(() => {
     const init = async () => {
       setLoading(true);
-      await Promise.all([fetchDealer(), fetchServices()]);
+      await Promise.all([
+        fetchDealer(),
+        fetchServices(),
+        fetchActivityHistory(),
+        fetchNotifications(),
+      ]);
       setLoading(false);
     };
     init();
-  }, [fetchDealer, fetchServices]);
+  }, [fetchDealer, fetchServices, fetchActivityHistory, fetchNotifications]);
 
   const groupedServices = React.useMemo(() => {
     const groups = {};
@@ -414,7 +469,7 @@ const VendorDealerDetails = () => {
               </CustomTabPanel>
 
               <CustomTabPanel value={tabIndex} index={2}>
-                <DocumentsTab dealer={dealer} />
+                <DocumentsTab dealer={dealer} onRefresh={fetchDealer} />
               </CustomTabPanel>
 
               <CustomTabPanel value={tabIndex} index={3}>
@@ -433,6 +488,22 @@ const VendorDealerDetails = () => {
                 <Box sx={{ px: { xs: 2, md: 4 }, py: 3 }}>
                   <DealerServicesManager dealer={dealer} />
                 </Box>
+              </CustomTabPanel>
+
+              <CustomTabPanel value={tabIndex} index={7}>
+                <ActivityTab
+                  activity={activityHistory}
+                  loading={activityLoading}
+                  error={activityError}
+                />
+              </CustomTabPanel>
+
+              <CustomTabPanel value={tabIndex} index={8}>
+                <NotificationsTab
+                  notifications={notifications}
+                  loading={notificationsLoading}
+                  error={notificationsError}
+                />
               </CustomTabPanel>
 
             </CardContent>

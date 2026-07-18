@@ -63,19 +63,25 @@ const formatDate = (d) => {
   });
 };
 
-// The customer list/detail API has been observed returning userBike entries under two
-// different field naming conventions in this codebase (customers.jsx vs ViewUserDetails.jsx).
-// Normalize defensively so this modal renders correctly regardless of which shape comes back.
+// userBike entries follow the same company_name/model_name/variant_name/engine_cc
+// convention used for bike data everywhere else in this app (see BikeTable, BookingTable,
+// SupportedBikesSection, etc.), with populated-ref (company_id/model_id) and legacy-shape
+// fallbacks kept for resilience.
 const normalizeBike = (bike = {}) => ({
   company:
-    bike.company_name || bike.brand || bike.bike_name || bike.company || null,
+    bike.company_name ||
+    bike.company_id?.name ||
+    bike.brand ||
+    bike.bike_name ||
+    bike.company ||
+    null,
   model:
     bike.model_name ||
     bike.model_id?.model_name ||
     bike.model ||
     (bike.bike_name && bike.brand ? bike.bike_name : null) ||
     null,
-  variant: bike.variant_name || bike.variant || null,
+  variant: bike.variant_name || bike.variant_id?.variant_name || bike.variant || null,
   engineCc:
     bike.engine_cc ||
     bike.cc ||
@@ -83,14 +89,12 @@ const normalizeBike = (bike = {}) => ({
     bike.model_id?.engine_cc ||
     null,
   registrationNumber:
+    bike.registration_number ||
     bike.registrationNumber ||
     bike.bike_number ||
     bike.plate_number ||
-    bike.registration_number ||
     null,
-  fuelType: bike.fuel_type || bike.fuelType || null,
   isDefault: Boolean(bike.is_default ?? bike.isDefault ?? bike.default ?? false),
-  addedDate: bike.createdAt || bike.added_at || bike.addedDate || null,
 });
 
 const normalizeBooking = (booking) => {
@@ -402,21 +406,19 @@ const CustomerDetailsModal = ({ open, customer, onClose }) => {
                         />
                       )}
                     </Box>
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Reg. No: <b>{bike.registrationNumber || "N/A"}</b>
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Engine: <b>{bike.engineCc ? `${bike.engineCc} CC` : "N/A"}</b>
-                      </Typography>
-                      {bike.fuelType && (
-                        <Typography variant="caption" color="text.secondary">
-                          Fuel: <b>{bike.fuelType}</b>
-                        </Typography>
-                      )}
-                      <Typography variant="caption" color="text.secondary">
-                        Added: <b>{formatDate(bike.addedDate)}</b>
-                      </Typography>
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(5, auto)" },
+                        columnGap: 3,
+                        rowGap: 1,
+                      }}
+                    >
+                      <InfoRow label="Company" value={bike.company} />
+                      <InfoRow label="Model" value={bike.model} />
+                      <InfoRow label="Variant" value={bike.variant} />
+                      <InfoRow label="Engine CC" value={bike.engineCc ? `${bike.engineCc} CC` : null} />
+                      <InfoRow label="Reg. No" value={bike.registrationNumber} />
                     </Box>
                   </Paper>
                 ))}

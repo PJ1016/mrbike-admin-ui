@@ -24,8 +24,10 @@ import FingerprintIcon from "@mui/icons-material/Fingerprint";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import PendingIcon from "@mui/icons-material/Pending";
+import RequestDocIcon from "@mui/icons-material/RequestPage";
 import { ImagePreview, SectionHeader, InfoField } from "../DealerShared";
-import { verifyDealerDocument } from "../../../../api";
+import { verifyDealerDocument, requestDealerDocuments } from "../../../../api";
+import RequestDocumentsDialog, { DEFAULT_DOC_OPTIONS } from "../../RequestDocumentsDialog";
 
 const StatusChip = ({ uploaded }) => (
   <Chip
@@ -40,6 +42,7 @@ const VERIFICATION_STATUS_MAP = {
   verified: { label: "Verified", color: "success" },
   pending: { label: "Pending Review", color: "warning" },
   rejected: { label: "Rejected", color: "error" },
+  requested: { label: "Re-upload Requested", color: "info" },
   none: { label: "Not Reviewed", color: "default" },
 };
 
@@ -50,7 +53,7 @@ const VerificationChip = ({ status }) => {
       label={label}
       color={color}
       size="small"
-      variant={status === "verified" || status === "rejected" || status === "pending" ? "filled" : "outlined"}
+      variant={status !== "none" ? "filled" : "outlined"}
       sx={{ fontWeight: 700, fontSize: "0.7rem" }}
     />
   );
@@ -122,13 +125,14 @@ const DocumentVerificationCard = ({ label, src, status, pendingStatus, disabled,
   );
 };
 
-const DocumentsTab = ({ dealer }) => {
+const DocumentsTab = ({ dealer, onRefresh }) => {
   const docs = dealer.documents || {};
   const bank = dealer.bankDetails || {};
 
   const [docVerification, setDocVerification] = useState(dealer.documentVerification || {});
   const [pendingDoc, setPendingDoc] = useState(null); // { key, status } | null
   const [actionError, setActionError] = useState(null);
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
 
   useEffect(() => {
     setDocVerification(dealer.documentVerification || {});
@@ -147,6 +151,18 @@ const DocumentsTab = ({ dealer }) => {
     } finally {
       setPendingDoc(null);
     }
+  };
+
+  const handleRequestDocuments = async (docTypes, reason) => {
+    await requestDealerDocuments(dealer._id, docTypes, reason);
+    setDocVerification((prev) => {
+      const next = { ...prev };
+      docTypes.forEach((key) => {
+        next[key] = "requested";
+      });
+      return next;
+    });
+    if (onRefresh) onRefresh();
   };
 
   const docStatus = [
@@ -213,15 +229,27 @@ const DocumentsTab = ({ dealer }) => {
         <Grid item xs={12}>
           <Card elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
             <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2, flexWrap: "wrap", gap: 1 }}>
                 <SectionHeader icon={<ArticleIcon />} title="KYC Documents" />
-                <Chip
-                  size="small"
-                  label={`${verifiedCount} / ${DOC_KEYS.length} Verified`}
-                  color={allDocsVerified(docVerification) ? "success" : "warning"}
-                  icon={allDocsVerified(docVerification) ? <CheckCircleIcon fontSize="small" /> : <PendingIcon fontSize="small" />}
-                  sx={{ fontWeight: 800, fontSize: "0.7rem" }}
-                />
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Chip
+                    size="small"
+                    label={`${verifiedCount} / ${DOC_KEYS.length} Verified`}
+                    color={allDocsVerified(docVerification) ? "success" : "warning"}
+                    icon={allDocsVerified(docVerification) ? <CheckCircleIcon fontSize="small" /> : <PendingIcon fontSize="small" />}
+                    sx={{ fontWeight: 800, fontSize: "0.7rem" }}
+                  />
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="warning"
+                    startIcon={<RequestDocIcon fontSize="small" />}
+                    onClick={() => setRequestDialogOpen(true)}
+                    sx={{ textTransform: "none", fontWeight: 700 }}
+                  >
+                    Request Documents
+                  </Button>
+                </Box>
               </Box>
 
               {actionError && (
@@ -332,6 +360,13 @@ const DocumentsTab = ({ dealer }) => {
           </Card>
         </Grid>
       </Grid>
+
+      <RequestDocumentsDialog
+        open={requestDialogOpen}
+        onClose={() => setRequestDialogOpen(false)}
+        onSubmit={handleRequestDocuments}
+        docOptions={DEFAULT_DOC_OPTIONS}
+      />
     </Box>
   );
 };
