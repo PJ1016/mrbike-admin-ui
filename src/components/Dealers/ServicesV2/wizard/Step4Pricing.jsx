@@ -4,7 +4,6 @@ import {
   Typography,
   TextField,
   Stack,
-  Button,
   Paper,
   Table,
   TableBody,
@@ -17,9 +16,10 @@ import {
   Chip,
 } from "@mui/material";
 import CurrencyRupeeIcon from "@mui/icons-material/CurrencyRupee";
+import { groupBikesByCC } from "./utils/ccGrouping";
 
 // Isolated price input — only re-renders when its own value changes
-const PriceInput = React.memo(({ bikeId, value, onChange }) => {
+const PriceInput = React.memo(({ id, value, onChange, width = 140 }) => {
   const isError =
     value !== undefined && value !== "" && Number(value) <= 0;
   return (
@@ -27,7 +27,7 @@ const PriceInput = React.memo(({ bikeId, value, onChange }) => {
       size="small"
       type="number"
       value={value ?? ""}
-      onChange={(e) => onChange(bikeId, e.target.value)}
+      onChange={(e) => onChange(id, e.target.value)}
       error={isError}
       helperText={isError ? "Must be > 0" : ""}
       InputProps={{
@@ -38,13 +38,15 @@ const PriceInput = React.memo(({ bikeId, value, onChange }) => {
         ),
         inputProps: { min: 0, step: 10 },
       }}
-      sx={{ width: 140 }}
+      sx={{ width }}
     />
   );
 });
 
 const Step4Pricing = ({ state, dispatch: wizardDispatch }) => {
-  const [bulkPrice, setBulkPrice] = useState("");
+  // Controlled values for the per-CC price inputs, keyed by cc — local only,
+  // the source of truth for actual bike prices stays in state.pricing
+  const [ccPriceInputs, setCcPriceInputs] = useState({});
 
   // Only price bikes whose CC is in the selected CC ranges
   const pricedBikes = useMemo(
@@ -65,6 +67,9 @@ const Step4Pricing = ({ state, dispatch: wizardDispatch }) => {
     [state.selectedBikes, state.selectedCCRanges]
   );
 
+  // Reuse the same CC grouping used in Step4SelectCCRanges — one row per CC
+  const ccGroups = useMemo(() => groupBikesByCC(pricedBikes), [pricedBikes]);
+
   const handlePriceChange = useCallback(
     (bikeId, price) => {
       wizardDispatch({ type: "SET_PRICE", bikeId, price });
@@ -72,15 +77,20 @@ const Step4Pricing = ({ state, dispatch: wizardDispatch }) => {
     [wizardDispatch]
   );
 
-  const handleApplyBulk = useCallback(() => {
-    const p = Number(bulkPrice);
-    if (!bulkPrice || p <= 0) return;
-    const newPricing = {};
-    pricedBikes.forEach((b) => {
-      newPricing[b._id] = bulkPrice;
-    });
-    wizardDispatch({ type: "SET_PRICING", payload: newPricing });
-  }, [bulkPrice, pricedBikes, wizardDispatch]);
+  // Applying a price for one CC only ever touches bikes of that CC — each
+  // bike's price is merged into state.pricing via the existing SET_PRICE
+  // action, so bikes of every other CC are left untouched.
+  const handleCcPriceChange = useCallback(
+    (cc, price) => {
+      setCcPriceInputs((prev) => ({ ...prev, [cc]: price }));
+      const group = ccGroups.find((g) => g.cc === cc);
+      if (!group) return;
+      group.bikes.forEach((bike) => {
+        wizardDispatch({ type: "SET_PRICE", bikeId: bike._id, price });
+      });
+    },
+    [ccGroups, wizardDispatch]
+  );
 
   const { filledCount, isAllValid } = useMemo(() => {
     let filled = 0;
@@ -125,7 +135,7 @@ const Step4Pricing = ({ state, dispatch: wizardDispatch }) => {
         </Alert>
       )}
 
-      {/* Bulk price tool */}
+      {/* Apply price by CC */}
       <Paper
         elevation={0}
         sx={{
@@ -138,40 +148,64 @@ const Step4Pricing = ({ state, dispatch: wizardDispatch }) => {
         }}
       >
         <Typography variant="body2" fontWeight={700} mb={1.5}>
-          Bulk Apply — Same Price for All Bikes
+          Apply Price by CC
         </Typography>
-        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
-          <TextField
-            size="small"
-            type="number"
-            placeholder="Enter price"
-            value={bulkPrice}
-            onChange={(e) => setBulkPrice(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <CurrencyRupeeIcon
-                    sx={{ fontSize: 14, color: "text.secondary" }}
+        <Table size="small">
+          <TableHead>
+            <TableRow
+              sx={{
+                "& th": {
+                  fontWeight: 700,
+                  fontSize: "0.72rem",
+                  color: "text.secondary",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.4,
+                  borderBottom: "1px solid",
+                  borderColor: "divider",
+                },
+              }}
+            >
+              <TableCell>CC</TableCell>
+              <TableCell>Bikes</TableCell>
+              <TableCell>Price</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {ccGroups.map((group) => (
+              <TableRow
+                key={group.cc}
+                sx={{ "&:last-child td": { borderBottom: 0 } }}
+              >
+                <TableCell>
+                  <Chip
+                    label={`${group.cc} cc`}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontWeight: 700 }}
                   />
-                </InputAdornment>
-              ),
-              inputProps: { min: 0 },
-            }}
-            sx={{ width: 200 }}
-          />
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={handleApplyBulk}
-            disabled={!bulkPrice || Number(bulkPrice) <= 0}
-            sx={{ fontWeight: 700, textTransform: "none" }}
-          >
-            Apply to All {pricedBikes.length} Bikes
-          </Button>
-          <Typography variant="caption" color="text.secondary">
-            You can still override individual prices below.
-          </Typography>
-        </Stack>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" color="text.secondary">
+                    {group.bikes.length} bike
+                    {group.bikes.length !== 1 ? "s" : ""}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <PriceInput
+                    id={group.cc}
+                    value={ccPriceInputs[group.cc]}
+                    onChange={handleCcPriceChange}
+                    width={160}
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: "block" }}>
+          Entering a price for a CC applies it to every bike of that CC only.
+          You can still override individual prices below.
+        </Typography>
       </Paper>
 
       {/* Per-bike price table */}
@@ -237,7 +271,7 @@ const Step4Pricing = ({ state, dispatch: wizardDispatch }) => {
                 </TableCell>
                 <TableCell>
                   <PriceInput
-                    bikeId={bike._id}
+                    id={bike._id}
                     value={state.pricing[bike._id]}
                     onChange={handlePriceChange}
                   />
