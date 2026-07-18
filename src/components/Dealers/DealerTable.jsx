@@ -5,7 +5,7 @@ import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { getAllBookings, updateDealerField, deleteDealer } from "../../api";
+import { getAllBookings, updateDealerStatus, deleteDealer } from "../../api";
 import { notifyDealerStatusChanged } from "../../redux/dealerNotify";
 import {
   Table,
@@ -255,7 +255,7 @@ const DealerTable = ({
     });
     if (!result.isConfirmed) return;
     try {
-      await updateDealerField(dealer._id, { isActive: next });
+      await updateDealerStatus(dealer._id, { isActive: next });
       notifyDealerStatusChanged(dispatch);
       await onDealerDeleted();
       Swal.fire("Done", `Dealer ${label.toLowerCase()}d successfully.`, "success");
@@ -281,7 +281,7 @@ const DealerTable = ({
       });
       if (!result.isConfirmed) return;
       try {
-        await updateDealerField(dealer._id, { isBlocked: true, blockedReason: result.value.trim() });
+        await updateDealerStatus(dealer._id, { isBlocked: true, blockedReason: result.value.trim() });
         notifyDealerStatusChanged(dispatch);
         await onDealerDeleted();
         Swal.fire("Blocked", `${dealer.shopName} has been blocked.`, "success");
@@ -299,7 +299,7 @@ const DealerTable = ({
       });
       if (!result.isConfirmed) return;
       try {
-        await updateDealerField(dealer._id, { isBlocked: false, blockedReason: "" });
+        await updateDealerStatus(dealer._id, { isBlocked: false, blockedReason: "" });
         notifyDealerStatusChanged(dispatch);
         await onDealerDeleted();
         Swal.fire("Unblocked", `${dealer.shopName} has been unblocked.`, "success");

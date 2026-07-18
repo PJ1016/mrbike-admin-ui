@@ -26,7 +26,7 @@ import BadgeIcon from "@mui/icons-material/Badge";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { approveDealer, rejectDealer, updateDealerField } from "../../../api";
+import { approveDealer, rejectDealer, updateDealerStatus } from "../../../api";
 import { notifyDealerStatusChanged } from "../../../redux/dealerNotify";
 
 const statusApprovalConfig = (status) => {
@@ -58,7 +58,7 @@ const DealerProfileHeader = ({ dealer, id, onRefresh, onExportPDF, pdfLoading })
     if (!result.isConfirmed) return;
     setActionLoading("activate");
     try {
-      await updateDealerField(id, { isActive: next });
+      await updateDealerStatus(id, { isActive: next });
       notifyDealerStatusChanged(dispatch);
       await onRefresh();
       Swal.fire("Done", `Dealer ${label.toLowerCase()}d successfully.`, "success");
@@ -91,7 +91,7 @@ const DealerProfileHeader = ({ dealer, id, onRefresh, onExportPDF, pdfLoading })
       if (!result.isConfirmed) return;
       setActionLoading("block");
       try {
-        await updateDealerField(id, { isBlocked: true, blockedReason: result.value.trim() });
+        await updateDealerStatus(id, { isBlocked: true, blockedReason: result.value.trim() });
         notifyDealerStatusChanged(dispatch);
         await onRefresh();
         Swal.fire("Blocked", `${dealer.shopName} has been blocked.`, "success");
@@ -112,7 +112,7 @@ const DealerProfileHeader = ({ dealer, id, onRefresh, onExportPDF, pdfLoading })
       if (!result.isConfirmed) return;
       setActionLoading("block");
       try {
-        await updateDealerField(id, { isBlocked: false, blockedReason: "" });
+        await updateDealerStatus(id, { isBlocked: false, blockedReason: "" });
         notifyDealerStatusChanged(dispatch);
         await onRefresh();
         Swal.fire("Unblocked", `${dealer.shopName} has been unblocked.`, "success");
