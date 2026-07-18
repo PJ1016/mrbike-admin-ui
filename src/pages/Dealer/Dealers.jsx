@@ -1,7 +1,9 @@
 import React, { useRef, useState, useEffect } from "react";
 import UserTable from "../../components/Dealers/DealerTable";
 import { Link, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { getDealerList } from "../../api";
+import { selectDealerRefreshVersion } from "../../redux/slices/dealerRefreshSlice";
 import {
   Box,
   Typography,
@@ -23,6 +25,7 @@ const Dealer = () => {
   const [data, setData] = useState([]);
   const [refresh, setRefresh] = useState(false);
   const [loading, setLoading] = useState(true);
+  const dealerRefreshVersion = useSelector(selectDealerRefreshVersion);
 
   const triggerDownloadExcel = useRef(null);
   const triggerDownloadPDF = useRef(null);
@@ -48,7 +51,10 @@ const Dealer = () => {
     };
 
     fetchDealers();
-  }, [refresh]);
+    // dealerRefreshVersion covers mutations triggered from the Dealer Details page,
+    // so the list stays in sync even if it wasn't the source of the change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refresh, dealerRefreshVersion]);
 
   const handleRefresh = () => {
     setRefresh((prev) => !prev);

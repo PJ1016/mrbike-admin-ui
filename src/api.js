@@ -151,6 +151,9 @@ export const updateDealer = async (formData) => {
 export const getDealerList = () =>
   apiRequest("GET", "/dealer/dealerList", {}, false);
 
+export const getDashboardCounts = () =>
+  apiRequest("GET", "/adminauth/dashboard-counts", {}, false);
+
 export const getAllDealersWithVerifyFalse = () =>
   apiRequest("GET", "/dealer/dealersWithVerifyFalse", {}, false);
 
@@ -808,6 +811,15 @@ export const verifyDealerDocument = (dealerId, docType, status) =>
 
 export const updateDealerField = (dealerId, fields) =>
   apiRequest("PUT", "/dealer/editDealer", { id: dealerId, ...fields });
+
+// Dedicated dealer status endpoint (block/unblock/activate/deactivate).
+// PUT /dealer/editDealer intentionally ignores isBlocked/isActive/blockedReason,
+// so status changes must go through /dealer/update_status instead.
+export const updateDealerStatus = (dealerId, statusFields) =>
+  apiRequest("POST", "/dealer/update_status", {
+    dealer_id: dealerId,
+    ...statusFields,
+  });
 
 export const getAdminServiceById = (serviceId) =>
   apiRequest("GET", `/service/admin/services/${serviceId}`, {}, false);

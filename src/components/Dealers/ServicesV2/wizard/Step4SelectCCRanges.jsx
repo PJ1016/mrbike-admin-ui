@@ -17,6 +17,7 @@ import {
 import FilterListIcon from "@mui/icons-material/FilterList";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import TwoWheelerIcon from "@mui/icons-material/TwoWheeler";
+import { groupBikesByCC } from "./utils/ccGrouping";
 
 const Step4SelectCCRanges = ({ state, dispatch }) => {
   const validBikes = useMemo(
@@ -29,15 +30,7 @@ const Step4SelectCCRanges = ({ state, dispatch }) => {
   );
 
   // Group valid bikes by CC value, sorted ascending
-  const ccGroups = useMemo(() => {
-    const groups = {};
-    validBikes.forEach((bike) => {
-      const cc = Number(bike.cc || bike.engine_cc || 0);
-      if (!groups[cc]) groups[cc] = { cc, bikes: [] };
-      groups[cc].bikes.push(bike);
-    });
-    return Object.values(groups).sort((a, b) => a.cc - b.cc);
-  }, [validBikes]);
+  const ccGroups = useMemo(() => groupBikesByCC(validBikes), [validBikes]);
 
   const allCCValues = useMemo(() => ccGroups.map((g) => g.cc), [ccGroups]);
 

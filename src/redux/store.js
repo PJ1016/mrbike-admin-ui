@@ -4,6 +4,7 @@ import authReducer from './slices/authSlice';
 import bikeReducer from './slices/bikeSlice';
 import serviceReducer from './slices/serviceSlice';
 import dealerServiceReducer from './slices/dealerServiceSlice';
+import dealerRefreshReducer from './slices/dealerRefreshSlice';
 import { baseApi } from './services/baseApi';
 
 export const store = configureStore({
@@ -13,6 +14,7 @@ export const store = configureStore({
     bike: bikeReducer,
     service: serviceReducer,
     dealerService: dealerServiceReducer,
+    dealerRefresh: dealerRefreshReducer,
     [baseApi.reducerPath]: baseApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
