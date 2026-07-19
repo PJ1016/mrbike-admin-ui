@@ -125,7 +125,12 @@ const CampaignFormDrawer = ({ open, campaign, saving, onClose, onSave }) => {
     payload.append("targetAudience", form.targetAudience);
     payload.append("pushNotification", form.pushNotification);
     payload.append("inAppNotification", form.inAppNotification);
-    payload.append("scheduleAt", form.scheduleAt);
+    // form.scheduleAt is a naive "YYYY-MM-DDTHH:mm" string with no timezone
+    // info. `new Date(...)` here resolves it against the admin's own browser
+    // timezone, and toISOString() sends an unambiguous UTC instant so the
+    // backend (which may run in a different timezone) fires at the moment
+    // the admin actually picked.
+    payload.append("scheduleAt", new Date(form.scheduleAt).toISOString());
     payload.append("status", form.status);
     if (imageFile) payload.append("image", imageFile);
     onSave(payload);

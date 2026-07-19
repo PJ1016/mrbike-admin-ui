@@ -18,6 +18,7 @@ import {
   updateCampaign,
   deleteCampaign,
   toggleCampaignStatus,
+  sendCampaignNow,
   bulkDeleteCampaigns,
   bulkUpdateCampaignStatus,
   getCampaignAnalytics,
@@ -191,6 +192,7 @@ const Campaigns = () => {
 
   const requestDelete = (ids) => setConfirmState({ open: true, mode: "delete", ids, nextStatus: null });
   const requestBulkStatus = (ids, nextStatus) => setConfirmState({ open: true, mode: "status", ids, nextStatus });
+  const requestSendNow = (id) => setConfirmState({ open: true, mode: "send-now", ids: [id], nextStatus: null });
 
   const handleConfirm = async () => {
     const { mode, ids, nextStatus } = confirmState;
@@ -199,6 +201,8 @@ const Campaigns = () => {
       if (mode === "delete") {
         if (ids.length > 1) await bulkDeleteCampaigns(ids);
         else await deleteCampaign(ids[0]);
+      } else if (mode === "send-now") {
+        await sendCampaignNow(ids[0]);
       } else {
         if (ids.length > 1) await bulkUpdateCampaignStatus(ids, nextStatus);
         else await toggleCampaignStatus(ids[0], nextStatus);
@@ -284,6 +288,7 @@ const Campaigns = () => {
   const getRowActions = (row) => [
     { label: "View", onClick: () => setViewCampaign(row) },
     { label: "Edit", onClick: () => openEdit(row) },
+    { label: "Send Now", onClick: () => requestSendNow(row.id) },
     {
       label: row.status === "active" ? "Pause" : "Resume",
       onClick: () => handleToggleStatus(row, row.status === "active" ? "paused" : "active"),
@@ -437,6 +442,8 @@ const Campaigns = () => {
         title={
           confirmState.mode === "delete"
             ? "Delete campaign(s)?"
+            : confirmState.mode === "send-now"
+            ? "Send campaign now?"
             : confirmState.nextStatus === "active"
             ? "Activate campaign(s)?"
             : "Pause campaign(s)?"
@@ -444,9 +451,11 @@ const Campaigns = () => {
         message={
           confirmState.mode === "delete"
             ? `This will permanently delete ${confirmState.ids.length} campaign(s). This action cannot be undone.`
+            : confirmState.mode === "send-now"
+            ? "This will immediately send the push/in-app notification to the target audience, bypassing its schedule."
             : `This will set ${confirmState.ids.length} campaign(s) to "${confirmState.nextStatus === "active" ? "Active" : "Paused"}".`
         }
-        confirmLabel={confirmState.mode === "delete" ? "Delete" : "Confirm"}
+        confirmLabel={confirmState.mode === "delete" ? "Delete" : confirmState.mode === "send-now" ? "Send Now" : "Confirm"}
         confirmColor={confirmState.mode === "delete" ? "error" : "primary"}
         onConfirm={handleConfirm}
         onCancel={() => setConfirmState({ open: false, mode: null, ids: [], nextStatus: null })}
