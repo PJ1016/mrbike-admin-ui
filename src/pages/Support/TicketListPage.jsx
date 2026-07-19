@@ -30,13 +30,21 @@ const columns = [
     render: (t) => {
       const lastMessage = getLastMessage(t);
       return (
-        <Box>
-          <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>{t.subject}</Typography>
-          {lastMessage?.message && (
-            <Typography variant="caption" sx={{ color: "#94a3b8" }} noWrap component="div" style={{ maxWidth: 300 }}>
-              {lastMessage.message}
-            </Typography>
+        <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
+          {t.unread && (
+            <Box
+              aria-label="Unread"
+              sx={{ width: 8, height: 8, mt: "6px", borderRadius: "50%", bgcolor: "#ef4444", flexShrink: 0 }}
+            />
           )}
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: t.unread ? 700 : 600 }} noWrap>{t.subject}</Typography>
+            {lastMessage?.message && (
+              <Typography variant="caption" sx={{ color: "#94a3b8" }} noWrap component="div" style={{ maxWidth: 300 }}>
+                {lastMessage.message}
+              </Typography>
+            )}
+          </Box>
         </Box>
       );
     },
@@ -82,6 +90,9 @@ const TicketListPage = ({ partyType, title, accentColor }) => {
     }
     if (status.length) rows = rows.filter((t) => status.includes(t.status));
     rows = rows.filter((t) => withinDateRange(t.created_at, dateRange));
+    // Unread tickets float to the top; stable sort keeps everything else in
+    // its existing (most-recent-first) order.
+    rows.sort((a, b) => (b.unread ? 1 : 0) - (a.unread ? 1 : 0));
     return rows;
   }, [scoped, search, status, dateRange]);
 

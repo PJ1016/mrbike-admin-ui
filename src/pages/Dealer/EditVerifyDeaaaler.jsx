@@ -14,13 +14,15 @@ const EditVerifyDeaaaler = () => {
         const fetchDealer = async () => {
             try {
                 const token = localStorage.getItem("adminToken");
-                const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/dealer/dealer/${id}`, {
-                    // const res = await axios.get(`https://api.mrbikedoctor.cloud/bikedoctor/dealer/dealer/${id}`, {
+                // /dealer/view/:id is the admin-gated (requireAdmin) route.
+                // /dealer/dealer/:id is dealer-only (verifyDealerToken + requireOwnDealer)
+                // and returns 403 for admin tokens.
+                const res = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/dealer/view/${id}`, {
                     headers: { token },
                 });
                 console.log("Res data", res.data)
-                if (res.data.status) {
-                    setDealerData(res.data.data);
+                if (res.data) {
+                    setDealerData(res.data);
                 } else {
                     Swal.fire("Error", "Failed to fetch dealer data", "error");
                 }

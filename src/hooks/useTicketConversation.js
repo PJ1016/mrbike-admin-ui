@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Swal from "sweetalert2";
 import {
   getTicketById,
@@ -6,6 +6,7 @@ import {
   updateTicketStatus,
 } from "../services/ticketService";
 import { roleToSenderType } from "../utils/ticketHelpers";
+import { useSupportUnread } from "../context/SupportUnreadContext";
 
 // Re-implements the exact fetch/poll/reply/status behavior NewTicket.jsx has
 // today (5s polling while not Closed, replying while Open silently
@@ -20,6 +21,9 @@ const useTicketConversation = (ticketId) => {
   const [text, setText] = useState("");
   const [replyLoading, setReplyLoading] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
+
+  const { markTicketRead } = useSupportUnread();
+  const lastMarkedCountRef = useRef(0);
 
   const me = useMemo(() => {
     try {
@@ -50,6 +54,7 @@ const useTicketConversation = (ticketId) => {
     }
     setLoading(true);
     setText("");
+    lastMarkedCountRef.current = 0;
     fetchTicket().finally(() => setLoading(false));
   }, [ticketId, fetchTicket]);
 
@@ -58,6 +63,19 @@ const useTicketConversation = (ticketId) => {
     const interval = setInterval(fetchTicket, 5000);
     return () => clearInterval(interval);
   }, [ticketId, ticket?.status, fetchTicket]);
+
+  // Marks dealer/user messages read for the admin the moment the ticket is
+  // opened, and again whenever a new message shows up while it's still open
+  // (via the 5s poll above) — keeps the sidebar badge in sync without the
+  // admin needing to reopen the ticket.
+  useEffect(() => {
+    if (!ticketId || !ticket) return;
+    const count = ticket.messages?.length || 0;
+    if (count !== lastMarkedCountRef.current) {
+      lastMarkedCountRef.current = count;
+      markTicketRead(ticketId);
+    }
+  }, [ticketId, ticket, markTicketRead]);
 
   const updateStatus = useCallback(
     async (newStatus, { confirm = true } = {}) => {

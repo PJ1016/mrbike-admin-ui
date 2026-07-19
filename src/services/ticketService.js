@@ -3,6 +3,8 @@ import {
   getTicketById as apiGetTicketById,
   replyToTicket as apiReplyToTicket,
   updateTicketStatus as apiUpdateTicketStatus,
+  getSupportUnreadCount as apiGetSupportUnreadCount,
+  markTicketRead as apiMarkTicketRead,
 } from "../api";
 
 // Normalizes the {success, data, message} envelope the ticket endpoints
@@ -36,4 +38,16 @@ export const updateTicketStatus = async (ticketId, status) => {
   const res = await apiUpdateTicketStatus(ticketId, status);
   if (res?.success && res?.data) return res.data;
   throw new Error(res?.message || "Failed to update status");
+};
+
+export const getSupportUnreadCount = async () => {
+  const res = await apiGetSupportUnreadCount();
+  if (res?.success) return res.unreadCount || 0;
+  throw new Error(res?.message || "Failed to fetch unread count");
+};
+
+export const markTicketRead = async (ticketId) => {
+  const res = await apiMarkTicketRead(ticketId);
+  if (res?.success) return res.unreadCount || 0;
+  throw new Error(res?.message || "Failed to mark ticket as read");
 };

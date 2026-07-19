@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 import { fetchGlobalSearchData } from "./redux/slices/searchSlice";
 import { NetworkProvider } from "./context/NetworkContext";
+import { SupportUnreadProvider } from "./context/SupportUnreadContext";
 import "./App.css";
 import AddAdmin from "./pages/admin/AddAdmin";
 import Sidebar from "./components/Global/Sidebar";
@@ -138,9 +139,11 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <NetworkProvider>
-        <Router basename="/">
-          <AppContent />
-        </Router>
+        <SupportUnreadProvider>
+          <Router basename="/">
+            <AppContent />
+          </Router>
+        </SupportUnreadProvider>
       </NetworkProvider>
     </ThemeProvider>
   );

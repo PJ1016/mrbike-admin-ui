@@ -14,6 +14,7 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "../../redux/slices/authSlice";
@@ -41,9 +42,19 @@ const LoginPage = () => {
         { email, password },
       );
       if (data.status) {
+        // suadminLogin's response body only carries {status, message, token} -
+        // _id/role aren't in the JSON, but they're in the JWT payload itself
+        // (see generateUserToken in the backend), same as ProtectedRoute
+        // already decodes to read user_type.
+        const decoded = jwtDecode(data.token);
         dispatch(
           setCredentials({
-            user: { name: data.name, email: data.email },
+            user: {
+              _id: decoded.user_id,
+              name: data.name,
+              email: data.email,
+              role: "Admin",
+            },
             token: data.token,
           }),
         );

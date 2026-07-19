@@ -904,8 +904,11 @@ export const updateAdminService = async (serviceId, serviceData) => {
   }
 };
 
+// Uses the admin-only /dealer/view/:id route (requireAdmin) rather than
+// /dealer/dealer/:id, which is gated by verifyDealerToken + requireOwnDealer
+// for the dealer app's own-profile lookup and rejects admin tokens with 403.
 export const getDealerById = async (id) => {
-  const res = await apiRequest("GET", `/dealer/dealer/${id}`, {}, false);
+  const res = await apiRequest("GET", `/dealer/view/${id}`, {}, false);
   return res?.data || res?.dealer || res;
 };
 
@@ -1221,3 +1224,8 @@ export const updateTicketStatus = (ticketId, status) =>
 
 export const replyToTicket = (ticketId, { message, sender_id, sender_type }) =>
   apiRequest("POST", `/ticket/reply/${ticketId}`, { message, sender_id, sender_type }, false);
+
+export const getSupportUnreadCount = () => apiRequest("GET", "/ticket/unread-count", {}, false);
+
+export const markTicketRead = (ticketId) =>
+  apiRequest("POST", `/ticket/mark-read/${ticketId}`, {}, false);

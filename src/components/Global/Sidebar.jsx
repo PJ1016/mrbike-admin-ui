@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { getDealersVerify } from "../../api";
 import { logout } from "../../redux/slices/authSlice";
+import { useSupportUnread } from "../../context/SupportUnreadContext";
 import {
   Drawer,
   List,
@@ -168,6 +169,7 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
   const dispatch = useDispatch();
   const [openMenus, setOpenMenus] = useState({});
   const [pendingVerifyCount, setPendingVerifyCount] = useState(0);
+  const { unreadCount: supportUnreadCount } = useSupportUnread();
 
   useEffect(() => {
     getDealersVerify()
@@ -262,6 +264,20 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
             {isChild && item.path === "/dealers-verify" && pendingVerifyCount > 0 && (
               <Chip
                 label={pendingVerifyCount}
+                size="small"
+                color="error"
+                sx={{
+                  height: 18,
+                  fontSize: "0.6rem",
+                  fontWeight: 700,
+                  minWidth: 24,
+                  "& .MuiChip-label": { px: 0.75 },
+                }}
+              />
+            )}
+            {!isChild && item.title === "Support" && supportUnreadCount > 0 && (
+              <Chip
+                label={supportUnreadCount}
                 size="small"
                 color="error"
                 sx={{

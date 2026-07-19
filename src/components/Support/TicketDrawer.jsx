@@ -1,8 +1,13 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
   Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   Drawer,
   Grid,
@@ -28,6 +33,7 @@ const TicketDrawer = ({ open, ticketId, accentColor = "#2563eb", onClose, onTick
 
   const bottomRef = useRef(null);
   const lastNotifiedRef = useRef(null);
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (ticket?.messages?.length) {
@@ -46,6 +52,11 @@ const TicketDrawer = ({ open, ticketId, accentColor = "#2563eb", onClose, onTick
   }, [ticket]);
 
   const handleSend = () => sendReply();
+
+  const handleConfirmCloseTicket = async () => {
+    await updateStatus("Closed", { confirm: false });
+    setCloseConfirmOpen(false);
+  };
 
   return (
     <Drawer
@@ -144,7 +155,7 @@ const TicketDrawer = ({ open, ticketId, accentColor = "#2563eb", onClose, onTick
                 sx={{ mb: 1, "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
               />
               <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1 }}>
-                <Button variant="outlined" color="error" size="small" onClick={() => updateStatus("Closed")} disabled={statusLoading}>
+                <Button variant="outlined" color="error" size="small" onClick={() => setCloseConfirmOpen(true)} disabled={statusLoading}>
                   Close Ticket
                 </Button>
                 <Button
@@ -161,6 +172,34 @@ const TicketDrawer = ({ open, ticketId, accentColor = "#2563eb", onClose, onTick
           )}
         </Box>
       )}
+
+      <Dialog
+        open={closeConfirmOpen}
+        onClose={(_, reason) => {
+          if (statusLoading && reason === "backdropClick") return;
+          setCloseConfirmOpen(false);
+        }}
+        aria-labelledby="close-ticket-dialog-title"
+        aria-describedby="close-ticket-dialog-description"
+      >
+        <DialogTitle id="close-ticket-dialog-title" sx={{ fontWeight: 800 }}>
+          Close Ticket?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="close-ticket-dialog-description">
+            Are you sure you want to close this support ticket? This action can be reversed only if reopening is
+            supported.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setCloseConfirmOpen(false)} disabled={statusLoading} color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmCloseTicket} disabled={statusLoading} variant="contained" color="error">
+            {statusLoading ? "Closing…" : "Close Ticket"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Drawer>
   );
 };
