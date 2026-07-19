@@ -39,7 +39,6 @@ import Bikes from "./pages/bikes/Bikes";
 import CreateBanner from "./pages/banners/CreateBanner";
 import Banners from "./pages/banners/Banners";
 import PaymentList from "./pages/payment/payment";
-import Reward from "./pages/reward/RewardList";
 import OfferList from "./pages/Offers/OfferList";
 import DealerUpdate from "./pages/Dealer/updateDealer";
 import DealerPayoutList from "./pages/Dealer/DealerPayoutList";
@@ -70,6 +69,11 @@ import MajorServices from "./pages/services/MajorServices";
 import LocationFeaturedCategoryList from "./pages/locationFeaturedCategories/LocationFeaturedCategoryList";
 import LocationFeaturedCategoryForm from "./components/LocationFeaturedCategories/LocationFeaturedCategoryForm";
 import ViewLocationFeaturedCategory from "./pages/locationFeaturedCategories/ViewLocationFeaturedCategory";
+import Campaigns from "./pages/preferences/Campaigns";
+import PromoCodes from "./pages/preferences/PromoCodes";
+import RewardsReferral from "./pages/preferences/RewardsReferral";
+import Legal from "./pages/preferences/Legal";
+import AppContentPage from "./pages/preferences/AppContent";
 const theme = createTheme({
   palette: {
     primary: {
@@ -256,8 +260,16 @@ const AppContent = () => {
           <Route path="/banners" element={<CreateBanner />} />
           <Route path="/bannerList" element={<Banners />} />
           <Route path="/paymentList" element={<PaymentList />} />
-          <Route path="/rewards" element={<Reward />} />
+          {/* Legacy redirect — Rewards now lives inside Preferences */}
+          <Route path="/rewards" element={<Navigate to="/preferences/rewards-referral" replace />} />
           <Route path="/offers" element={<OfferList />} />
+
+          {/* Preferences */}
+          <Route path="/preferences/campaigns" element={<Campaigns />} />
+          <Route path="/preferences/promo-codes" element={<PromoCodes />} />
+          <Route path="/preferences/rewards-referral" element={<RewardsReferral />} />
+          <Route path="/preferences/legal" element={<Legal />} />
+          <Route path="/preferences/app-content" element={<AppContentPage />} />
           {/* Legacy redirect — old /approve now lives at /finance/withdrawals */}
           <Route path="/approve" element={<Navigate to="/finance/withdrawals" replace />} />
           {/* Finance Phase 1 */}

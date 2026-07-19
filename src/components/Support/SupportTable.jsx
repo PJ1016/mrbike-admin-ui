@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Checkbox,
   IconButton,
   Menu,
   MenuItem,
@@ -66,12 +67,27 @@ const SupportTable = ({
   sortKey,
   sortDirection = "asc",
   onSortChange,
+  selectable = false,
+  selectedIds = [],
+  onToggleRow,
+  onToggleAll,
+  getRowId = (row) => row.id,
 }) => (
   <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #f1f5f9", overflow: "hidden" }}>
     <TableContainer sx={{ overflowX: "auto" }}>
       <Table sx={{ minWidth: 900 }}>
         <TableHead>
           <TableRow sx={{ bgcolor: "#f8fafc" }}>
+            {selectable && (
+              <TableCell padding="checkbox">
+                <Checkbox
+                  size="small"
+                  indeterminate={selectedIds.length > 0 && selectedIds.length < rows.length}
+                  checked={rows.length > 0 && selectedIds.length === rows.length}
+                  onChange={() => onToggleAll?.()}
+                />
+              </TableCell>
+            )}
             {columns.map((col) => (
               <TableCell
                 key={col.key}
@@ -99,6 +115,7 @@ const SupportTable = ({
           {loading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <TableRow key={i}>
+                {selectable && <TableCell padding="checkbox" />}
                 {columns.map((col) => (
                   <TableCell key={col.key}>
                     <Skeleton variant="text" width="80%" />
@@ -109,30 +126,39 @@ const SupportTable = ({
             ))
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={columns.length + (getRowActions ? 1 : 0)} sx={{ border: "none" }}>
+              <TableCell colSpan={columns.length + (getRowActions ? 1 : 0) + (selectable ? 1 : 0)} sx={{ border: "none" }}>
                 {emptyState}
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((row) => (
-              <TableRow
-                key={row.id}
-                hover
-                onClick={() => onRowClick?.(row)}
-                sx={{ cursor: onRowClick ? "pointer" : "default", "&:last-child td": { borderBottom: "none" } }}
-              >
-                {columns.map((col) => (
-                  <TableCell key={col.key} sx={{ fontSize: "0.82rem", color: "#334155" }}>
-                    {col.render ? col.render(row) : row[col.key]}
-                  </TableCell>
-                ))}
-                {getRowActions && (
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <RowActions row={row} getRowActions={getRowActions} />
-                  </TableCell>
-                )}
-              </TableRow>
-            ))
+            rows.map((row) => {
+              const rowId = getRowId(row);
+              return (
+                <TableRow
+                  key={row.id}
+                  hover
+                  onClick={() => onRowClick?.(row)}
+                  selected={selectable && selectedIds.includes(rowId)}
+                  sx={{ cursor: onRowClick ? "pointer" : "default", "&:last-child td": { borderBottom: "none" } }}
+                >
+                  {selectable && (
+                    <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox size="small" checked={selectedIds.includes(rowId)} onChange={() => onToggleRow?.(rowId)} />
+                    </TableCell>
+                  )}
+                  {columns.map((col) => (
+                    <TableCell key={col.key} sx={{ fontSize: "0.82rem", color: "#334155" }}>
+                      {col.render ? col.render(row) : row[col.key]}
+                    </TableCell>
+                  ))}
+                  {getRowActions && (
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <RowActions row={row} getRowActions={getRowActions} />
+                    </TableCell>
+                  )}
+                </TableRow>
+              );
+            })
           )}
         </TableBody>
       </Table>

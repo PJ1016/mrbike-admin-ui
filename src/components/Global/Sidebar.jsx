@@ -36,6 +36,12 @@ import {
   AccountBalanceWallet as WalletIcon,
   Receipt as TransactionIcon,
   SwapHoriz as WithdrawalIcon,
+  TuneOutlined as PreferencesIcon,
+  CampaignOutlined as CampaignsIcon,
+  LocalOfferOutlined as PromoCodesIcon,
+  CardGiftcardOutlined as RewardsReferralIcon,
+  GavelOutlined as LegalIcon,
+  DashboardCustomizeOutlined as AppContentIcon,
 } from "@mui/icons-material";
 import { Chip } from "@mui/material";
 
@@ -119,9 +125,19 @@ const menuConfig = [
     path: "/finance/transactions",
   },
   {
-    title: "Rewards",
-    icon: <RewardIcon />,
-    path: "/rewards",
+    title: "PREFERENCES",
+    type: "header",
+  },
+  {
+    title: "Preferences",
+    icon: <PreferencesIcon />,
+    children: [
+      { title: "Campaigns", icon: <CampaignsIcon />, path: "/preferences/campaigns" },
+      { title: "Promo Codes", icon: <PromoCodesIcon />, path: "/preferences/promo-codes" },
+      { title: "Rewards & Referral", icon: <RewardsReferralIcon />, path: "/preferences/rewards-referral" },
+      { title: "Legal", icon: <LegalIcon />, path: "/preferences/legal" },
+      { title: "App Content", icon: <AppContentIcon />, path: "/preferences/app-content" },
+    ],
   },
   {
     title: "ENGAGEMENT",
@@ -249,7 +265,7 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
                 "& svg": { fontSize: isChild ? 18 : 20 }
               }}
             >
-              {isChild ? <BulletIcon sx={{ fontSize: 6 }} /> : item.icon}
+              {isChild ? (item.icon || <BulletIcon sx={{ fontSize: 6 }} />) : item.icon}
             </ListItemIcon>
             <ListItemText
               primary={item.title}
