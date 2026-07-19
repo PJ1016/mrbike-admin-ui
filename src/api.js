@@ -515,6 +515,45 @@ export const addBanner = async (bannerData) => {
 export const getBannerList = () =>
   apiRequest("GET", "/banner/bannerlist", {}, false);
 
+// ✅ Update banner (JSON body — editbanner route has no file upload)
+export const updateBanner = async (bannerId, bannerData) => {
+  try {
+    const response = await axios.put(
+      `${API_BASE_URL}/banner/editbanner`,
+      { banner_id: bannerId, ...bannerData },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          token: getAuthToken(),
+        },
+      },
+    );
+
+    Swal.fire({
+      icon: "success",
+      title: "Banner Updated Successfully!",
+      text: response.data.message || "The banner has been updated.",
+      timer: 2000,
+      showConfirmButton: false,
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Error updating banner:",
+      error.response?.data || error.message,
+    );
+
+    Swal.fire({
+      icon: "error",
+      title: "Failed to Update Banner",
+      text: error.response?.data?.message || "Something went wrong!",
+    });
+
+    throw error;
+  }
+};
+
 export const deleteBanner = async (bannerId) => {
   try {
     const response = await axios.delete(`${API_BASE_URL}/banner/deletebanner`, {
