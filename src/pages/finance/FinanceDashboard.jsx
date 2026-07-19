@@ -26,6 +26,10 @@ import {
   ShoppingCart,
   Refresh,
   ArrowForwardIos,
+  Savings,
+  SwapHoriz,
+  Today,
+  CalendarMonth,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import moment from "moment";
@@ -183,6 +187,13 @@ const FinanceDashboard = () => {
         ).length;
       }
 
+      // Defensive fallbacks for the newer summary fields — backend field
+      // naming for these hasn't been fully pinned down yet.
+      s.totalDealerEarnings = s.totalDealerEarnings ?? s.totalEarnings ?? s.totalLifetimeEarnings;
+      s.totalWithdrawals    = s.totalWithdrawals ?? s.totalWithdrawalAmount ?? s.totalWithdrawn;
+      s.todayTransactions   = s.todayTransactions ?? s.todaysTransactionCount ?? s.transactionsToday;
+      s.monthTransactions   = s.monthTransactions ?? s.thisMonthTransactionCount ?? s.transactionsThisMonth;
+
       setSummary(s);
     } catch (err) {
       console.error("Finance dashboard load error:", err);
@@ -327,6 +338,26 @@ const FinanceDashboard = () => {
             onClick={() => navigate("/finance/dealer-wallets")}
           />
         </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <KpiCard
+            title="Total Dealer Earnings"
+            value={fmtCurrency(summary.totalDealerEarnings)}
+            subtitle="Lifetime earnings across dealers"
+            icon={<Savings />}
+            color="#14b8a6"
+            onClick={() => navigate("/finance/dealer-wallets")}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <KpiCard
+            title="Total Withdrawals"
+            value={fmtCurrency(summary.totalWithdrawals)}
+            subtitle="All processed withdrawal amounts"
+            icon={<SwapHoriz />}
+            color="#f97316"
+            onClick={() => navigate("/finance/withdrawals")}
+          />
+        </Grid>
       </Grid>
 
       {/* ── Section: Withdrawals ── */}
@@ -361,6 +392,31 @@ const FinanceDashboard = () => {
             icon={<CheckCircle />}
             color="#10b981"
             onClick={() => navigate("/finance/withdrawals")}
+          />
+        </Grid>
+      </Grid>
+
+      {/* ── Section: Transaction Activity ── */}
+      <SectionLabel>Transaction Activity</SectionLabel>
+      <Grid container spacing={2.5} sx={{ mb: 3.5 }}>
+        <Grid item xs={12} sm={6}>
+          <KpiCard
+            title="Today's Transactions"
+            value={fmtNumber(summary.todayTransactions)}
+            subtitle="Processed so far today"
+            icon={<Today />}
+            color="#0ea5e9"
+            onClick={() => navigate("/finance/transactions")}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <KpiCard
+            title="This Month Transactions"
+            value={fmtNumber(summary.monthTransactions)}
+            subtitle="Processed this calendar month"
+            icon={<CalendarMonth />}
+            color="#6366f1"
+            onClick={() => navigate("/finance/transactions")}
           />
         </Grid>
       </Grid>

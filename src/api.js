@@ -757,6 +757,20 @@ export const getFinanceSummary = () =>
 export const getAllPayouts = (status = "ALL") =>
   apiRequest("GET", `/dealer/payouts?status=${status}`, {}, false);
 
+// ─── Finance APIs (Phase 2 — Dealer Wallets & Transactions) ─────────────────
+
+export const getDealerWallets = () =>
+  apiRequest("GET", "/finance/wallets", {}, false);
+
+export const getDealerWalletDetails = (id) =>
+  apiRequest("GET", `/finance/wallets/${id}`, {}, false);
+
+export const getFinanceTransactions = () =>
+  apiRequest("GET", "/finance/transactions", {}, false);
+
+export const getFinanceTransactionDetails = (id) =>
+  apiRequest("GET", `/finance/transactions/${id}`, {}, false);
+
 export const addOffer = async (offerData) => {
   try {
     const response = await axios.post(

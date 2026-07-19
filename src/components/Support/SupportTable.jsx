@@ -11,6 +11,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
 } from "@mui/material";
 import { MoreVert } from "@mui/icons-material";
 import SupportPagination from "./SupportPagination";
@@ -62,6 +63,9 @@ const SupportTable = ({
   onRowClick,
   getRowActions,
   emptyState,
+  sortKey,
+  sortDirection = "asc",
+  onSortChange,
 }) => (
   <Paper elevation={0} sx={{ borderRadius: "14px", border: "1px solid #f1f5f9", overflow: "hidden" }}>
     <TableContainer sx={{ overflowX: "auto" }}>
@@ -74,7 +78,18 @@ const SupportTable = ({
                 sx={{ fontWeight: 700, fontSize: "0.72rem", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em", whiteSpace: "nowrap" }}
                 style={{ minWidth: col.minWidth }}
               >
-                {col.label}
+                {col.sortable && onSortChange ? (
+                  <TableSortLabel
+                    active={sortKey === col.key}
+                    direction={sortKey === col.key ? sortDirection : "asc"}
+                    onClick={() => onSortChange(col.key)}
+                    sx={{ "&.MuiTableSortLabel-root": { color: "inherit" }, "&.Mui-active": { color: "#2563eb" }, "& .MuiTableSortLabel-icon": { opacity: sortKey === col.key ? 1 : 0.4 } }}
+                  >
+                    {col.label}
+                  </TableSortLabel>
+                ) : (
+                  col.label
+                )}
               </TableCell>
             ))}
             {getRowActions && <TableCell sx={{ width: 48 }} />}

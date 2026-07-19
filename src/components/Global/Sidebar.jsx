@@ -112,13 +112,11 @@ const menuConfig = [
     title: "Dealer Wallets",
     icon: <WalletIcon />,
     path: "/finance/dealer-wallets",
-    disabled: true,
   },
   {
     title: "Transactions",
     icon: <TransactionIcon />,
     path: "/finance/transactions",
-    disabled: true,
   },
   {
     title: "Rewards",

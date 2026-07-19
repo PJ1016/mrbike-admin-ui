@@ -1,4 +1,12 @@
-import { getFinanceSummary, getAllPayouts, getDealerPayouts } from "../api";
+import {
+  getFinanceSummary,
+  getAllPayouts,
+  getDealerPayouts,
+  getDealerWallets,
+  getDealerWalletDetails,
+  getFinanceTransactions,
+  getFinanceTransactionDetails,
+} from "../api";
 
 export const fetchFinanceSummary = async () => {
   const res = await getFinanceSummary();
@@ -30,4 +38,29 @@ export const fetchAllPayouts = async () => {
       return { data: [], isLegacy: true };
     }
   }
+};
+
+// GET /finance/wallets — full list, filtered/sorted/paginated client-side
+// (mirrors fetchAllPayouts / getTicketList — no other list endpoint in this
+// codebase relies on server-side pagination).
+export const fetchDealerWallets = async () => {
+  const res = await getDealerWallets();
+  const raw = res?.data ?? res?.wallets ?? res;
+  return Array.isArray(raw) ? raw : [];
+};
+
+export const fetchDealerWalletDetails = async (id) => {
+  const res = await getDealerWalletDetails(id);
+  return res?.data ?? res ?? null;
+};
+
+export const fetchFinanceTransactions = async () => {
+  const res = await getFinanceTransactions();
+  const raw = res?.data ?? res?.transactions ?? res;
+  return Array.isArray(raw) ? raw : [];
+};
+
+export const fetchFinanceTransactionDetails = async (id) => {
+  const res = await getFinanceTransactionDetails(id);
+  return res?.data ?? res ?? null;
 };
