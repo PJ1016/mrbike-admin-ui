@@ -139,9 +139,12 @@ const menuConfig = [
     path: "/offers",
   },
   {
-    title: "Tickets",
+    title: "Support",
     icon: <TicketIcon />,
-    path: "/all-tickets",
+    children: [
+      { title: "Customer Tickets", path: "/support/customer" },
+      { title: "Dealer Tickets", path: "/support/dealer" },
+    ],
   },
   {
     title: "Location Categories",

@@ -515,6 +515,45 @@ export const addBanner = async (bannerData) => {
 export const getBannerList = () =>
   apiRequest("GET", "/banner/bannerlist", {}, false);
 
+// ✅ Update banner (JSON body — editbanner route has no file upload)
+export const updateBanner = async (bannerId, bannerData) => {
+  try {
+    const response = await axios.put(
+      `${API_BASE_URL}/banner/editbanner`,
+      { banner_id: bannerId, ...bannerData },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          token: getAuthToken(),
+        },
+      },
+    );
+
+    Swal.fire({
+      icon: "success",
+      title: "Banner Updated Successfully!",
+      text: response.data.message || "The banner has been updated.",
+      timer: 2000,
+      showConfirmButton: false,
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Error updating banner:",
+      error.response?.data || error.message,
+    );
+
+    Swal.fire({
+      icon: "error",
+      title: "Failed to Update Banner",
+      text: error.response?.data?.message || "Something went wrong!",
+    });
+
+    throw error;
+  }
+};
+
 export const deleteBanner = async (bannerId) => {
   try {
     const response = await axios.delete(`${API_BASE_URL}/banner/deletebanner`, {
@@ -808,6 +847,19 @@ export const verifyDealerDocument = (dealerId, docType, status) =>
     docType,
     status,
   });
+
+export const requestDealerDocuments = (dealerId, docTypes, reason) =>
+  apiRequest("PUT", `/dealerAuth/verify-document/${dealerId}`, {
+    docType: docTypes,
+    status: "requested",
+    reason,
+  });
+
+export const getDealerActivityHistory = (dealerId) =>
+  apiRequest("GET", `/dealer/activity-history/${dealerId}`, {}, false);
+
+export const getDealerNotifications = (dealerId) =>
+  apiRequest("GET", `/notification/${dealerId}`, {}, false);
 
 export const updateDealerField = (dealerId, fields) =>
   apiRequest("PUT", "/dealer/editDealer", { id: dealerId, ...fields });
@@ -1152,3 +1204,19 @@ export const toggleLocationFeaturedCategoryStatus = async (id) => {
     throw error;
   }
 };
+
+// ─── Ticket / Support ───────────────────────────────────────────────────────
+// Same endpoints AllTicket.jsx/NewTicket.jsx have always called directly via
+// axios — centralized here so ticketService.js has one place to import from.
+// showAlert is false because ticketService.js/useTicketConversation already
+// surface their own success/error Swal messages for these calls.
+export const getTicketList = () => apiRequest("GET", "/ticket/user-dealer", {}, false);
+
+export const getTicketById = (ticketId) =>
+  apiRequest("GET", `/ticket/tickets/${ticketId}`, {}, false);
+
+export const updateTicketStatus = (ticketId, status) =>
+  apiRequest("POST", `/ticket/status/${ticketId}`, { status }, false);
+
+export const replyToTicket = (ticketId, { message, sender_id, sender_type }) =>
+  apiRequest("POST", `/ticket/reply/${ticketId}`, { message, sender_id, sender_type }, false);

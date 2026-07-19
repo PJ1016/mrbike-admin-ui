@@ -1,14 +1,32 @@
 "use client"
 
-import { useState, useMemo, useRef } from "react"
+import { useState, useMemo, useRef, useEffect } from "react"
 import Swal from "sweetalert2"
 import { useDownloadExcel } from "react-export-table-to-excel"
 import jsPDF from "jspdf"
 import "jspdf-autotable"
 import ImagePreview from "../Global/ImagePreview"
-import { deleteBanner } from "../../api"
+import { deleteBanner, updateBanner, getBaseServiceList } from "../../api"
 
 const IMAGE_BASE_URL = process.env.REACT_APP_IMAGE_BASE_URL
+
+const GOOGLE_MAPS_KEY = "AIzaSyCM15ry8lewwj6YZ-04_m7Z58dsQo_hBBA"
+
+const loadGoogleMapsScript = (onReady) => {
+  if (window.google?.maps?.places) { onReady(); return }
+  if (document.querySelector("script[data-gmaps]")) {
+    const wait = setInterval(() => {
+      if (window.google?.maps?.places) { clearInterval(wait); onReady() }
+    }, 100)
+    return
+  }
+  window.__gmapsCallback = () => { delete window.__gmapsCallback; onReady() }
+  const script = document.createElement("script")
+  script.setAttribute("data-gmaps", "1")
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&libraries=places&callback=__gmapsCallback`
+  script.async = true
+  document.head.appendChild(script)
+}
 
 const BannerTable = ({
   triggerDownloadExcel,
@@ -28,8 +46,57 @@ const BannerTable = ({
     banner_image: "",
     from_date: "",
     expiry_date: "",
+    baseServiceId: "",
+    locationType: "all",
+    placeId: "",
+    placeName: "",
+    latitude: "",
+    longitude: "",
+    radius: "",
+    displayOrder: "0",
   })
   const [editLoading, setEditLoading] = useState(false)
+  const [services, setServices] = useState([])
+  const [editLocationQuery, setEditLocationQuery] = useState("")
+  const [googleReady, setGoogleReady] = useState(!!window.google?.maps?.places)
+  const editSearchInputRef = useRef(null)
+  const editAutocompleteRef = useRef(null)
+
+  useEffect(() => {
+    getBaseServiceList()
+      .then((res) => { if (res?.data) setServices(res.data) })
+      .catch(() => {})
+  }, [])
+
+  // Load Google Maps only when the modal is open and "Specific" location is selected
+  useEffect(() => {
+    if (!showEditModal || editFormData.locationType !== "specific") {
+      editAutocompleteRef.current = null
+      return
+    }
+    loadGoogleMapsScript(() => setGoogleReady(true))
+  }, [showEditModal, editFormData.locationType])
+
+  useEffect(() => {
+    if (!googleReady || !showEditModal || editFormData.locationType !== "specific" || !editSearchInputRef.current || editAutocompleteRef.current) return
+    editAutocompleteRef.current = new window.google.maps.places.Autocomplete(
+      editSearchInputRef.current,
+      { fields: ["place_id", "geometry", "name", "formatted_address"] }
+    )
+    editAutocompleteRef.current.addListener("place_changed", () => {
+      const place = editAutocompleteRef.current.getPlace()
+      if (!place?.geometry) return
+      const name = place.name || editSearchInputRef.current.value
+      setEditLocationQuery(name)
+      setEditFormData((prev) => ({
+        ...prev,
+        placeId: place.place_id || "",
+        placeName: name,
+        latitude: String(place.geometry.location.lat()),
+        longitude: String(place.geometry.location.lng()),
+      }))
+    })
+  }, [googleReady, showEditModal, editFormData.locationType])
 
   const { onDownload } = useDownloadExcel({
     currentTableRef: tableRef.current,
@@ -46,26 +113,74 @@ const BannerTable = ({
       banner_image: banner.banner_image || "",
       from_date: banner.from_date ? new Date(banner.from_date).toISOString().split("T")[0] : "",
       expiry_date: banner.expiry_date ? new Date(banner.expiry_date).toISOString().split("T")[0] : "",
+      baseServiceId: banner.baseServiceId?._id || banner.baseServiceId || "",
+      locationType: banner.locationType || "all",
+      placeId: banner.placeId || "",
+      placeName: banner.placeName || "",
+      latitude: banner.latitude != null ? String(banner.latitude) : "",
+      longitude: banner.longitude != null ? String(banner.longitude) : "",
+      radius: banner.radius != null ? String(banner.radius) : "",
+      displayOrder: banner.displayOrder != null ? String(banner.displayOrder) : "0",
     })
+    setEditLocationQuery(banner.placeName || "")
     setShowEditModal(true)
   }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    setEditFormData((prev) => ({ ...prev, [name]: value }))
+    setEditFormData((prev) => {
+      const updated = { ...prev, [name]: value }
+      if (name === "locationType" && value === "all") {
+        updated.placeId = ""
+        updated.placeName = ""
+        updated.latitude = ""
+        updated.longitude = ""
+        updated.radius = ""
+      }
+      return updated
+    })
+    if (name === "locationType" && value === "all") setEditLocationQuery("")
+  }
+
+  const handleEditLocationQueryChange = (e) => {
+    const val = e.target.value
+    setEditLocationQuery(val)
+    if (!val.trim()) {
+      setEditFormData((prev) => ({ ...prev, placeId: "", placeName: "", latitude: "", longitude: "" }))
+    }
   }
 
   const handleEditSubmit = async (e) => {
     e.preventDefault()
+
+    if (editFormData.locationType === "specific") {
+      const { placeName, latitude, longitude, radius } = editFormData
+      if (!placeName || !latitude || !longitude || !radius || isNaN(Number(radius)) || Number(radius) <= 0) {
+        Swal.fire("Error!", "Please select a location and enter a valid radius.", "error")
+        return
+      }
+    }
+
     setEditLoading(true)
     try {
-      // Add your API call to update banner here
-      // Example: const response = await updateBanner(editFormData._id, editFormData);
-      Swal.fire("Success!", "Banner updated successfully!", "success")
+      await updateBanner(editFormData._id, {
+        name: editFormData.name,
+        banner_image: editFormData.banner_image,
+        from_date: editFormData.from_date,
+        expiry_date: editFormData.expiry_date,
+        baseServiceId: editFormData.baseServiceId,
+        locationType: editFormData.locationType,
+        placeId: editFormData.placeId,
+        placeName: editFormData.placeName,
+        latitude: editFormData.latitude,
+        longitude: editFormData.longitude,
+        radius: editFormData.radius,
+        displayOrder: editFormData.displayOrder,
+      })
       setShowEditModal(false)
       onBannerDeleted() // Refresh the list
     } catch (error) {
-      Swal.fire("Error!", "Failed to update banner", "error")
+      // error Swal already shown by updateBanner()
     } finally {
       setEditLoading(false)
     }
@@ -146,6 +261,8 @@ const BannerTable = ({
         <td>{index + 1}</td>
         <td>{data.bannerId || "N/A"}</td>
         <td>{data.name || "N/A"}</td>
+        <td>{data.baseServiceId?.name || "N/A"}</td>
+        <td>{data.displayOrder ?? 0}</td>
         <td>{data.banner_image ? <ImagePreview image={`${IMAGE_BASE_URL}${data.banner_image}`} /> : "N/A"}</td>
         <td>{data.from_date ? new Date(data.from_date).toLocaleDateString() : "N/A"}</td>
         <td>{data.expiry_date ? new Date(data.expiry_date).toLocaleDateString() : "N/A"}</td>
@@ -358,8 +475,98 @@ const BannerTable = ({
                           />
                         )}
                       </div>
+
+                      <div className="mb-3">
+                        <label className="form-label">Linked Service (optional)</label>
+                        <select
+                          className="form-control"
+                          name="baseServiceId"
+                          value={editFormData.baseServiceId}
+                          onChange={handleInputChange}
+                        >
+                          <option value="">-- No Service Linked --</option>
+                          {services.map((s) => (
+                            <option key={s._id} value={s._id}>{s.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="mb-3">
+                        <label className="form-label">Location Type</label>
+                        <select
+                          className="form-control"
+                          name="locationType"
+                          value={editFormData.locationType}
+                          onChange={handleInputChange}
+                        >
+                          <option value="all">All Locations</option>
+                          <option value="specific">Specific Location</option>
+                        </select>
+                      </div>
+
+                      {editFormData.locationType === "specific" && (
+                        <div className="mb-3 border rounded p-3">
+                          <label className="form-label">Search Location</label>
+                          <input
+                            ref={editSearchInputRef}
+                            type="text"
+                            className="form-control mb-2"
+                            placeholder={googleReady ? "Type to search a place..." : "Loading Google Maps..."}
+                            value={editLocationQuery}
+                            onChange={handleEditLocationQueryChange}
+                            disabled={!googleReady}
+                          />
+                          <div className="row">
+                            <div className="col-md-4 mb-2">
+                              <label className="form-label">Latitude</label>
+                              <input type="text" className="form-control" value={editFormData.latitude} readOnly />
+                            </div>
+                            <div className="col-md-4 mb-2">
+                              <label className="form-label">Longitude</label>
+                              <input type="text" className="form-control" value={editFormData.longitude} readOnly />
+                            </div>
+                            <div className="col-md-4 mb-2">
+                              <label className="form-label">Radius (km)</label>
+                              <input
+                                type="number"
+                                name="radius"
+                                className="form-control"
+                                value={editFormData.radius}
+                                onChange={handleInputChange}
+                                min="0.1"
+                                step="0.5"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mb-3">
+                        <label className="form-label">Display Order</label>
+                        <input
+                          type="number"
+                          name="displayOrder"
+                          className="form-control"
+                          value={editFormData.displayOrder}
+                          onChange={handleInputChange}
+                          min="0"
+                        />
+                      </div>
                     </>
                   )}
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setShowEditModal(false)}
+                    disabled={editLoading}
+                  >
+                    Close
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={editLoading}>
+                    {editLoading ? "Saving..." : "Save Changes"}
+                  </button>
                 </div>
               </form>
             </div>

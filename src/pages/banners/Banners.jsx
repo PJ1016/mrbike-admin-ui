@@ -12,6 +12,8 @@ const Banners = () => {
     "#",
     "Banner ID",
     "Banner Name",
+    "Linked Service",
+    "Display Order",
     "Banner Image",
     "From Date",
     "Expiry Date",
