@@ -291,7 +291,7 @@ const SidebarLayout = ({ mobileOpen, handleToggleDrawer }) => {
   const drawerWidth = 280;
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f8f9fa" }}>
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f8f9fa", overflowX: "hidden" }}>
       <Sidebar
         mobileOpen={mobileOpen}
         handleToggleDrawer={handleToggleDrawer}
@@ -301,10 +301,13 @@ const SidebarLayout = ({ mobileOpen, handleToggleDrawer }) => {
         component="main"
         sx={{
           flexGrow: 1,
+          minWidth: 0, // Prevents wide children (e.g. tables) from expanding this flex item and breaking the page layout
           width: { lg: `calc(100% - ${drawerWidth}px)` },
+          maxWidth: { lg: `calc(100% - ${drawerWidth}px)` },
           ml: { lg: `${drawerWidth}px` }, // Offset for permanent drawer
           transition: "margin 0.3s",
           pt: "70px", // Header offset
+          overflowX: "hidden", // Page itself never scrolls horizontally; only individual table wrappers do
         }}
       >
         <Outlet />

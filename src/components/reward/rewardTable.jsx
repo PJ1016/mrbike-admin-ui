@@ -378,20 +378,20 @@ const Reward = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, datas,
       <div className="col-sm-12">
         <div className="card-table card p-2">
           <div className="card-body">
-            <div className="table-responsive">
-              <div className="mb-3">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Search by name"
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                />
-              </div>
+            <div className="mb-3">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Search by name"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
 
+            <div className="table-responsive">
               <table ref={tableRef} id="example" className="table table-striped">
                 <thead className="thead-light" style={{ backgroundColor: "#2e83ff", color: "#fff" }}>
                   <tr>{tableHeaders.map((header, index) => (<th key={index}>{header}</th>))}</tr>
