@@ -53,8 +53,9 @@ import AdditionalServiceForm from "./components/Additional/AdditionalServiceForm
 import EditVerifyDeaaaler from "./pages/Dealer/EditVerifyDeaaaler";
 import ViewDealersVerify from "./pages/Dealer/ViewDealersVerify";
 import UpdateDealerVerify from "./components/Dealers/UpdateDealerVerify";
-import AllTicket from "./pages/ticketSection/AllTicket";
-import NewTicket from "./pages/ticketSection/NewTicket";
+import SupportOverview from "./pages/Support/SupportOverview";
+import CustomerSupport from "./pages/Support/CustomerSupport";
+import DealerSupport from "./pages/Support/DealerSupport";
 // Removed BaseServices in favor of MajorServices
 import BaseServiceForm from "./components/Service/BaseServiceForm";
 import BaseAdditionalServices from "./pages/services/BaseAdditionalServices";
@@ -258,17 +259,19 @@ const AppContent = () => {
           <Route path="/finance" element={<FinanceDashboard />} />
           <Route path="/finance/withdrawals" element={<WithdrawalManagement />} />
           <Route path="/add-offer" element={<Offer />} />
-          <Route path="/all-tickets" element={<AllTicket />} />
+
+          <Route path="/support" element={<SupportOverview />} />
+          <Route path="/support/customer" element={<CustomerSupport />} />
+          <Route path="/support/dealer" element={<DealerSupport />} />
+          {/* Legacy ticket routes — redirect to the new Support module */}
+          <Route path="/all-tickets" element={<Navigate to="/support/customer" replace />} />
+          <Route path="/all-tickets/view-ticket/:ticketId" element={<LegacyTicketRedirect />} />
 
           <Route path="/location-featured-categories" element={<LocationFeaturedCategoryList />} />
           <Route path="/location-featured-categories/add" element={<LocationFeaturedCategoryForm isEdit={false} />} />
           <Route path="/location-featured-categories/edit/:id" element={<LocationFeaturedCategoryForm isEdit={true} />} />
           <Route path="/location-featured-categories/view/:id" element={<ViewLocationFeaturedCategory />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route
-            path="/all-tickets/view-ticket/:ticketId"
-            element={<NewTicket />}
-          />
         </Route>
       </Routes>
     </>
@@ -300,6 +303,11 @@ const SidebarLayout = ({ mobileOpen, handleToggleDrawer }) => {
       </Box>
     </Box>
   );
+};
+
+const LegacyTicketRedirect = () => {
+  const { ticketId } = useParams();
+  return <Navigate to={`/support/customer?ticket=${ticketId}`} replace />;
 };
 
 const AdditionalServiceFormWrapper = () => {

@@ -1204,3 +1204,19 @@ export const toggleLocationFeaturedCategoryStatus = async (id) => {
     throw error;
   }
 };
+
+// ─── Ticket / Support ───────────────────────────────────────────────────────
+// Same endpoints AllTicket.jsx/NewTicket.jsx have always called directly via
+// axios — centralized here so ticketService.js has one place to import from.
+// showAlert is false because ticketService.js/useTicketConversation already
+// surface their own success/error Swal messages for these calls.
+export const getTicketList = () => apiRequest("GET", "/ticket/user-dealer", {}, false);
+
+export const getTicketById = (ticketId) =>
+  apiRequest("GET", `/ticket/tickets/${ticketId}`, {}, false);
+
+export const updateTicketStatus = (ticketId, status) =>
+  apiRequest("POST", `/ticket/status/${ticketId}`, { status }, false);
+
+export const replyToTicket = (ticketId, { message, sender_id, sender_type }) =>
+  apiRequest("POST", `/ticket/reply/${ticketId}`, { message, sender_id, sender_type }, false);
