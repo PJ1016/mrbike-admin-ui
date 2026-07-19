@@ -58,6 +58,7 @@ import {
   IMAGE_BASE_URL,
 } from "../../api";
 import RequestDocumentsDialog, { DEFAULT_DOC_OPTIONS } from "./RequestDocumentsDialog";
+import DocumentRejectDialog from "./DocumentRejectDialog";
 
 const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
   const navigate = useNavigate();
@@ -74,6 +75,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
   const [actionError, setActionError] = useState(null);
   const [docVerification, setDocVerification] = useState({});
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+  const [rejectDoc, setRejectDoc] = useState(null); // { key, label } | null
   const [minWalletAmount, setMinWalletAmount] = useState("");
   const [isSavingWallet, setIsSavingWallet] = useState(false);
   const [walletSaveSuccess, setWalletSaveSuccess] = useState(false);
@@ -242,6 +244,15 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
         error?.response?.data?.message || "Failed to update document status.",
       );
     }
+  };
+
+  // Separate from handleDocVerify because the mandatory-reason dialog needs the
+  // rejection to fail loudly (its own inline error) instead of being swallowed
+  // into actionError like the direct Approve click.
+  const handleRejectConfirm = async (docType, reason) => {
+    if (!selectedDealer) return;
+    await verifyDealerDocument(selectedDealer._id, docType, "rejected", reason);
+    setDocVerification((prev) => ({ ...prev, [docType]: "rejected" }));
   };
 
   const handleRequestDocuments = async (docTypes, reason) => {
@@ -1580,7 +1591,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                               color="error"
                               startIcon={<CancelIcon />}
                               onClick={() =>
-                                handleDocVerify(doc.docKey, "rejected")
+                                setRejectDoc({ key: doc.docKey, label: doc.label })
                               }
                               sx={{
                                 borderRadius: 0,
@@ -1807,6 +1818,13 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
         onClose={() => setRequestDialogOpen(false)}
         onSubmit={handleRequestDocuments}
         docOptions={DEFAULT_DOC_OPTIONS}
+      />
+
+      <DocumentRejectDialog
+        open={!!rejectDoc}
+        docLabel={rejectDoc?.label}
+        onClose={() => setRejectDoc(null)}
+        onConfirm={(reason) => handleRejectConfirm(rejectDoc.key, reason)}
       />
     </Box>
   );

@@ -842,10 +842,11 @@ export const approveDealer = (dealerId) =>
 export const rejectDealer = (dealerId, reason) =>
   apiRequest("PUT", `/dealerAuth/reject/${dealerId}`, reason ? { reason } : {});
 
-export const verifyDealerDocument = (dealerId, docType, status) =>
+export const verifyDealerDocument = (dealerId, docType, status, reason) =>
   apiRequest("PUT", `/dealerAuth/verify-document/${dealerId}`, {
     docType,
     status,
+    ...(reason ? { reason } : {}),
   });
 
 export const requestDealerDocuments = (dealerId, docTypes, reason) =>

@@ -28,6 +28,7 @@ import RequestDocIcon from "@mui/icons-material/RequestPage";
 import { ImagePreview, SectionHeader, InfoField } from "../DealerShared";
 import { verifyDealerDocument, requestDealerDocuments } from "../../../../api";
 import RequestDocumentsDialog, { DEFAULT_DOC_OPTIONS } from "../../RequestDocumentsDialog";
+import DocumentRejectDialog from "../../DocumentRejectDialog";
 
 const StatusChip = ({ uploaded }) => (
   <Chip
@@ -44,10 +45,18 @@ const VERIFICATION_STATUS_MAP = {
   rejected: { label: "Rejected", color: "error" },
   requested: { label: "Re-upload Requested", color: "info" },
   none: { label: "Not Reviewed", color: "default" },
+  reReview: { label: "Waiting For Re-review", color: "info" },
 };
 
-const VerificationChip = ({ status }) => {
-  const { label, color } = VERIFICATION_STATUS_MAP[status] || VERIFICATION_STATUS_MAP.none;
+// A "pending" doc on an already-approved dealer can only be a re-upload after a
+// prior rejection/request (uploadDocuments() resets to "pending" on re-submit) —
+// the initial-review flow never reaches "approved" with docs still pending.
+const displayStatus = (status, isApprovedDealer) =>
+  status === "pending" && isApprovedDealer ? "reReview" : status;
+
+const VerificationChip = ({ status, isApprovedDealer }) => {
+  const resolved = displayStatus(status, isApprovedDealer);
+  const { label, color } = VERIFICATION_STATUS_MAP[resolved] || VERIFICATION_STATUS_MAP.none;
   return (
     <Chip
       label={label}
@@ -64,7 +73,18 @@ const DOC_KEYS = ["aadharFront", "aadharBack", "pan", "shop", "face", "passbook"
 const allDocsVerified = (dv) => DOC_KEYS.every((k) => dv[k] === "verified");
 
 // Reuses the same verify/reject action pattern as DealerVerficationTable's document review panel.
-const DocumentVerificationCard = ({ label, src, status, pendingStatus, disabled, onVerify }) => {
+const DocumentVerificationCard = ({
+  label,
+  src,
+  status,
+  isApprovedDealer,
+  reason,
+  reviewedAt,
+  pendingStatus,
+  disabled,
+  onVerify,
+  onRejectClick,
+}) => {
   const borderColor =
     status === "verified" ? "success.main" : status === "rejected" ? "error.main" : "divider";
 
@@ -76,8 +96,18 @@ const DocumentVerificationCard = ({ label, src, status, pendingStatus, disabled,
       <CardContent sx={{ p: 2 }}>
         <ImagePreview src={src} label={label} showDownload />
         <Box sx={{ mt: 1.5 }}>
-          <VerificationChip status={status} />
+          <VerificationChip status={status} isApprovedDealer={isApprovedDealer} />
         </Box>
+        {reason && (status === "rejected" || status === "requested") && (
+          <Typography variant="caption" color="error.main" sx={{ display: "block", mt: 1 }}>
+            <strong>Reason:</strong> {reason}
+          </Typography>
+        )}
+        {reviewedAt && (
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+            Last updated: {new Date(reviewedAt).toLocaleString("en-IN")}
+          </Typography>
+        )}
       </CardContent>
 
       {src && (
@@ -114,7 +144,7 @@ const DocumentVerificationCard = ({ label, src, status, pendingStatus, disabled,
                 <CancelIcon fontSize="small" />
               )
             }
-            onClick={() => onVerify("rejected")}
+            onClick={onRejectClick}
             sx={{ borderRadius: 0, py: 1, fontWeight: 800, fontSize: "0.72rem" }}
           >
             Reject
@@ -133,6 +163,10 @@ const DocumentsTab = ({ dealer, onRefresh }) => {
   const [pendingDoc, setPendingDoc] = useState(null); // { key, status } | null
   const [actionError, setActionError] = useState(null);
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+  const [rejectDoc, setRejectDoc] = useState(null); // { key, label } | null
+
+  const isApprovedDealer = dealer.registrationStatus?.toLowerCase() === "approved";
+  const documentRequests = dealer.documentRequests || {};
 
   useEffect(() => {
     setDocVerification(dealer.documentVerification || {});
@@ -148,6 +182,20 @@ const DocumentsTab = ({ dealer, onRefresh }) => {
       setActionError(
         error?.response?.data?.message || "Failed to update document status. Please try again."
       );
+    } finally {
+      setPendingDoc(null);
+    }
+  };
+
+  // Separate from handleDocVerify because the mandatory-reason dialog needs the
+  // rejection to fail loudly (its own inline error), rather than being swallowed
+  // into actionError like the direct Verify click.
+  const handleRejectConfirm = async (docKey, reason) => {
+    setActionError(null);
+    setPendingDoc({ key: docKey, status: "rejected" });
+    try {
+      await verifyDealerDocument(dealer._id, docKey, "rejected", reason);
+      setDocVerification((prev) => ({ ...prev, [docKey]: "rejected" }));
     } finally {
       setPendingDoc(null);
     }
@@ -280,9 +328,13 @@ const DocumentsTab = ({ dealer, onRefresh }) => {
                       label={row.name}
                       src={row.src}
                       status={docVerification[row.verifyKey] || "none"}
+                      isApprovedDealer={isApprovedDealer}
+                      reason={documentRequests[row.verifyKey]?.reason}
+                      reviewedAt={documentRequests[row.verifyKey]?.requestedAt}
                       pendingStatus={pendingDoc?.key === row.verifyKey ? pendingDoc.status : null}
                       disabled={!!pendingDoc}
                       onVerify={(status) => handleDocVerify(row.verifyKey, status)}
+                      onRejectClick={() => setRejectDoc({ key: row.verifyKey, label: row.name })}
                     />
                   </Grid>
                 ))}
@@ -321,7 +373,10 @@ const DocumentsTab = ({ dealer, onRefresh }) => {
                           <StatusChip uploaded={row.uploaded} />
                         </TableCell>
                         <TableCell>
-                          <VerificationChip status={docVerification[row.verifyKey] || "none"} />
+                          <VerificationChip
+                            status={docVerification[row.verifyKey] || "none"}
+                            isApprovedDealer={isApprovedDealer}
+                          />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -366,6 +421,13 @@ const DocumentsTab = ({ dealer, onRefresh }) => {
         onClose={() => setRequestDialogOpen(false)}
         onSubmit={handleRequestDocuments}
         docOptions={DEFAULT_DOC_OPTIONS}
+      />
+
+      <DocumentRejectDialog
+        open={!!rejectDoc}
+        docLabel={rejectDoc?.label}
+        onClose={() => setRejectDoc(null)}
+        onConfirm={(reason) => handleRejectConfirm(rejectDoc.key, reason)}
       />
     </Box>
   );

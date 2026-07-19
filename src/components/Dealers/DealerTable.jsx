@@ -466,6 +466,11 @@ const DealerTable = ({
                 const cancelRate = dealerCancellationRates[dealer._id] || "0.0";
                 const isHighCancel = parseFloat(cancelRate) > 15;
                 const isBlocked = !!dealer.isBlocked;
+                // A "pending" doc on an already-approved dealer only happens via
+                // re-upload after a prior rejection/request (see DocumentsTab).
+                const needsReReview =
+                  (dealer.registrationStatus || "").toLowerCase() === "approved" &&
+                  Object.values(dealer.documentVerification || {}).some((v) => v === "pending");
 
                 return (
                   <TableRow
@@ -642,6 +647,23 @@ const DealerTable = ({
                               color: "#e53e3e",
                               bgcolor: "#fff5f5",
                               border: "1px solid #e53e3e44",
+                              borderRadius: 1,
+                              "& .MuiChip-label": { px: 0.75 },
+                            }}
+                          />
+                        )}
+                        {needsReReview && (
+                          <Chip
+                            icon={<PendingIcon sx={{ fontSize: "11px !important" }} />}
+                            label="Re-review Pending"
+                            size="small"
+                            sx={{
+                              height: 20,
+                              fontSize: "0.65rem",
+                              fontWeight: 700,
+                              color: "#2b6cb0",
+                              bgcolor: "#ebf8ff",
+                              border: "1px solid #2b6cb044",
                               borderRadius: 1,
                               "& .MuiChip-label": { px: 0.75 },
                             }}
