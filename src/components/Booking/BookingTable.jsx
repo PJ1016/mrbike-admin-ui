@@ -35,7 +35,7 @@ import {
 import BookingDetailsDialog from "./BookingDetailsDialog";
 import {
   formatDate,
-  calculateEstimatedPrice,
+  getBookingAmount,
   getStatusConfig,
 } from "./bookingHelpers";
 
@@ -109,8 +109,8 @@ const BookingTable = ({
         valueA = (a.user_id?.first_name || "").toLowerCase();
         valueB = (b.user_id?.first_name || "").toLowerCase();
       } else if (orderBy === "amount") {
-        valueA = calculateEstimatedPrice(a);
-        valueB = calculateEstimatedPrice(b);
+        valueA = getBookingAmount(a);
+        valueB = getBookingAmount(b);
       } else if (orderBy === "pickupDate") {
         valueA = new Date(a.pickupDate || 0).getTime();
         valueB = new Date(b.pickupDate || 0).getTime();
@@ -248,7 +248,7 @@ const BookingTable = ({
               </TableRow>
             ) : (
               currentData.map((booking, index) => {
-                const amount = calculateEstimatedPrice(booking);
+                const amount = getBookingAmount(booking);
                 const services = booking.services || [];
                 const firstService =
                   services[0]?.base_service_id?.name ||

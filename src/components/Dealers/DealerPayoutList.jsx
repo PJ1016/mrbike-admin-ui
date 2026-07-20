@@ -434,14 +434,10 @@ const dealerId =
                   const balance      = walletData.balance ?? walletData.walletBalance ?? walletData.currentBalance ?? 0
                   const creditLimit  = walletData.creditLimit ?? walletData.minWalletAmount ?? 0
 
-                  const isDebitTxn = (txn) => {
-                    const t = (txn.type || txn.transaction_type || "").toLowerCase()
-                    return t === "withdrawal" || t === "debit"
-                  }
-                  const totalCredits = walletData.totalCredits ??
-                    transactions.filter(t => !isDebitTxn(t)).reduce((s, t) => s + (t.amount || 0), 0)
-                  const totalDebits  = walletData.totalDebits ??
-                    transactions.filter(isDebitTxn).reduce((s, t) => s + (t.amount || 0), 0)
+                  // Stored wallet ledger totals only — Admin never derives these
+                  // by summing individual transactions itself.
+                  const totalCredits = walletData.totalCredits ?? null
+                  const totalDebits  = walletData.totalDebits ?? null
 
                   return (
                     <>

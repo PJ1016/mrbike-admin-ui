@@ -30,7 +30,7 @@ import {
 } from "@mui/icons-material";
 import {
   formatDate,
-  calculateEstimatedPrice,
+  getBookingAmount,
   getStatusConfig,
   getActiveStep,
   lifecycleSteps,
@@ -363,7 +363,7 @@ const BookingDetailsDialog = ({ open, booking, onClose }) => {
                         <Typography variant="h6" component="span" sx={{ fontWeight: 700, mt: 0.5 }}>
                           ₹
                         </Typography>
-                        {calculateEstimatedPrice(booking).toLocaleString()}
+                        {getBookingAmount(booking).toLocaleString()}
                       </Typography>
                     </Box>
                     <Divider sx={{ borderStyle: "dashed" }} />

@@ -347,9 +347,7 @@ const Dashboard = () => {
       monthlyCancelled[m] = 0;
     }
 
-    let totalRevenue = 0;
     let todayBookings = 0;
-    let todayRevenue = 0;
     const statusCounts = {};
 
     bookings.forEach((b) => {
@@ -362,11 +360,6 @@ const Dashboard = () => {
         if (isCancelled) monthlyCancelled[month]++;
       }
 
-      const rev = b.totalBill || 0;
-      if (!isCancelled) {
-        totalRevenue += rev;
-        if (moment(b.createdAt).isSame(today, "day")) todayRevenue += rev;
-      }
       if (moment(b.createdAt).isSame(today, "day")) todayBookings++;
 
       statusCounts[status] = (statusCounts[status] || 0) + 1;
@@ -392,9 +385,7 @@ const Dashboard = () => {
       (statusCounts["ready_for_delivery"] || 0);
 
     return {
-      totalRevenue,
       todayBookings,
-      todayRevenue,
       totalBookings: bookings.length,
       completedCount,
       cancelledCount,
@@ -470,11 +461,9 @@ const Dashboard = () => {
     "user_cancelled", "cancelled", "rejected",
   ];
 
-  // Effective revenue: prefer finance API value, fall back to bookings-computed
-  const displayRevenue =
-    finance?.available && finance.totalRevenue > 0
-      ? finance.totalRevenue
-      : analytics?.totalRevenue;
+  // Revenue always comes from the finance summary API (a stored aggregate of
+  // Booking pricing snapshots) — Admin never sums booking amounts itself.
+  const displayRevenue = finance?.available ? finance.totalRevenue : null;
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: "#f8fafc", minHeight: "100vh" }}>
@@ -637,23 +626,18 @@ const Dashboard = () => {
             fontSize: "0.72rem",
           }}
         >
-          ⚠ Commission & settlement data unavailable (finance API unreachable).
-          Revenue is estimated from booking records.
+          ⚠ Revenue, commission & settlement data unavailable (finance API unreachable).
         </Typography>
       )}
       <Grid container spacing={2} sx={{ mb: 3.5 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Total Revenue"
-            value={fmt(displayRevenue)}
-            subtitle={
-              finance?.available
-                ? "From finance summary"
-                : "Estimated from bookings"
-            }
+            value={finance?.available ? fmt(displayRevenue) : "—"}
+            subtitle="From finance summary"
             icon={<AttachMoney fontSize="small" />}
             color="#10b981"
-            onClick={() => navigate("/finance")}
+            onClick={finance?.available ? () => navigate("/finance") : undefined}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>

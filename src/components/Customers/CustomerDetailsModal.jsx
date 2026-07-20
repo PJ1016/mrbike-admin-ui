@@ -43,7 +43,7 @@ import {
 } from "../../redux/services/customerApi";
 import { getAllBookings } from "../../api";
 import BookingDetailsDialog from "../Booking/BookingDetailsDialog";
-import { calculateEstimatedPrice, getStatusConfig } from "../Booking/bookingHelpers";
+import { getBookingAmount, getStatusConfig } from "../Booking/bookingHelpers";
 
 const API_IMAGE_BASE = "https://api.mrbikedoctor.cloud/";
 
@@ -120,7 +120,7 @@ const normalizeBooking = (booking) => {
     status: booking.vehicleLifecycleStatus || booking.status || "N/A",
     serviceName,
     dealerName: booking.dealer_id?.shopName || "Unassigned",
-    totalAmount: calculateEstimatedPrice(booking),
+    totalAmount: getBookingAmount(booking),
     paymentStatus: booking.billStatus || "unpaid",
     vehicleUsed: plate ? `${vehicle} (${plate})` : vehicle,
   };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Container, Box, Typography, Fade, Alert, CircularProgress } from "@mui/material";
 import { getAllPayment } from "../../api";
+import { fetchFinanceSummary } from "../../services/financeService";
 import SummaryCards from "../../components/payment/SummaryCards";
 import ModernPaymentTable from "../../components/payment/ModernPaymentTable";
 import PaymentDetailsDrawer from "../../components/payment/PaymentDetailsDrawer";
@@ -12,6 +13,9 @@ const PaymentList = () => {
   const [error, setError] = useState(null);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Total revenue is a stored aggregate from /finance/summary — Admin never
+  // sums payment amounts itself.
+  const [revenue, setRevenue] = useState(null);
 
   const fetchPayments = async () => {
     setLoading(true);
@@ -29,6 +33,14 @@ const PaymentList = () => {
       setError("Failed to load payment data. Please try again later.");
     } finally {
       setLoading(false);
+    }
+
+    try {
+      const summary = await fetchFinanceSummary();
+      setRevenue(summary?.totalBookingValue ?? null);
+    } catch (err) {
+      console.error("Error fetching finance summary:", err);
+      setRevenue(null);
     }
   };
 
@@ -73,7 +85,7 @@ const PaymentList = () => {
         <Fade in timeout={500}>
           <Box>
             {/* Summary Cards Section */}
-            <SummaryCards data={payments} />
+            <SummaryCards data={payments} revenue={revenue} />
 
             {/* Analytics Section */}
             <PaymentAnalytics data={payments} />

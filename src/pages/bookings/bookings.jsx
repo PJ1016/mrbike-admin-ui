@@ -114,9 +114,9 @@ const Bookings = () => {
       const s = b.status?.toLowerCase() || "";
       return s.includes("cancel") || s === "rejected";
     }).length;
+    // Sum of each booking's own pricing snapshot — never a guessed/derived price.
     const revenue = data.reduce(
-      (acc, curr) =>
-        acc + (curr.totalBill || curr.services[0]?.bikes[0]?.price || 0),
+      (acc, curr) => acc + (curr.customerTotal ?? curr.totalBill ?? 0),
       0,
     );
 
@@ -150,7 +150,7 @@ const Bookings = () => {
         targetStatus: "Cancelled",
       },
       {
-        label: "Est. Revenue",
+        label: "Revenue",
         value: revenue,
         color: "#8b5cf6",
         icon: <PdfIcon />,

@@ -53,21 +53,18 @@ const MetricCard = ({ title, value, icon: Icon, color, subtitle }) => (
   </Card>
 );
 
-const SummaryCards = ({ data = [] }) => {
+const SummaryCards = ({ data = [], revenue = null }) => {
   const stats = React.useMemo(() => {
     const total = data.length;
     const success = data.filter((p) => p.order_status === "SUCCESS");
     const pending = data.filter((p) => p.order_status === "PENDING");
-    const failed = data.filter((p) => ["FAILED", "CANCELLED"].includes(p.order_status));
-    
-    const revenue = success.reduce((acc, p) => acc + (p.orderAmount || 0), 0);
+
     const successRate = total > 0 ? ((success.length / total) * 100).toFixed(1) : 0;
 
     return {
       total,
       successCount: success.length,
       pendingCount: pending.length,
-      revenue,
       successRate,
     };
   }, [data]);
@@ -77,10 +74,10 @@ const SummaryCards = ({ data = [] }) => {
       <Grid item xs={12} sm={6} md={3}>
         <MetricCard
           title="Total Revenue"
-          value={`₹${stats.revenue.toLocaleString("en-IN")}`}
+          value={revenue != null ? `₹${Number(revenue).toLocaleString("en-IN")}` : "—"}
           icon={AccountBalanceWallet}
           color="#2563eb"
-          subtitle={`From ${stats.successCount} successful payments`}
+          subtitle="From finance summary"
         />
       </Grid>
       <Grid item xs={12} sm={6} md={3}>

@@ -16,20 +16,10 @@ export const formatDate = (dateString) => {
   });
 };
 
-// Handle both cases where service might be an ID or a populated object
-export const calculateEstimatedPrice = (booking) => {
-  if (booking.totalBill && booking.totalBill > 0) return booking.totalBill;
-  if (!booking.services || booking.services.length === 0) return 0;
-
-  const bikeCC = parseInt(
-    booking.bike?.engine_cc || booking.userBike_id?.bike_cc || 0,
-  );
-  return booking.services.reduce((total, service) => {
-    const bikes = service.bikes || [];
-    const matchingBike = bikes.find((b) => b.cc === bikeCC);
-    return total + (matchingBike?.price || 0);
-  }, 0);
-};
+// Admin never derives pricing — always render the Booking's own pricing
+// snapshot (set once at booking time and never recomputed from live rates).
+export const getBookingAmount = (booking) =>
+  booking?.customerTotal ?? booking?.totalBill ?? 0;
 
 export const getStatusConfig = (status) => {
   const s = status?.toLowerCase() || "";
