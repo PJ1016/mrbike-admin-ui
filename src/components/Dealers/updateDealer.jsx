@@ -1177,85 +1177,8 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
               inputProps={{ min: 0 }}
             />
           </Grid>
-
-          {/* Pickup */}
-          <Grid item xs={12} sm={6} md={3}>
-            <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    name="providesPickup"
-                    checked={!!formData.providesPickup}
-                    onChange={handleChange}
-                    color="primary"
-                    size="small"
-                  />
-                }
-                label={<Typography variant="body2" fontWeight="700">Provides Pickup</Typography>}
-              />
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="Pickup Charges"
-              name="pickupCharges"
-              type="number"
-              value={formData.pickupCharges}
-              onChange={handleChange}
-              disabled={!formData.providesPickup}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <CurrencyRupeeIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-              }}
-              helperText="Charged to the customer for bike pickup"
-              inputProps={{ min: 0 }}
-            />
-          </Grid>
-
-          {/* Drop */}
-          <Grid item xs={12} sm={6} md={3}>
-            <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    name="providesDrop"
-                    checked={!!formData.providesDrop}
-                    onChange={handleChange}
-                    color="primary"
-                    size="small"
-                  />
-                }
-                label={<Typography variant="body2" fontWeight="700">Provides Drop</Typography>}
-              />
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="Drop Charges"
-              name="dropCharges"
-              type="number"
-              value={formData.dropCharges}
-              onChange={handleChange}
-              disabled={!formData.providesDrop}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <CurrencyRupeeIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-              }}
-              helperText="Charged to the customer for bike drop-off"
-              inputProps={{ min: 0 }}
-            />
-          </Grid>
-
-          {/* Admin notes */}
-          <Grid item xs={12}>
+  {/* Admin notes */}
+  <Grid item xs={12}>
             <TextField
               fullWidth
               multiline
@@ -1269,6 +1192,123 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
               inputProps={{ maxLength: 1000 }}
             />
           </Grid>
+          <Grid container spacing={3}>
+  {/* Pickup Row */}
+  <Grid item xs={12}>
+    <Grid container spacing={2} alignItems="center">
+      <Grid item xs={12} sm={6} md={3}>
+        <Box
+          sx={{
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 2,
+            p: 2,
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <FormControlLabel
+            control={
+              <Switch
+                name="providesPickup"
+                checked={!!formData.providesPickup}
+                onChange={handleChange}
+                color="primary"
+                size="small"
+              />
+            }
+            label={
+              <Typography variant="body2" fontWeight={700}>
+                Provides Pickup
+              </Typography>
+            }
+          />
+        </Box>
+      </Grid>
+
+      <Grid item xs={12} sm={6} md={3}>
+        <TextField
+          fullWidth
+          label="Pickup Charges"
+          name="pickupCharges"
+          type="number"
+          value={formData.pickupCharges}
+          onChange={handleChange}
+          disabled={!formData.providesPickup}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <CurrencyRupeeIcon fontSize="small" color="action" />
+              </InputAdornment>
+            ),
+          }}
+          helperText="Charged to the customer for bike pickup"
+          inputProps={{ min: 0 }}
+        />
+      </Grid>
+    </Grid>
+  </Grid>
+
+  {/* Drop Row */}
+  <Grid item xs={12}>
+    <Grid container spacing={2} alignItems="center">
+      <Grid item xs={12} sm={6} md={3}>
+        <Box
+          sx={{
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 2,
+            p: 2,
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <FormControlLabel
+            control={
+              <Switch
+                name="providesDrop"
+                checked={!!formData.providesDrop}
+                onChange={handleChange}
+                color="primary"
+                size="small"
+              />
+            }
+            label={
+              <Typography variant="body2" fontWeight={700}>
+                Provides Drop
+              </Typography>
+            }
+          />
+        </Box>
+      </Grid>
+
+      <Grid item xs={12} sm={6} md={3}>
+        <TextField
+          fullWidth
+          label="Drop Charges"
+          name="dropCharges"
+          type="number"
+          value={formData.dropCharges}
+          onChange={handleChange}
+          disabled={!formData.providesDrop}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <CurrencyRupeeIcon fontSize="small" color="action" />
+              </InputAdornment>
+            ),
+          }}
+          helperText="Charged to the customer for bike drop-off"
+          inputProps={{ min: 0 }}
+        />
+      </Grid>
+    </Grid>
+  </Grid>
+</Grid>
+
+        
         </Grid>
       </SectionCard>
 
