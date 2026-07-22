@@ -33,7 +33,7 @@ import {
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import moment from "moment";
-import { fetchFinanceSummary, fetchAllPayouts } from "../../services/financeService";
+import { fetchFinanceSummary } from "../../services/financeService";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -173,26 +173,20 @@ const FinanceDashboard = () => {
     setLoading(true);
     setError(null);
     try {
-      const [s, payoutsResult] = await Promise.all([
-        fetchFinanceSummary(),
-        fetchAllPayouts(),
-      ]);
+      const s = await fetchFinanceSummary();
 
-      const payouts = payoutsResult.data;
-      if (Array.isArray(payouts)) {
-        s.pendingWithdrawals    = payouts.filter((p) => p.order_status === "PENDING").length;
-        s.inProgressWithdrawals = payouts.filter((p) => p.order_status === "IN_PROGRESS").length;
-        s.approvedWithdrawals   = payouts.filter(
-          (p) => p.order_status === "APPROVED" || p.order_status === "COMPLETED"
-        ).length;
-      }
+      // GET /finance/summary returns withdrawals as { total, pending, inProgress, approved },
+      // each an { count, amount } bucket (approved = APPROVED + COMPLETED, already summed
+      // server-side). Flatten into the flat fields this page's cards read.
+      const withdrawals = s.withdrawals || {};
+      s.totalWithdrawals = withdrawals.approved?.amount ?? 0;
+      s.pendingWithdrawals = withdrawals.pending?.count ?? 0;
+      s.inProgressWithdrawals = withdrawals.inProgress?.count ?? 0;
+      s.approvedWithdrawals = withdrawals.approved?.count ?? 0;
 
-      // Defensive fallbacks for the newer summary fields — backend field
-      // naming for these hasn't been fully pinned down yet.
-      s.totalDealerEarnings = s.totalDealerEarnings ?? s.totalEarnings ?? s.totalLifetimeEarnings;
-      s.totalWithdrawals    = s.totalWithdrawals ?? s.totalWithdrawalAmount ?? s.totalWithdrawn;
-      s.todayTransactions   = s.todayTransactions ?? s.todaysTransactionCount ?? s.transactionsToday;
-      s.monthTransactions   = s.monthTransactions ?? s.thisMonthTransactionCount ?? s.transactionsThisMonth;
+      // todayTransactions / thisMonthTransactions are { count, totalAmount } objects.
+      s.todayTransactions = s.todayTransactions?.count ?? 0;
+      s.monthTransactions = s.thisMonthTransactions?.count ?? 0;
 
       setSummary(s);
     } catch (err) {
