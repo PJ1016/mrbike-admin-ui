@@ -31,6 +31,8 @@ const fmtDiscount = (row) => (row.discountType === "percentage" ? `${row.discoun
 const normalize = (p) => ({
   id: p._id || p.id,
   code: p.code || "",
+  name: p.name || "",
+  description: p.description || "",
   discountType: p.discountType || "percentage",
   discountValue: p.discountValue ?? 0,
   maxDiscount: p.maxDiscount ?? null,
@@ -72,7 +74,7 @@ const PromoCodes = () => {
       const list = res?.data || res?.promoCodes || (Array.isArray(res) ? res : []);
       setRows(list.map(normalize));
     } catch (e) {
-      setError(e?.response?.data?.message || "Could not load promo codes. This module needs its backend endpoints connected.");
+      setError(e?.response?.data?.message || "Could not load promo codes. Please try again.");
       setRows([]);
     } finally {
       setLoading(false);
@@ -88,7 +90,7 @@ const PromoCodes = () => {
     let list = [...rows];
     if (search.trim()) {
       const q = search.toLowerCase();
-      list = list.filter((r) => r.code.toLowerCase().includes(q));
+      list = list.filter((r) => r.code.toLowerCase().includes(q) || r.name.toLowerCase().includes(q));
     }
     if (discountType) list = list.filter((r) => r.discountType === discountType);
     if (status) list = list.filter((r) => (status === "active" ? r.isActive : !r.isActive));
@@ -127,7 +129,7 @@ const PromoCodes = () => {
       setDrawerOpen(false);
       await load();
     } catch (e) {
-      Swal.fire({ icon: "error", title: "Save failed", text: e?.response?.data?.message || "Something went wrong. Backend endpoint may not be connected yet." });
+      Swal.fire({ icon: "error", title: "Save failed", text: e?.response?.data?.message || "Something went wrong." });
     } finally {
       setSaving(false);
     }
@@ -178,6 +180,7 @@ const PromoCodes = () => {
         <Chip label={r.code} size="small" sx={{ fontFamily: "monospace", fontWeight: 700, bgcolor: "#f5f3ff", color: "#7c3aed" }} />
       ),
     },
+    { key: "name", label: "Name", render: (r) => r.name || "—" },
     { key: "discount", label: "Discount", render: (r) => <strong>{fmtDiscount(r)}</strong> },
     { key: "maxDiscount", label: "Max Discount", render: (r) => (r.maxDiscount != null ? `₹${r.maxDiscount}` : "—") },
     { key: "minOrder", label: "Min Order", render: (r) => (r.minOrder != null ? `₹${r.minOrder}` : "—") },
@@ -271,13 +274,16 @@ const PromoCodes = () => {
       <FormDrawer
         open={Boolean(viewPromo)}
         onClose={() => setViewPromo(null)}
-        title={viewPromo?.code}
+        title={viewPromo?.name ? `${viewPromo.name} (${viewPromo.code})` : viewPromo?.code}
         subtitle="PROMO CODE DETAILS"
         hideFooter
         accentColor={ACCENT}
       >
         {viewPromo && (
           <Stack spacing={2}>
+            {viewPromo.description && (
+              <Typography variant="body2" color="text.secondary">{viewPromo.description}</Typography>
+            )}
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <Typography variant="caption" color="text.secondary">Discount</Typography>

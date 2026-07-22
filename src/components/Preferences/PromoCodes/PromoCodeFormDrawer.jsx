@@ -17,6 +17,8 @@ import FormDrawer from "../shared/FormDrawer";
 
 const emptyForm = {
   code: "",
+  name: "",
+  description: "",
   discountType: "percentage",
   discountValue: "",
   maxDiscount: "",
@@ -40,6 +42,8 @@ const PromoCodeFormDrawer = ({ open, promo, saving, onClose, onSave }) => {
         promo
           ? {
               code: promo.code || "",
+              name: promo.name || "",
+              description: promo.description || "",
               discountType: promo.discountType || "percentage",
               discountValue: promo.discountValue ?? "",
               maxDiscount: promo.maxDiscount ?? "",
@@ -70,6 +74,7 @@ const PromoCodeFormDrawer = ({ open, promo, saving, onClose, onSave }) => {
   const validate = () => {
     const e = {};
     if (!form.code.trim()) e.code = "Promo code is required";
+    if (!form.name.trim()) e.name = "Promo name is required";
     if (!form.discountValue || Number(form.discountValue) <= 0) e.discountValue = "Enter a valid discount value";
     if (form.discountType === "percentage" && Number(form.discountValue) > 100) e.discountValue = "Percentage cannot exceed 100";
     if (!form.usageLimit || Number(form.usageLimit) <= 0) e.usageLimit = "Enter a valid usage limit";
@@ -126,6 +131,29 @@ const PromoCodeFormDrawer = ({ open, promo, saving, onClose, onSave }) => {
             Generate random code
           </Typography>
         </Box>
+
+        <TextField
+          fullWidth
+          label="Name"
+          value={form.name}
+          onChange={handleChange("name")}
+          error={!!errors.name}
+          helperText={errors.name || "Internal label for this campaign"}
+          placeholder="e.g. Welcome Offer"
+          size="small"
+          InputLabelProps={{ shrink: true }}
+        />
+        <TextField
+          fullWidth
+          multiline
+          minRows={2}
+          label="Description"
+          value={form.description}
+          onChange={handleChange("description")}
+          placeholder="Optional notes about this promo"
+          size="small"
+          InputLabelProps={{ shrink: true }}
+        />
 
         <Divider />
 

@@ -6,11 +6,11 @@ export const API_BASE_URL =
 export const getAuthToken = () => localStorage.getItem("adminToken");
 
 // Shared request helper for every Preferences module (Campaigns, Promo
-// Codes, Rewards & Referral rules, Legal, App Content). None of these
-// endpoints exist on the backend yet — this phase only wires the frontend
-// so requests fail gracefully (surfaced via each page's error state) until
-// the corresponding routes are implemented server-side. No UI change should
-// be needed when that happens.
+// Codes, Rewards & Referral rules, Legal, App Content). Promo Codes is fully
+// wired to real backend routes (/preferences/promo-codes/*) as of the Phase 1
+// promo-code module; the other modules under this client may still be ahead
+// of their backend routes and will surface via each page's error state until
+// implemented server-side.
 export const prefApiRequest = async (method, endpoint, data, isFormData = false) => {
   const headers = {};
   const token = getAuthToken();
