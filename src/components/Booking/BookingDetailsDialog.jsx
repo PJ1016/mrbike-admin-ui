@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -27,6 +27,7 @@ import {
   VerifiedUser as SecurityIcon,
   EventNote as CalendarIcon,
   Cancel as CancelIcon,
+  ReceiptLong as InvoiceIcon,
 } from "@mui/icons-material";
 import {
   formatDate,
@@ -35,10 +36,13 @@ import {
   getActiveStep,
   lifecycleSteps,
 } from "./bookingHelpers";
+import InvoiceModal from "../Invoice/InvoiceModal";
 
 // Reusable booking details view — used by the Bookings table and the Customer Details modal's
 // "View Booking" action so both surfaces share the exact same booking view.
 const BookingDetailsDialog = ({ open, booking, onClose }) => {
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+
   return (
     <Dialog
       open={open}
@@ -515,6 +519,14 @@ const BookingDetailsDialog = ({ open, booking, onClose }) => {
       </DialogContent>
       <DialogActions sx={{ p: 3, bgcolor: "#fff", borderTop: "1px solid #eee" }}>
         <Button
+          onClick={() => setInvoiceOpen(true)}
+          variant="outlined"
+          startIcon={<InvoiceIcon />}
+          sx={{ borderRadius: 2, px: 3, py: 1.2, fontWeight: 800, textTransform: "none" }}
+        >
+          View Invoice
+        </Button>
+        <Button
           onClick={onClose}
           variant="contained"
           disableElevation
@@ -523,6 +535,12 @@ const BookingDetailsDialog = ({ open, booking, onClose }) => {
           Close Dashboard
         </Button>
       </DialogActions>
+
+      <InvoiceModal
+        open={invoiceOpen}
+        bookingId={booking?._id}
+        onClose={() => setInvoiceOpen(false)}
+      />
     </Dialog>
   );
 };

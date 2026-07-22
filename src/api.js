@@ -218,6 +218,11 @@ export const getAllBookings = () =>
 export const getAllPayment = () =>
   apiRequest("GET", "/payment/all-payments", {}, false);
 
+// Same unified endpoint the User App and Dealer App call — one invoice per
+// booking, one shared shape, rendered identically across all three surfaces.
+export const getBookingInvoice = (bookingId) =>
+  apiRequest("GET", `/invoice/booking/${bookingId}`, {}, false);
+
 export const addBikeCompany = (data) =>
   apiRequest("POST", "/bike/add-bike-company", data, true, true);
 
