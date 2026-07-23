@@ -29,6 +29,10 @@ import {
   DirectionsBike as BikeIcon,
   EventNote as BookingIcon,
   ReportProblem as ComplaintIcon,
+  CardGiftcard as ReferralIcon,
+  ConfirmationNumber as CodeIcon,
+  Groups as ReferralsIcon,
+  CurrencyRupee as EarningsIcon,
   Visibility as VisibilityIcon,
   CheckCircle as CheckCircleIcon,
   DeleteOutline as DeleteIcon,
@@ -39,6 +43,7 @@ import {
 } from "@mui/icons-material";
 import {
   useGetCustomerByIdQuery,
+  useGetReferredCustomersQuery,
   useDeleteCustomerMutation,
 } from "../../redux/services/customerApi";
 import { getAllBookings } from "../../api";
@@ -52,7 +57,19 @@ const TABS = [
   { label: "Bikes", icon: <BikeIcon fontSize="small" /> },
   { label: "Bookings", icon: <BookingIcon fontSize="small" /> },
   { label: "Complaints", icon: <ComplaintIcon fontSize="small" /> },
+  { label: "Referrals", icon: <ReferralIcon fontSize="small" /> },
 ];
+
+// Reward status comes from ReferralTransaction ("credited"/"reversed") or the
+// synthetic "Pending" value the API returns when no reward has been credited yet
+// (see mrbike-backend getReferredCustomers) — none of these are booking statuses,
+// so this stays separate from bookingHelpers' getStatusConfig.
+const getRewardStatusConfig = (status) => {
+  const s = (status || "").toLowerCase();
+  if (s === "credited") return { color: "success" };
+  if (s === "reversed") return { color: "error" };
+  return { color: "warning" };
+};
 
 const formatDate = (d) => {
   if (!d) return "N/A";
@@ -178,6 +195,12 @@ const CustomerDetailsModal = ({ open, customer, onClose }) => {
   });
 
   const activeCustomer = fullCustomer || customer;
+
+  const { data: referredCustomersData, isFetching: referredLoading, isError: referredError } =
+    useGetReferredCustomersQuery(customerId, {
+      skip: !open || !customerId,
+    });
+  const referredCustomers = referredCustomersData || [];
 
   const [bookings, setBookings] = useState([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
@@ -493,6 +516,118 @@ const CustomerDetailsModal = ({ open, customer, onClose }) => {
               Complaint tracking isn't available yet — no complaints API exists in the backend for this feature.
             </Alert>
             <EmptyState text="No complaints found." />
+          </TabPanel>
+
+          {/* Referrals */}
+          <TabPanel value={tab} index={4}>
+            {profileLoading && !activeCustomer ? (
+              <SectionLoading label="Loading referral information…" />
+            ) : (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main", mb: 1.5 }}>
+                    REFERRAL INFORMATION
+                  </Typography>
+                  <InfoRow
+                    icon={<ReferralIcon sx={{ fontSize: 14, color: "text.secondary" }} />}
+                    label="Joined Via Referral"
+                    value={activeCustomer?.joinedViaReferral ? "Yes" : "No"}
+                  />
+                  {activeCustomer?.joinedViaReferral && (
+                    <>
+                      <InfoRow
+                        icon={<PersonIcon sx={{ fontSize: 14, color: "text.secondary" }} />}
+                        label="Referred By"
+                        value={
+                          activeCustomer?.referredBy
+                            ? `${activeCustomer.referredBy.name}${activeCustomer.referredBy.referralCode ? ` (${activeCustomer.referredBy.referralCode})` : ""}`
+                            : null
+                        }
+                      />
+                      <InfoRow
+                        icon={<CodeIcon sx={{ fontSize: 14, color: "text.secondary" }} />}
+                        label="Referral Code Used"
+                        value={activeCustomer?.referralCodeUsed}
+                      />
+                    </>
+                  )}
+                  <InfoRow
+                    icon={<CodeIcon sx={{ fontSize: 14, color: "text.secondary" }} />}
+                    label="My Referral Code"
+                    value={activeCustomer?.myReferralCode}
+                  />
+                  <InfoRow
+                    icon={<ReferralsIcon sx={{ fontSize: 14, color: "text.secondary" }} />}
+                    label="Total Referrals"
+                    value={activeCustomer?.totalReferrals ?? 0}
+                  />
+                  <InfoRow
+                    icon={<CheckCircleIcon sx={{ fontSize: 14, color: "text.secondary" }} />}
+                    label="Successful Referrals"
+                    value={activeCustomer?.successfulReferrals ?? 0}
+                  />
+                  <InfoRow
+                    icon={<EarningsIcon sx={{ fontSize: 14, color: "text.secondary" }} />}
+                    label="Referral Earnings"
+                    value={`₹${(activeCustomer?.referralEarnings ?? 0).toLocaleString()}`}
+                  />
+                </Box>
+
+                <Divider />
+
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: "bold", color: "primary.main", mb: 1.5 }}>
+                    REFERRED CUSTOMERS
+                  </Typography>
+                  {referredLoading ? (
+                    <SectionLoading label="Loading referred customers…" />
+                  ) : referredError ? (
+                    <Alert severity="error">Failed to load referred customers.</Alert>
+                  ) : referredCustomers.length === 0 ? (
+                    <EmptyState text="This customer hasn't referred anyone yet." />
+                  ) : (
+                    <TableContainer sx={{ border: "1px solid #e8edf3", borderRadius: 2, overflowX: "auto" }}>
+                      <Table size="small">
+                        <TableHead sx={{ bgcolor: "#f8faff" }}>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: "bold" }}>Customer Name</TableCell>
+                            <TableCell sx={{ fontWeight: "bold" }}>Customer ID</TableCell>
+                            <TableCell sx={{ fontWeight: "bold" }}>Joined Date</TableCell>
+                            <TableCell sx={{ fontWeight: "bold" }}>First Booking Status</TableCell>
+                            <TableCell sx={{ fontWeight: "bold" }}>Reward Amount</TableCell>
+                            <TableCell sx={{ fontWeight: "bold" }}>Reward Status</TableCell>
+                            <TableCell sx={{ fontWeight: "bold" }}>Booking ID</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {referredCustomers.map((r, i) => {
+                            const { color: bookingColor } = getStatusConfig(r.firstBookingStatus);
+                            const { color: rewardColor } = getRewardStatusConfig(r.rewardStatus);
+                            return (
+                              <TableRow key={r.customerId || i} hover>
+                                <TableCell sx={{ whiteSpace: "nowrap", fontWeight: "bold" }}>{r.customerName}</TableCell>
+                                <TableCell sx={{ whiteSpace: "nowrap", fontFamily: "monospace" }}>{r.customerId || "N/A"}</TableCell>
+                                <TableCell sx={{ whiteSpace: "nowrap" }}>{formatDate(r.joinedDate)}</TableCell>
+                                <TableCell sx={{ whiteSpace: "nowrap" }}>
+                                  <Chip label={r.firstBookingStatus} color={bookingColor} size="small" sx={{ fontSize: "0.7rem" }} />
+                                </TableCell>
+                                <TableCell sx={{ whiteSpace: "nowrap", fontWeight: "bold", color: "#2e7d32" }}>
+                                  ₹{(r.rewardAmount ?? 0).toLocaleString()}
+                                </TableCell>
+                                <TableCell sx={{ whiteSpace: "nowrap" }}>
+                                  <Chip label={r.rewardStatus} color={rewardColor} size="small" sx={{ textTransform: "capitalize", fontSize: "0.7rem" }} />
+                                </TableCell>
+                                <TableCell sx={{ whiteSpace: "nowrap" }}>{r.bookingId || "N/A"}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  )}
+                </Box>
+              </Box>
+            )}
           </TabPanel>
         </DialogContent>
 

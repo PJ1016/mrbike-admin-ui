@@ -60,7 +60,8 @@ const CustomerTable = ({ datas, loading, onRefresh }) => {
           item.last_name?.toLowerCase().includes(term) ||
           item.email?.toLowerCase().includes(term) ||
           item.phone?.toString().includes(term) ||
-          item.customerId?.toLowerCase().includes(term)
+          item.customerId?.toLowerCase().includes(term) ||
+          item.referralCode?.toLowerCase().includes(term)
       );
     }
     return [...result].sort((a, b) => {
@@ -126,6 +127,9 @@ const CustomerTable = ({ datas, loading, onRefresh }) => {
     { id: "address", label: "Location", sortable: false },
     { id: "isProfile", label: "Profile", sortable: false },
     { id: "reward_points", label: "Rewards", sortable: true },
+    { id: "referralCode", label: "Referral Code", sortable: true },
+    { id: "joinedViaReferral", label: "Joined Via Referral", sortable: true },
+    { id: "referralCodeUsed", label: "Referral Code Used", sortable: true },
     { id: "createdAt", label: "Joined", sortable: true },
     { id: "actions", label: "Action", sortable: false },
   ];
@@ -137,7 +141,7 @@ const CustomerTable = ({ datas, loading, onRefresh }) => {
         <TextField
           variant="outlined"
           size="small"
-          placeholder="Search by name, email, phone or ID…"
+          placeholder="Search by name, email, phone, ID or referral code…"
           value={searchTerm}
           onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
           InputProps={{
@@ -164,7 +168,7 @@ const CustomerTable = ({ datas, loading, onRefresh }) => {
           "&::-webkit-scrollbar-thumb": { backgroundColor: "#ccc", borderRadius: "10px" },
         }}
       >
-        <Table size="small" sx={{ minWidth: 1000 }}>
+        <Table size="small" sx={{ minWidth: 1300 }}>
           <TableHead sx={{ backgroundColor: "#2e83ff" }}>
             <TableRow>
               {headers.map((h) => (
@@ -270,6 +274,28 @@ const CustomerTable = ({ datas, loading, onRefresh }) => {
                         {customer.reward_points ?? 0}
                       </Typography>
                     </Box>
+                  </TableCell>
+
+                  <TableCell>
+                    <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
+                      {customer.referralCode || "-"}
+                    </Typography>
+                  </TableCell>
+
+                  <TableCell>
+                    <Chip
+                      label={customer.joinedViaReferral ? "Yes" : "No"}
+                      color={customer.joinedViaReferral ? "success" : "default"}
+                      size="small"
+                      variant={customer.joinedViaReferral ? "filled" : "outlined"}
+                      sx={{ fontWeight: "bold", fontSize: "0.65rem" }}
+                    />
+                  </TableCell>
+
+                  <TableCell>
+                    <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
+                      {customer.referralCodeUsed || "-"}
+                    </Typography>
                   </TableCell>
 
                   <TableCell>

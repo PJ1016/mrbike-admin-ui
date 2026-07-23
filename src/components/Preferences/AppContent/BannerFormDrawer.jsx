@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { Box, Divider, FormControlLabel, Stack, Switch, TextField, Typography } from "@mui/material";
+import { Box, Divider, FormControlLabel, MenuItem, Stack, Switch, TextField, Typography } from "@mui/material";
 import FormDrawer from "../shared/FormDrawer";
 import ImageUploadField from "../shared/ImageUploadField";
 import { BANNER_TYPES } from "../../../api/preferences/appContentApi";
 
 const ACCENTS = {
-  [BANNER_TYPES.HOME]: "#2563eb",
   [BANNER_TYPES.POPUP]: "#7c3aed",
   [BANNER_TYPES.ANNOUNCEMENT]: "#ea580c",
 };
 
+const TYPE_OPTIONS = [
+  { value: BANNER_TYPES.POPUP, label: "Popup" },
+  { value: BANNER_TYPES.ANNOUNCEMENT, label: "Announcement" },
+];
+
 const emptyForm = {
+  type: TYPE_OPTIONS[0].value,
   title: "",
   linkUrl: "",
   displayOrder: "",
@@ -19,23 +24,26 @@ const emptyForm = {
   isActive: true,
 };
 
-// Create/Edit drawer for a single app-content banner (Home / Popup /
-// Announcement). `banner` is null for create, or the normalized row object
-// for edit. Mirrors PromoCodeFormDrawer.jsx — builds a multipart FormData
-// payload and hands it to the parent's onSave; the parent (AppBannerManager)
-// owns the actual create/update API call since it knows the bannerType.
-const BannerFormDrawer = ({ open, banner, bannerType, saving, onClose, onSave }) => {
+// Create/Edit drawer for an App Popups banner (Popup / Announcement). `banner`
+// is null for create, or the normalized row object for edit. Builds a
+// multipart FormData payload and hands it, plus the selected Type, back to
+// the parent's onSave — the parent (AppPopupsManager) owns the actual
+// create/update API call since it knows which bannerType collection to hit.
+// The Type field is locked once editing an existing banner: the backend has
+// no endpoint to move a banner between bannerType collections.
+const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
   const [form, setForm] = useState(emptyForm);
   const [image, setImage] = useState(null);
   const [errors, setErrors] = useState({});
 
-  const accentColor = ACCENTS[bannerType] || "#2563eb";
+  const accentColor = ACCENTS[form.type] || "#7c3aed";
 
   useEffect(() => {
     if (open) {
       setForm(
         banner
           ? {
+              type: banner.bannerType || TYPE_OPTIONS[0].value,
               title: banner.title || "",
               linkUrl: banner.linkUrl || "",
               displayOrder: banner.displayOrder ?? "",
@@ -77,7 +85,7 @@ const BannerFormDrawer = ({ open, banner, bannerType, saving, onClose, onSave })
     fd.append("scheduleEnd", form.scheduleEnd || "");
     fd.append("isActive", String(form.isActive));
     if (image) fd.append("image", image);
-    onSave(fd);
+    onSave(fd, form.type);
   };
 
   return (
@@ -104,6 +112,24 @@ const BannerFormDrawer = ({ open, banner, bannerType, saving, onClose, onSave })
         />
 
         <Divider />
+
+        <TextField
+          select
+          fullWidth
+          label="Type"
+          value={form.type}
+          onChange={handleChange("type")}
+          disabled={Boolean(banner)}
+          helperText={banner ? "Type cannot be changed after creation" : "Choose where this appears in the app"}
+          size="small"
+          InputLabelProps={{ shrink: true }}
+        >
+          {TYPE_OPTIONS.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
 
         <TextField
           fullWidth

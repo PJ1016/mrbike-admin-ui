@@ -23,21 +23,18 @@ import {
   bulkDeleteAppBanners,
 } from "../../../api/preferences/appContentApi";
 
-const ACCENTS = {
-  [BANNER_TYPES.HOME]: "#2563eb",
-  [BANNER_TYPES.POPUP]: "#7c3aed",
-  [BANNER_TYPES.ANNOUNCEMENT]: "#ea580c",
+const ACCENT = "#7c3aed";
+
+const TYPE_META = {
+  [BANNER_TYPES.POPUP]: { label: "Popup", bg: "#ede9fe", color: "#7c3aed" },
+  [BANNER_TYPES.ANNOUNCEMENT]: { label: "Announcement", bg: "#ffedd5", color: "#ea580c" },
 };
 
-const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "");
+const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—");
 
-const fmtSchedule = (row) => {
-  if (!row.scheduleStart && !row.scheduleEnd) return "Always";
-  return `${fmtDate(row.scheduleStart) || "—"} – ${fmtDate(row.scheduleEnd) || "—"}`;
-};
-
-const normalize = (b) => ({
+const normalize = (b, fallbackType) => ({
   id: b._id || b.id,
+  bannerType: b.bannerType || fallbackType,
   image: b.image || b.imageUrl || "",
   title: b.title || "",
   linkUrl: b.linkUrl || "",
@@ -48,19 +45,20 @@ const normalize = (b) => ({
   createdAt: b.createdAt || null,
 });
 
-// Generic, reusable CRUD table+drawer for a single app-content banner
-// collection. `bannerType` selects which collection (home / popup /
-// announcement) this instance manages — AppContent.jsx mounts one of these
-// per tab. Mirrors the PromoCodes.jsx page pattern, packaged as a component
-// instead of a page so it can be reused across the three banner tabs.
-const AppBannerManager = ({ bannerType, title }) => {
-  const ACCENT = ACCENTS[bannerType] || "#2563eb";
-
+// App Popups — merges the former "Popup Banners" and "Announcement Banners"
+// tabs into a single workspace. Both are the same AppBanner collection,
+// discriminated only by bannerType ("popup" / "announcement"), so this
+// component fetches both collections and presents them as one list with a
+// Type filter/column. Reuses the shared BannerFormDrawer (which has its own
+// Type field) so create/edit still goes through the same, unchanged backend
+// endpoints per type.
+const AppPopupsManager = () => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -78,11 +76,17 @@ const AppBannerManager = ({ bannerType, title }) => {
     setLoading(true);
     setError("");
     try {
-      const res = await getAppBanners(bannerType);
-      const list = res?.data || res?.banners || (Array.isArray(res) ? res : []);
-      setRows(list.map(normalize));
+      const [popupRes, announcementRes] = await Promise.all([
+        getAppBanners(BANNER_TYPES.POPUP),
+        getAppBanners(BANNER_TYPES.ANNOUNCEMENT),
+      ]);
+      const toList = (res) => res?.data || res?.banners || (Array.isArray(res) ? res : []);
+      setRows([
+        ...toList(popupRes).map((b) => normalize(b, BANNER_TYPES.POPUP)),
+        ...toList(announcementRes).map((b) => normalize(b, BANNER_TYPES.ANNOUNCEMENT)),
+      ]);
     } catch (e) {
-      setError(e?.response?.data?.message || "Could not load banners. This module needs its backend endpoints connected.");
+      setError(e?.response?.data?.message || "Could not load popups. This module needs its backend endpoints connected.");
       setRows([]);
     } finally {
       setLoading(false);
@@ -92,7 +96,7 @@ const AppBannerManager = ({ bannerType, title }) => {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bannerType]);
+  }, []);
 
   const filtered = useMemo(() => {
     let list = [...rows];
@@ -100,18 +104,20 @@ const AppBannerManager = ({ bannerType, title }) => {
       const q = search.toLowerCase();
       list = list.filter((r) => r.title.toLowerCase().includes(q));
     }
+    if (typeFilter) list = list.filter((r) => r.bannerType === typeFilter);
     if (status) list = list.filter((r) => (status === "active" ? r.isActive : !r.isActive));
     return list.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-  }, [rows, search, status]);
+  }, [rows, search, typeFilter, status]);
 
-  useEffect(() => setPage(1), [search, status, bannerType]);
+  useEffect(() => setPage(1), [search, typeFilter, status]);
 
   const total = filtered.length;
   const paged = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page, pageSize]);
 
-  const hasActiveFilters = Boolean(search || status);
+  const hasActiveFilters = Boolean(search || typeFilter || status);
   const clearAllFilters = () => {
     setSearch("");
+    setTypeFilter("");
     setStatus("");
   };
 
@@ -124,13 +130,13 @@ const AppBannerManager = ({ bannerType, title }) => {
     setDrawerOpen(true);
   };
 
-  const handleSave = async (formData) => {
+  const handleSave = async (formData, selectedType) => {
     setSaving(true);
     try {
       if (editingBanner) {
-        await updateAppBanner(bannerType, editingBanner.id, formData);
+        await updateAppBanner(editingBanner.bannerType, editingBanner.id, formData);
       } else {
-        await createAppBanner(bannerType, formData);
+        await createAppBanner(selectedType || BANNER_TYPES.POPUP, formData);
       }
       setDrawerOpen(false);
       await load();
@@ -144,7 +150,7 @@ const AppBannerManager = ({ bannerType, title }) => {
   const handleToggleStatus = async (row, next) => {
     setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, isActive: next } : r)));
     try {
-      await toggleAppBannerStatus(bannerType, row.id, next);
+      await toggleAppBannerStatus(row.bannerType, row.id, next);
     } catch (e) {
       setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, isActive: !next } : r)));
       Swal.fire({ icon: "error", title: "Could not update status", text: e?.response?.data?.message || "Something went wrong." });
@@ -154,15 +160,33 @@ const AppBannerManager = ({ bannerType, title }) => {
   const requestDelete = (ids) => setConfirmState({ open: true, mode: "delete", ids });
   const requestBulkStatus = (ids, nextStatus) => setConfirmState({ open: true, mode: nextStatus ? "activate" : "deactivate", ids, nextStatus });
 
+  // Selected ids can span both bannerType collections, so bulk actions are
+  // grouped by type before hitting the (per-type) bulk/toggle endpoints.
+  const groupIdsByType = (ids) => {
+    const groups = { [BANNER_TYPES.POPUP]: [], [BANNER_TYPES.ANNOUNCEMENT]: [] };
+    ids.forEach((id) => {
+      const row = rows.find((r) => r.id === id);
+      if (row) groups[row.bannerType].push(id);
+    });
+    return groups;
+  };
+
   const handleConfirm = async () => {
     const { mode, ids, nextStatus } = confirmState;
     setConfirmLoading(true);
     try {
+      const groups = groupIdsByType(ids);
       if (mode === "delete") {
-        if (ids.length > 1) await bulkDeleteAppBanners(bannerType, ids);
-        else await deleteAppBanner(bannerType, ids[0]);
+        await Promise.all(
+          Object.entries(groups).map(([type, typeIds]) => {
+            if (!typeIds.length) return null;
+            return typeIds.length > 1 ? bulkDeleteAppBanners(type, typeIds) : deleteAppBanner(type, typeIds[0]);
+          })
+        );
       } else {
-        await Promise.all(ids.map((id) => toggleAppBannerStatus(bannerType, id, nextStatus)));
+        await Promise.all(
+          Object.entries(groups).flatMap(([type, typeIds]) => typeIds.map((id) => toggleAppBannerStatus(type, id, nextStatus)))
+        );
       }
       setSelectedIds((prev) => prev.filter((id) => !ids.includes(id)));
       setConfirmState({ open: false, mode: null, ids: [] });
@@ -179,8 +203,8 @@ const AppBannerManager = ({ bannerType, title }) => {
 
   const columns = [
     {
-      key: "thumbnail",
-      label: "Thumbnail",
+      key: "image",
+      label: "Image",
       render: (r) =>
         r.image ? (
           <Box component="img" src={r.image} alt={r.title} sx={{ width: 48, height: 48, objectFit: "cover", borderRadius: "6px" }} />
@@ -192,13 +216,21 @@ const AppBannerManager = ({ bannerType, title }) => {
     },
     { key: "title", label: "Title", render: (r) => <strong>{r.title}</strong> },
     {
-      key: "linkUrl",
-      label: "Link URL",
-      render: (r) => (r.linkUrl ? <Typography variant="body2" sx={{ color: "#2563eb", maxWidth: 220 }} noWrap>{r.linkUrl}</Typography> : "—"),
+      key: "type",
+      label: "Type",
+      render: (r) => (
+        <Chip
+          label={TYPE_META[r.bannerType]?.label || r.bannerType}
+          size="small"
+          sx={{ bgcolor: TYPE_META[r.bannerType]?.bg, color: TYPE_META[r.bannerType]?.color, fontWeight: 700 }}
+        />
+      ),
     },
-    { key: "displayOrder", label: "Display Order" },
-    { key: "schedule", label: "Schedule", render: (r) => fmtSchedule(r) },
     { key: "status", label: "Status", render: (r) => <StatusSwitch checked={r.isActive} onChange={(v) => handleToggleStatus(r, v)} /> },
+    { key: "displayOrder", label: "Display Order" },
+    { key: "scheduleStart", label: "Start Date", render: (r) => fmtDate(r.scheduleStart) },
+    { key: "scheduleEnd", label: "End Date", render: (r) => fmtDate(r.scheduleEnd) },
+    { key: "createdBy", label: "Created By", render: () => "—" },
   ];
 
   const getRowActions = (row) => [
@@ -211,12 +243,12 @@ const AppBannerManager = ({ bannerType, title }) => {
   return (
     <Box>
       <PrefHeader
-        title={title}
+        title="App Popups"
         count={rows.length}
-        countLabel="banner"
+        countLabel="item"
         onRefresh={load}
         onAdd={openCreate}
-        addLabel="Add Banner"
+        addLabel="Add Popup"
       />
 
       {error && (
@@ -226,10 +258,19 @@ const AppBannerManager = ({ bannerType, title }) => {
       )}
 
       <Box sx={{ mb: 2 }}>
-        <SupportSearch value={search} onChange={setSearch} placeholder="Search by banner title…" />
+        <SupportSearch value={search} onChange={setSearch} placeholder="Search by title…" />
       </Box>
 
       <Stack direction="row" flexWrap="wrap" gap={1.5} alignItems="center" sx={{ mb: 2.5 }}>
+        <FilterSelect
+          label="Type"
+          value={typeFilter}
+          onChange={setTypeFilter}
+          options={[
+            { value: BANNER_TYPES.POPUP, label: "Popup" },
+            { value: BANNER_TYPES.ANNOUNCEMENT, label: "Announcement" },
+          ]}
+        />
         <FilterSelect
           label="Status"
           value={status}
@@ -274,7 +315,6 @@ const AppBannerManager = ({ bannerType, title }) => {
       <BannerFormDrawer
         open={drawerOpen}
         banner={editingBanner}
-        bannerType={bannerType}
         saving={saving}
         onClose={() => setDrawerOpen(false)}
         onSave={handleSave}
@@ -284,7 +324,7 @@ const AppBannerManager = ({ bannerType, title }) => {
         open={Boolean(viewBanner)}
         onClose={() => setViewBanner(null)}
         title={viewBanner?.title}
-        subtitle="BANNER DETAILS"
+        subtitle="APP POPUPS"
         hideFooter
         accentColor={ACCENT}
       >
@@ -298,6 +338,20 @@ const AppBannerManager = ({ bannerType, title }) => {
               </Box>
             )}
             <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <Typography variant="caption" color="text.secondary">Type</Typography>
+                <Box>
+                  <Chip
+                    label={TYPE_META[viewBanner.bannerType]?.label || viewBanner.bannerType}
+                    size="small"
+                    sx={{ bgcolor: TYPE_META[viewBanner.bannerType]?.bg, color: TYPE_META[viewBanner.bannerType]?.color, fontWeight: 700 }}
+                  />
+                </Box>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="caption" color="text.secondary">Status</Typography>
+                <Box><StatusSwitch checked={viewBanner.isActive} onChange={(v) => handleToggleStatus(viewBanner, v)} /></Box>
+              </Grid>
               <Grid item xs={12}>
                 <Typography variant="caption" color="text.secondary">Link URL</Typography>
                 <Typography variant="body1" fontWeight={700}>{viewBanner.linkUrl || "—"}</Typography>
@@ -306,16 +360,18 @@ const AppBannerManager = ({ bannerType, title }) => {
                 <Typography variant="caption" color="text.secondary">Display Order</Typography>
                 <Typography variant="body1" fontWeight={700}>{viewBanner.displayOrder}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="caption" color="text.secondary">Status</Typography>
-                <Box><StatusSwitch checked={viewBanner.isActive} onChange={(v) => handleToggleStatus(viewBanner, v)} /></Box>
-              </Grid>
             </Grid>
             <Divider />
-            <Box>
-              <Typography variant="caption" color="text.secondary">Schedule</Typography>
-              <Typography variant="body1" fontWeight={700}>{fmtSchedule(viewBanner)}</Typography>
-            </Box>
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <Typography variant="caption" color="text.secondary">Start Date</Typography>
+                <Typography variant="body1" fontWeight={700}>{fmtDate(viewBanner.scheduleStart)}</Typography>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="caption" color="text.secondary">End Date</Typography>
+                <Typography variant="body1" fontWeight={700}>{fmtDate(viewBanner.scheduleEnd)}</Typography>
+              </Grid>
+            </Grid>
           </Stack>
         )}
       </FormDrawer>
@@ -323,11 +379,11 @@ const AppBannerManager = ({ bannerType, title }) => {
       <ConfirmDialog
         open={confirmState.open}
         loading={confirmLoading}
-        title={confirmState.mode === "delete" ? "Delete banner(s)?" : confirmState.mode === "activate" ? "Activate banner(s)?" : "Deactivate banner(s)?"}
+        title={confirmState.mode === "delete" ? "Delete item(s)?" : confirmState.mode === "activate" ? "Activate item(s)?" : "Deactivate item(s)?"}
         message={
           confirmState.mode === "delete"
-            ? `This will permanently delete ${confirmState.ids.length} banner(s). This action cannot be undone.`
-            : `This will ${confirmState.mode} ${confirmState.ids.length} banner(s).`
+            ? `This will permanently delete ${confirmState.ids.length} item(s). This action cannot be undone.`
+            : `This will ${confirmState.mode} ${confirmState.ids.length} item(s).`
         }
         confirmLabel={confirmState.mode === "delete" ? "Delete" : "Confirm"}
         confirmColor={confirmState.mode === "delete" ? "error" : "primary"}
@@ -338,4 +394,4 @@ const AppBannerManager = ({ bannerType, title }) => {
   );
 };
 
-export default AppBannerManager;
+export default AppPopupsManager;

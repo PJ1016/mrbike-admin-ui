@@ -40,7 +40,7 @@ const normalize = (f) => ({
 });
 
 // Generic CRUD table+drawer for FAQ entries. Mirrors PromoCodes.jsx / the
-// AppBannerManager pattern; Category filter options are derived from the
+// AppPopupsManager pattern; Category filter options are derived from the
 // loaded rows (no fixed enum exists on the backend for this field), same
 // approach TransactionFilters.jsx uses for dealerOptions.
 const FaqManager = () => {

@@ -13,6 +13,11 @@ export const customerApi = baseApi.injectEndpoints({
       transformResponse: (response) => response.data || response,
       providesTags: (result, error, id) => [{ type: 'Customer', id }],
     }),
+    getReferredCustomers: builder.query({
+      query: (id) => `/customers/${id}/referrals`,
+      transformResponse: (response) => response.data || response,
+      providesTags: (result, error, id) => [{ type: 'Customer', id: `${id}-referrals` }],
+    }),
     deleteCustomer: builder.mutation({
       query: (customerId) => ({
         url: '/customers/deletecustomer',
@@ -27,5 +32,6 @@ export const customerApi = baseApi.injectEndpoints({
 export const {
   useGetCustomersQuery,
   useGetCustomerByIdQuery,
+  useGetReferredCustomersQuery,
   useDeleteCustomerMutation,
 } = customerApi;
