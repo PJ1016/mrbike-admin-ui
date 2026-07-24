@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Box, Chip, Divider, Grid, Stack, Tooltip, Typography } from "@mui/material";
 import { Delete, ToggleOff, ToggleOn } from "@mui/icons-material";
+import DOMPurify from "dompurify";
 import Swal from "sweetalert2";
 
 import PrefHeader from "../shared/PrefHeader";
@@ -29,14 +30,32 @@ const truncate = (text, len = 60) => {
   return plain.length > len ? `${plain.slice(0, len)}…` : plain;
 };
 
+const formatAppType = (appType) => {
+  const list = Array.isArray(appType) ? appType : [];
+  const hasUser = list.includes("user");
+  const hasDealer = list.includes("dealer");
+  if (hasUser && hasDealer) return "Both Apps";
+  if (hasDealer) return "Dealer App";
+  return "User App";
+};
+
+const formatDate = (value) => {
+  if (!value) return "—";
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+};
+
 const normalize = (f) => ({
   id: f._id || f.id,
   question: f.question || "",
   answer: f.answer || "",
   category: f.category || "",
+  appType: Array.isArray(f.appType) && f.appType.length ? f.appType : ["user", "dealer"],
+  videoUrl: f.videoUrl || null,
   displayOrder: f.displayOrder ?? 0,
   isActive: f.isActive ?? true,
   createdAt: f.createdAt || null,
+  updatedAt: f.updatedAt || null,
 });
 
 // Generic CRUD table+drawer for FAQ entries. Mirrors PromoCodes.jsx / the
@@ -51,6 +70,7 @@ const FaqManager = () => {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("");
+  const [appTypeFilter, setAppTypeFilter] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -96,19 +116,21 @@ const FaqManager = () => {
     }
     if (category) list = list.filter((r) => r.category === category);
     if (status) list = list.filter((r) => (status === "active" ? r.isActive : !r.isActive));
+    if (appTypeFilter) list = list.filter((r) => r.appType.includes(appTypeFilter));
     return list.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-  }, [rows, search, category, status]);
+  }, [rows, search, category, status, appTypeFilter]);
 
-  useEffect(() => setPage(1), [search, category, status]);
+  useEffect(() => setPage(1), [search, category, status, appTypeFilter]);
 
   const total = filtered.length;
   const paged = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page, pageSize]);
 
-  const hasActiveFilters = Boolean(search || category || status);
+  const hasActiveFilters = Boolean(search || category || status || appTypeFilter);
   const clearAllFilters = () => {
     setSearch("");
     setCategory("");
     setStatus("");
+    setAppTypeFilter("");
   };
 
   const openCreate = () => {
@@ -186,12 +208,27 @@ const FaqManager = () => {
       ),
     },
     {
+      key: "appType",
+      label: "App Type",
+      render: (r) => <Chip label={formatAppType(r.appType)} size="small" sx={{ bgcolor: "#eef2ff", color: "#4338ca", fontWeight: 600 }} />,
+    },
+    {
       key: "category",
       label: "Category",
       render: (r) => (r.category ? <Chip label={r.category} size="small" sx={{ bgcolor: "#ecfeff", color: "#0e7490", fontWeight: 600 }} /> : "—"),
     },
     { key: "displayOrder", label: "Order" },
     { key: "status", label: "Status", render: (r) => <StatusSwitch checked={r.isActive} onChange={(v) => handleToggleStatus(r, v)} /> },
+    {
+      key: "hasVideo",
+      label: "Has Video",
+      render: (r) => (r.videoUrl ? <Chip label="✓" size="small" sx={{ bgcolor: "#ecfdf5", color: "#047857", fontWeight: 700 }} /> : "—"),
+    },
+    {
+      key: "updatedAt",
+      label: "Updated At",
+      render: (r) => <Typography variant="caption" color="text.secondary">{formatDate(r.updatedAt)}</Typography>,
+    },
   ];
 
   const getRowActions = (row) => [
@@ -223,6 +260,15 @@ const FaqManager = () => {
       </Box>
 
       <Stack direction="row" flexWrap="wrap" gap={1.5} alignItems="center" sx={{ mb: 2.5 }}>
+        <FilterSelect
+          label="App Type"
+          value={appTypeFilter}
+          onChange={setAppTypeFilter}
+          options={[
+            { value: "user", label: "User App" },
+            { value: "dealer", label: "Dealer App" },
+          ]}
+        />
         <FilterSelect
           label="Category"
           value={category}
@@ -284,6 +330,10 @@ const FaqManager = () => {
           <Stack spacing={2}>
             <Grid container spacing={2}>
               <Grid item xs={6}>
+                <Typography variant="caption" color="text.secondary">App Type</Typography>
+                <Typography variant="body1" fontWeight={700}>{formatAppType(viewFaq.appType)}</Typography>
+              </Grid>
+              <Grid item xs={6}>
                 <Typography variant="caption" color="text.secondary">Category</Typography>
                 <Typography variant="body1" fontWeight={700}>{viewFaq.category || "—"}</Typography>
               </Grid>
@@ -304,14 +354,33 @@ const FaqManager = () => {
                   fontSize: "0.9rem",
                   lineHeight: 1.6,
                   color: "#1e293b",
-                  "& h3": { fontSize: "1.05rem", fontWeight: 700, my: 1 },
+                  "& h1, & h2, & h3, & h4, & h5, & h6": { fontWeight: 700, my: 1 },
                   "& blockquote": { borderLeft: "3px solid #cbd5e1", pl: 1.5, ml: 0, color: "#64748b" },
                   "& ul, & ol": { pl: 3 },
                   "& a": { color: "#2563eb" },
+                  "& table": { borderCollapse: "collapse", width: "100%" },
+                  "& td, & th": { border: "1px solid #e2e8f0", padding: "6px 8px" },
+                  "& img": { maxWidth: "100%" },
+                  "& hr": { border: 0, borderTop: "1px solid #e2e8f0", my: 2 },
                 }}
-                dangerouslySetInnerHTML={{ __html: viewFaq.answer }}
+                // Sanitized client-side too (defense in depth) — the backend
+                // already strips scripts/handlers on save, but any answer
+                // rendered here goes through DOMPurify regardless of source.
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(viewFaq.answer) }}
               />
             </Box>
+            {viewFaq.videoUrl && (
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>Video</Typography>
+                <Box
+                  component="iframe"
+                  src={viewFaq.videoUrl}
+                  title="FAQ video"
+                  allowFullScreen
+                  sx={{ width: "100%", aspectRatio: "16/9", border: "1px solid #e2e8f0", borderRadius: "8px" }}
+                />
+              </Box>
+            )}
           </Stack>
         )}
       </FormDrawer>

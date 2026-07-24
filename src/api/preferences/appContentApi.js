@@ -32,6 +32,7 @@ export const updateFaq = (id, payload) => prefApiRequest("PUT", `${FAQ_BASE}/${i
 export const deleteFaq = (id) => prefApiRequest("DELETE", `${FAQ_BASE}/${id}`);
 export const toggleFaqStatus = (id, status) => prefApiRequest("PATCH", `${FAQ_BASE}/${id}/status`, { status });
 export const bulkDeleteFaqs = (ids) => prefApiRequest("POST", `${FAQ_BASE}/bulk-delete`, { ids });
+export const uploadFaqImage = (formData) => prefApiRequest("POST", `${FAQ_BASE}/upload-image`, formData, true);
 
 // App settings singleton — support details, social links, website/store links
 export const getAppSettings = () => prefApiRequest("GET", SETTINGS_BASE);
