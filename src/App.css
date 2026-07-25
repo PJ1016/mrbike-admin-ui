@@ -1,3 +1,15 @@
+/* Google Places Autocomplete renders its suggestion dropdown as a direct
+   child of <body>, outside any React portal. MUI Dialog's modal (backdrop +
+   paper) sits at theme.zIndex.modal (1300); Google's own stylesheet sets
+   .pac-container to a lower z-index (1000), so when an Autocomplete input
+   lives inside a Dialog (e.g. Serviceable Areas' "New Area" form), the
+   suggestion list renders visually behind the dialog and is unclickable —
+   place_changed never fires, so no lat/lng ever gets picked. Force it above
+   the modal stack globally. */
+.pac-container {
+  z-index: 1500 !important;
+}
+
 :root {
   /* Modern SaaS Color Palette */
   --primary: #2563eb;
