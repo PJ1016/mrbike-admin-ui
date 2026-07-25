@@ -7,6 +7,12 @@ export const API_BASE_URL =
   process.env.REACT_APP_API_BASE_URL ||
   "https://api.mrbikedoctor.cloud/bikedoctor";
 
+// New backend surface — same host, but under /api/v1 instead of /bikedoctor.
+// Service Categories, Bike Compatibility (read-only) and Home Insights
+// (read-only) all live here.
+export const API_V1_BASE_URL =
+  API_BASE_URL.replace(/\/bikedoctor\/?$/, "") + "/api/v1";
+
 export const IMAGE_BASE_URL = "https://api.mrbikedoctor.cloud";
 
 const getAuthToken = () => localStorage.getItem("adminToken");
@@ -29,6 +35,56 @@ const apiRequest = async (
     const response = await axios({
       method,
       url: `${API_BASE_URL}${endpoint}`,
+      data,
+      headers,
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("API Error:", error.response?.data || error.message);
+
+    if (requiresAuth && error.response?.status === 401) {
+      Swal.fire({
+        icon: "warning",
+        title: "Session Expired",
+        text: "Please log in again.",
+      });
+      localStorage.removeItem("adminToken");
+    }
+
+    if (showAlert) {
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: error.response?.data?.message || "Something went wrong!",
+      });
+    }
+
+    throw error;
+  }
+};
+
+// Same conventions as apiRequest() above (token header, sweetalert2 error
+// surfacing, {status, message, data} response shape) but targeting the new
+// /api/v1 surface instead of /bikedoctor.
+const apiRequestV1 = async (
+  method,
+  endpoint,
+  data = {},
+  showAlert = true,
+  requiresAuth = true,
+) => {
+  try {
+    const headers = {};
+
+    if (requiresAuth) {
+      const token = getAuthToken();
+      if (token) headers["token"] = token;
+    }
+
+    const response = await axios({
+      method,
+      url: `${API_V1_BASE_URL}${endpoint}`,
       data,
       headers,
       withCredentials: true,
@@ -1248,3 +1304,70 @@ export const getSupportUnreadCount = () => apiRequest("GET", "/ticket/unread-cou
 
 export const markTicketRead = (ticketId) =>
   apiRequest("POST", `/ticket/mark-read/${ticketId}`, {}, false);
+
+// ─── Service Categories (admin-gated, /api/v1) ──────────────────────────────
+// Full CRUD + reorder + status toggle for the ServiceCategory master list
+// used to group Base Services. sortOrder is server-assigned (append on
+// create, or recomputed from array index on /reorder).
+
+export const getServiceCategories = () =>
+  apiRequestV1("GET", "/admin/service-categories", {}, false);
+
+export const createServiceCategory = (data) =>
+  apiRequestV1("POST", "/admin/service-categories", data);
+
+export const updateServiceCategory = (id, data) =>
+  apiRequestV1("PUT", `/admin/service-categories/${id}`, data);
+
+export const updateServiceCategoryStatus = (id, isActive) =>
+  apiRequestV1("PATCH", `/admin/service-categories/${id}/status`, { isActive });
+
+// order = full ordered array of ALL category ids in their new display order
+export const reorderServiceCategories = (order) =>
+  apiRequestV1("PATCH", "/admin/service-categories/reorder", { order }, false);
+
+export const deleteServiceCategory = async (id) => {
+  try {
+    const response = await axios.delete(
+      `${API_V1_BASE_URL}/admin/service-categories/${id}`,
+      { headers: { token: getAuthToken() } },
+    );
+    return response.data;
+  } catch (error) {
+    // Deliberately no Swal here — callers surface the inUseCount block
+    // message inline (delete is blocked while services still reference it).
+    console.error("Delete category failed:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// ─── Bike Compatibility (read-only cross-reference, /api/v1) ───────────────
+// NOT an editable mapping — the actual brand<->service assignment still
+// lives per-dealer in AdminService.companies[], edited via the dealer's own
+// service configuration wizard. These two calls only surface what the
+// algorithm currently sees, network-wide, for admin sanity-checking.
+
+export const getBikeCompatibilityByService = (serviceId) =>
+  apiRequestV1("GET", `/admin/bike-compatibility/by-service/${serviceId}`, {}, false);
+
+export const getBikeCompatibilityByBrand = (companyId) =>
+  apiRequestV1("GET", `/admin/bike-compatibility/by-brand/${companyId}`, {}, false);
+
+// ─── Home Algorithm Insights (read-only, city-scoped, /api/v1) ────────────
+// Sanity-check views mirroring what the live user-app Home screen algorithm
+// would surface for a given city — no lat/lng (admin has no live GPS), and
+// no pin/feature override capability by deliberate product decision.
+
+export const getMostBookedForCity = (city, days = 7) =>
+  apiRequestV1(
+    "GET",
+    `/admin/home/most-booked?city=${encodeURIComponent(city)}&days=${days}`,
+    {},
+    false,
+  );
+
+export const getTopGaragesForCity = (city, serviceId) => {
+  const params = new URLSearchParams({ city });
+  if (serviceId) params.append("serviceId", serviceId);
+  return apiRequestV1("GET", `/admin/home/top-garages?${params.toString()}`, {}, false);
+};

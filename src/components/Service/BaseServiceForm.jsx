@@ -3,6 +3,7 @@ import {
   createBaseService,
   getBaseServiceById,
   updateBaseService,
+  getServiceCategories,
 } from "../../api";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import {
@@ -21,6 +22,12 @@ import {
   Breadcrumbs,
   Stack,
   Snackbar,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Switch,
+  FormControlLabel,
 } from "@mui/material";
 import { BsStars } from "react-icons/bs";
 import axios from "axios";
@@ -38,6 +45,11 @@ const BaseServiceForm = ({ isEdit = false }) => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    categoryId: "",
+    basePrice: "",
+    duration: "",
+    pickupAvailable: false,
+    warranty: false,
   });
   const [image, setImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -47,6 +59,19 @@ const BaseServiceForm = ({ isEdit = false }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [globalError, setGlobalError] = useState(null);
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const res = await getServiceCategories();
+        if (res?.status) setCategories(res.data || []);
+      } catch (error) {
+        console.error("Error fetching service categories:", error);
+      }
+    };
+    loadCategories();
+  }, []);
 
   // Snackbar state
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
@@ -62,6 +87,11 @@ const BaseServiceForm = ({ isEdit = false }) => {
             setFormData({
               name: service.name || "",
               description: service.description || "",
+              categoryId: service.categoryId?._id || service.categoryId || "",
+              basePrice: service.basePrice ?? "",
+              duration: service.duration ?? "",
+              pickupAvailable: !!service.pickupAvailable,
+              warranty: !!service.warranty,
             });
             setExistingImage(service.image || null);
           }
@@ -110,6 +140,11 @@ const BaseServiceForm = ({ isEdit = false }) => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleSwitchChange = (e) => {
+    const { name, checked } = e.target;
+    setFormData({ ...formData, [name]: checked });
+  };
+
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       setImage(e.target.files[0]);
@@ -152,6 +187,11 @@ const BaseServiceForm = ({ isEdit = false }) => {
       const form = new FormData();
       form.append("name", formData.name);
       form.append("description", formData.description);
+      if (formData.categoryId) form.append("categoryId", formData.categoryId);
+      form.append("basePrice", formData.basePrice || 0);
+      form.append("duration", formData.duration || 0);
+      form.append("pickupAvailable", formData.pickupAvailable);
+      form.append("warranty", formData.warranty);
       if (image) form.append("image", image);
 
       let response;
@@ -368,6 +408,65 @@ const BaseServiceForm = ({ isEdit = false }) => {
                         ),
                       }}
                     />
+
+                    <FormControl fullWidth size="small">
+                      <InputLabel shrink>Category</InputLabel>
+                      <Select
+                        label="Category"
+                        name="categoryId"
+                        value={formData.categoryId}
+                        onChange={handleChange}
+                        displayEmpty
+                        notched
+                      >
+                        <MenuItem value="">
+                          <em>No category</em>
+                        </MenuItem>
+                        {categories.map((c) => (
+                          <MenuItem key={c._id} value={c._id}>
+                            {c.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                      <TextField
+                        {...fieldProps}
+                        label="Base Price (₹)"
+                        name="basePrice"
+                        type="number"
+                        value={formData.basePrice}
+                        placeholder="e.g. 349"
+                      />
+                      <TextField
+                        {...fieldProps}
+                        label="Duration (minutes)"
+                        name="duration"
+                        type="number"
+                        value={formData.duration}
+                        placeholder="e.g. 45"
+                      />
+                    </Stack>
+
+                    <Stack direction="row" spacing={4}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={formData.pickupAvailable}
+                            onChange={handleSwitchChange}
+                            name="pickupAvailable"
+                          />
+                        }
+                        label="Pickup Available"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Switch checked={formData.warranty} onChange={handleSwitchChange} name="warranty" />
+                        }
+                        label="Warranty"
+                      />
+                    </Stack>
 
                     {renderImageSection()}
 

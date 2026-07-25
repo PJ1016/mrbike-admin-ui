@@ -20,6 +20,7 @@ import {
   DialogActions,
   CircularProgress,
   Alert,
+  Chip,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
@@ -342,6 +343,27 @@ const SharedServiceList = ({
                     >
                       {service.description || "No description provided"}
                     </Typography>
+
+                    {/* Optional — only Base/Major Services carry these fields today */}
+                    {(service.categoryId || service.basePrice || service.duration || service.pickupAvailable || service.warranty) && (
+                      <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 1 }}>
+                        {service.categoryId?.name && (
+                          <Chip label={service.categoryId.name} size="small" sx={{ backgroundColor: "#eff6ff", color: "#2563eb", fontWeight: 600 }} />
+                        )}
+                        {!!service.basePrice && (
+                          <Chip label={`₹${service.basePrice}`} size="small" sx={{ backgroundColor: "#f1f5f9", color: "#475569", fontWeight: 600 }} />
+                        )}
+                        {!!service.duration && (
+                          <Chip label={`${service.duration} min`} size="small" sx={{ backgroundColor: "#f1f5f9", color: "#475569", fontWeight: 600 }} />
+                        )}
+                        {service.pickupAvailable && (
+                          <Chip label="Pickup" size="small" sx={{ backgroundColor: "#ecfdf5", color: "#059669", fontWeight: 600 }} />
+                        )}
+                        {service.warranty && (
+                          <Chip label="Warranty" size="small" sx={{ backgroundColor: "#fffbeb", color: "#b45309", fontWeight: 600 }} />
+                        )}
+                      </Stack>
+                    )}
                   </Box>
 
                   <Box sx={{ textAlign: "right", px: 2 }}>

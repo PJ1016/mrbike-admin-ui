@@ -66,6 +66,9 @@ import DealerServices from "./pages/Dealer/DealerServices";
 import ViewUserDetails from "./pages/customer/ViewUserDetails";
 import ViewAdminServiceDetails from "./components/Service/ViewAdminServiceDetails";
 import MajorServices from "./pages/services/MajorServices";
+import ServiceCategories from "./pages/services/ServiceCategories";
+import BikeCompatibility from "./pages/bikes/BikeCompatibility";
+import HomeInsights from "./pages/Dashboard/HomeInsights";
 import LocationFeaturedCategoryList from "./pages/locationFeaturedCategories/LocationFeaturedCategoryList";
 import LocationFeaturedCategoryForm from "./components/LocationFeaturedCategories/LocationFeaturedCategoryForm";
 import ViewLocationFeaturedCategory from "./pages/locationFeaturedCategories/ViewLocationFeaturedCategory";
@@ -213,6 +216,9 @@ const AppContent = () => {
           <Route path="/customers" element={<Customers />} />
           <Route path="/base-services" element={<MajorServices />} />
           <Route path="/MajorServices" element={<MajorServices />} />
+          <Route path="/service-categories" element={<ServiceCategories />} />
+          <Route path="/bike-compatibility" element={<BikeCompatibility />} />
+          <Route path="/home-insights" element={<HomeInsights />} />
           <Route
             path="/create-base-service"
             element={<BaseServiceForm isEdit={false} />}

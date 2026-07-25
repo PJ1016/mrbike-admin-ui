@@ -42,6 +42,7 @@ import {
   CardGiftcardOutlined as RewardsReferralIcon,
   GavelOutlined as LegalIcon,
   DashboardCustomizeOutlined as AppContentIcon,
+  InsightsOutlined as HomeInsightsIcon,
 } from "@mui/icons-material";
 import { Chip } from "@mui/material";
 
@@ -85,6 +86,7 @@ const menuConfig = [
     children: [
       { title: "Major Services", path: "/MajorServices" },
       { title: "Additional Services", path: "/base-additional-services" },
+      { title: "Service Categories", path: "/service-categories" },
     ],
   },
   {
@@ -98,7 +100,13 @@ const menuConfig = [
     children: [
       { title: "Bike Companies", path: "/bikes" },
       { title: "Add Bike Company", path: "/addBikeCompany" },
+      { title: "Bike Compatibility", path: "/bike-compatibility" },
     ],
+  },
+  {
+    title: "Home Insights",
+    icon: <HomeInsightsIcon />,
+    path: "/home-insights",
   },
   {
     title: "FINANCE",
