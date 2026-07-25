@@ -72,6 +72,7 @@ import HomeInsights from "./pages/Dashboard/HomeInsights";
 import LocationFeaturedCategoryList from "./pages/locationFeaturedCategories/LocationFeaturedCategoryList";
 import LocationFeaturedCategoryForm from "./components/LocationFeaturedCategories/LocationFeaturedCategoryForm";
 import ViewLocationFeaturedCategory from "./pages/locationFeaturedCategories/ViewLocationFeaturedCategory";
+import ServiceableAreas from "./pages/serviceableAreas/ServiceableAreas";
 import Campaigns from "./pages/preferences/Campaigns";
 import PromoCodes from "./pages/preferences/PromoCodes";
 import RewardsReferral from "./pages/preferences/RewardsReferral";
@@ -297,6 +298,9 @@ const AppContent = () => {
           <Route path="/location-featured-categories/add" element={<LocationFeaturedCategoryForm isEdit={false} />} />
           <Route path="/location-featured-categories/edit/:id" element={<LocationFeaturedCategoryForm isEdit={true} />} />
           <Route path="/location-featured-categories/view/:id" element={<ViewLocationFeaturedCategory />} />
+
+          <Route path="/serviceable-areas" element={<ServiceableAreas />} />
+
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
       </Routes>

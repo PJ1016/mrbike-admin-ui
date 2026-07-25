@@ -1341,6 +1341,44 @@ export const deleteServiceCategory = async (id) => {
   }
 };
 
+// ─── Serviceable Areas (admin-gated, /api/v1) ──────────────────────────────
+// Controls which cities/areas the customer app is live in. type="city" areas
+// match on cityName; type="radius" areas are a lat/lng point + radiusKm
+// geofence (location.coordinates is [lng, lat] GeoJSON on the way back).
+// status drives customer-app visibility: "live" (bookable now), "coming_soon"
+// (visible but not bookable, optional estimatedLiveDate), or "paused"
+// (temporarily hidden — pausedReason is mandatory and shown to customers,
+// e.g. rain/festival/staff shortage). /status is the fast quick-toggle used
+// from the list row; POST/PUT cover the full create/edit form.
+
+export const getServiceableAreas = (params = {}) => {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== ""),
+  ).toString();
+  return apiRequestV1(
+    "GET",
+    `/admin/serviceable-areas${query ? `?${query}` : ""}`,
+    {},
+    false,
+  );
+};
+
+export const getServiceableAreaById = (id) =>
+  apiRequestV1("GET", `/admin/serviceable-areas/${id}`, {}, false);
+
+export const createServiceableArea = (data) =>
+  apiRequestV1("POST", "/admin/serviceable-areas", data);
+
+export const updateServiceableArea = (id, data) =>
+  apiRequestV1("PUT", `/admin/serviceable-areas/${id}`, data);
+
+export const deleteServiceableArea = (id) =>
+  apiRequestV1("DELETE", `/admin/serviceable-areas/${id}`);
+
+// data = { status, pausedReason? (required iff status="paused"), estimatedLiveDate? }
+export const updateServiceableAreaStatus = (id, data) =>
+  apiRequestV1("PATCH", `/admin/serviceable-areas/${id}/status`, data);
+
 // ─── Bike Compatibility (read-only cross-reference, /api/v1) ───────────────
 // NOT an editable mapping — the actual brand<->service assignment still
 // lives per-dealer in AdminService.companies[], edited via the dealer's own

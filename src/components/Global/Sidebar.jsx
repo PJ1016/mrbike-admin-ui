@@ -32,6 +32,7 @@ import {
   PowerSettingsNew as LogoutIcon,
   TwoWheeler as BikeIcon,
   PlaceOutlined,
+  MapOutlined as ServiceableAreasIcon,
   BarChart as FinanceDashIcon,
   AccountBalanceWallet as WalletIcon,
   Receipt as TransactionIcon,
@@ -173,6 +174,11 @@ const menuConfig = [
     title: "Location Categories",
     icon: <PlaceOutlined />,
     path: "/location-featured-categories",
+  },
+  {
+    title: "Serviceable Areas",
+    icon: <ServiceableAreasIcon />,
+    path: "/serviceable-areas",
   },
   {
     title: "SYSTEM",
