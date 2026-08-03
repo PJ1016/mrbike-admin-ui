@@ -78,6 +78,7 @@ import PromoCodes from "./pages/preferences/PromoCodes";
 import RewardsReferral from "./pages/preferences/RewardsReferral";
 import Legal from "./pages/preferences/Legal";
 import AppContentPage from "./pages/preferences/AppContent";
+import Reviews from "./pages/reviews/Reviews";
 const theme = createTheme({
   palette: {
     primary: {
@@ -215,6 +216,7 @@ const AppContent = () => {
           <Route path="/admins" element={<Admins />} />
           <Route path="/bookings" element={<Bookings />} />
           <Route path="/customers" element={<Customers />} />
+          <Route path="/reviews" element={<Reviews />} />
           <Route path="/base-services" element={<MajorServices />} />
           <Route path="/MajorServices" element={<MajorServices />} />
           <Route path="/service-categories" element={<ServiceCategories />} />

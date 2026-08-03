@@ -44,6 +44,7 @@ import {
   GavelOutlined as LegalIcon,
   DashboardCustomizeOutlined as AppContentIcon,
   InsightsOutlined as HomeInsightsIcon,
+  ReviewsOutlined as ReviewsIcon,
 } from "@mui/icons-material";
 import { Chip } from "@mui/material";
 
@@ -51,7 +52,7 @@ const DRAWER_WIDTH = 280;
 
 const menuConfig = [
   {
-    title: "GENERAL",
+    title: "OVERVIEW",
     type: "header",
   },
   {
@@ -60,7 +61,12 @@ const menuConfig = [
     path: "/",
   },
   {
-    title: "OPERATIONS",
+    title: "Home Insights",
+    icon: <HomeInsightsIcon />,
+    path: "/home-insights",
+  },
+  {
+    title: "DAILY OPERATIONS",
     type: "header",
   },
   {
@@ -69,25 +75,20 @@ const menuConfig = [
     path: "/bookings",
   },
   {
-    title: "MANAGEMENT",
-    type: "header",
+    title: "Support",
+    icon: <TicketIcon />,
+    children: [
+      { title: "Customer Tickets", path: "/support/customer" },
+      { title: "Dealer Tickets", path: "/support/dealer" },
+    ],
   },
   {
     title: "Dealers",
     icon: <DealerIcon />,
     children: [
-      { title: "Dealer List", path: "/dealers" },
       { title: "Verify Dealers", path: "/dealers-verify" },
+      { title: "Dealer List", path: "/dealers" },
       // { title: "Performance", path: "/dealer-performance" },
-    ],
-  },
-  {
-    title: "Services",
-    icon: <ServiceIcon />,
-    children: [
-      { title: "Major Services", path: "/MajorServices" },
-      { title: "Additional Services", path: "/base-additional-services" },
-      { title: "Service Categories", path: "/service-categories" },
     ],
   },
   {
@@ -95,19 +96,38 @@ const menuConfig = [
     icon: <CustomerIcon />,
     path: "/customers",
   },
+  { title: "Ratings & Reviews", icon: <ReviewsIcon />, path: "/reviews" },
+  {
+    title: "SERVICE SETUP",
+    type: "header",
+  },
+  {
+    title: "Services",
+    icon: <ServiceIcon />,
+    children: [
+      { title: "Service Categories", path: "/service-categories" },
+      { title: "Major Services", path: "/MajorServices" },
+      { title: "Additional Services", path: "/base-additional-services" },
+    ],
+  },
   {
     title: "Bikes",
     icon: <BikeIcon />,
     children: [
       { title: "Bike Companies", path: "/bikes" },
-      { title: "Add Bike Company", path: "/addBikeCompany" },
       { title: "Bike Compatibility", path: "/bike-compatibility" },
+      { title: "Add Bike Company", path: "/addBikeCompany" },
     ],
   },
   {
-    title: "Home Insights",
-    icon: <HomeInsightsIcon />,
-    path: "/home-insights",
+    title: "Serviceable Areas",
+    icon: <ServiceableAreasIcon />,
+    path: "/serviceable-areas",
+  },
+  {
+    title: "Location Categories",
+    icon: <PlaceOutlined />,
+    path: "/location-featured-categories",
   },
   {
     title: "FINANCE",
@@ -119,9 +139,9 @@ const menuConfig = [
     path: "/finance",
   },
   {
-    title: "Withdrawal Requests",
-    icon: <WithdrawalIcon />,
-    path: "/finance/withdrawals",
+    title: "Transactions",
+    icon: <TransactionIcon />,
+    path: "/finance/transactions",
   },
   {
     title: "Dealer Wallets",
@@ -129,27 +149,12 @@ const menuConfig = [
     path: "/finance/dealer-wallets",
   },
   {
-    title: "Transactions",
-    icon: <TransactionIcon />,
-    path: "/finance/transactions",
+    title: "Withdrawal Requests",
+    icon: <WithdrawalIcon />,
+    path: "/finance/withdrawals",
   },
   {
-    title: "PREFERENCES",
-    type: "header",
-  },
-  {
-    title: "Preferences",
-    icon: <PreferencesIcon />,
-    children: [
-      { title: "Campaigns", icon: <CampaignsIcon />, path: "/preferences/campaigns" },
-      { title: "Promo Codes", icon: <PromoCodesIcon />, path: "/preferences/promo-codes" },
-      { title: "Rewards & Referral", icon: <RewardsReferralIcon />, path: "/preferences/rewards-referral" },
-      { title: "Legal", icon: <LegalIcon />, path: "/preferences/legal" },
-      { title: "App Content", icon: <AppContentIcon />, path: "/preferences/app-content" },
-    ],
-  },
-  {
-    title: "ENGAGEMENT",
+    title: "MARKETING & CONTENT",
     type: "header",
   },
   {
@@ -159,26 +164,18 @@ const menuConfig = [
   },
   {
     title: "Offers",
-    icon: <RewardIcon />, // Reusing RewardIcon or look for a LocalOffer icon
+    icon: <RewardIcon />,
     path: "/offers",
   },
   {
-    title: "Support",
-    icon: <TicketIcon />,
+    title: "Growth & Content",
+    icon: <PreferencesIcon />,
     children: [
-      { title: "Customer Tickets", path: "/support/customer" },
-      { title: "Dealer Tickets", path: "/support/dealer" },
+      { title: "Campaigns", icon: <CampaignsIcon />, path: "/preferences/campaigns" },
+      { title: "Promo Codes", icon: <PromoCodesIcon />, path: "/preferences/promo-codes" },
+      { title: "Rewards & Referral", icon: <RewardsReferralIcon />, path: "/preferences/rewards-referral" },
+      { title: "App Content", icon: <AppContentIcon />, path: "/preferences/app-content" },
     ],
-  },
-  {
-    title: "Location Categories",
-    icon: <PlaceOutlined />,
-    path: "/location-featured-categories",
-  },
-  {
-    title: "Serviceable Areas",
-    icon: <ServiceableAreasIcon />,
-    path: "/serviceable-areas",
   },
   {
     title: "SYSTEM",
@@ -188,6 +185,11 @@ const menuConfig = [
     title: "Admin Users",
     icon: <AdminIcon />,
     path: "/admins",
+  },
+  {
+    title: "Legal",
+    icon: <LegalIcon />,
+    path: "/preferences/legal",
   },
 ];
 
