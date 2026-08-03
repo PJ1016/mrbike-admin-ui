@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Box, CircularProgress, Divider, Drawer, Grid, IconButton, Paper, Stack, Tooltip, Typography } from "@mui/material";
 import { Close, Refresh } from "@mui/icons-material";
 import { fetchFinanceTransactionDetails } from "../../services/financeService";
-import { fmtCurrency, fmtDateTime, naFallback, TXN_LABELS } from "../../utils/financeHelpers";
+import { fmtCurrency, fmtDateTime, getBookingDisplayId, naFallback, TXN_LABELS } from "../../utils/financeHelpers";
 import FinanceStatusBadge from "./FinanceStatusBadge";
 import FinanceDetailItem from "./FinanceDetailItem";
 
@@ -24,7 +24,7 @@ const SectionPaper = ({ title, icon, action, children }) => (
 // established by PaymentDetailsDrawer.jsx. Every field defensively falls back
 // through FinanceDetailItem's "N/A" handling — refund/gateway fields are
 // legitimately null for most transactions and must never render blank.
-const TransactionDrawer = ({ open, transactionId, onClose }) => {
+const TransactionDrawer = ({ open, transactionId, fallbackData, onClose }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -35,7 +35,23 @@ const TransactionDrawer = ({ open, transactionId, onClose }) => {
     setError("");
     try {
       const res = await fetchFinanceTransactionDetails(transactionId);
-      setData(res);
+      const source = fallbackData?.source || {};
+      const populatedBooking =
+        (typeof res?.booking_id === "object" && res.booking_id) ||
+        (typeof source?.booking_id === "object" && source.booking_id) ||
+        {};
+
+      // The detail endpoint currently returns a compact transaction for some
+      // cash settlements. Retain the enriched values already returned by the
+      // list endpoint so opening the drawer does not replace them with N/A.
+      setData({
+        ...source,
+        ...fallbackData,
+        ...res,
+        booking: { ...populatedBooking, ...(source.booking || {}), ...(res?.booking || {}) },
+        dealer: { ...(source.dealer || {}), ...(res?.dealer || {}) },
+        customer: { ...(source.customer || {}), ...(res?.customer || {}) },
+      });
     } catch (e) {
       setError(e?.message || "Failed to load transaction details");
     } finally {
@@ -49,7 +65,7 @@ const TransactionDrawer = ({ open, transactionId, onClose }) => {
       load();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, transactionId]);
+  }, [open, transactionId, fallbackData]);
 
   const booking = data?.booking || {};
   const dealer = data?.dealer || {};
@@ -122,18 +138,18 @@ const TransactionDrawer = ({ open, transactionId, onClose }) => {
             </SectionPaper>
 
             <SectionPaper title="Booking Details">
-              <FinanceDetailItem label="Booking ID" value={booking._id || data.bookingId || data.booking_id} copyable />
+              <FinanceDetailItem label="Booking ID" value={getBookingDisplayId(data)} copyable />
               <FinanceDetailItem label="Service" value={booking.serviceName || booking.service} />
             </SectionPaper>
 
             <SectionPaper title="Dealer Details">
-              <FinanceDetailItem label="Dealer Name" value={dealer.name || dealer.shopName} />
+              <FinanceDetailItem label="Dealer Name" value={dealer.name || dealer.shopName || data.dealerName} />
               <FinanceDetailItem label="Shop Name" value={dealer.shopName} />
               <FinanceDetailItem label="Phone" value={dealer.phone} />
             </SectionPaper>
 
             <SectionPaper title="Customer Details">
-              <FinanceDetailItem label="Name" value={customer.name || `${customer.first_name || ""} ${customer.last_name || ""}`.trim()} />
+              <FinanceDetailItem label="Name" value={customer.name || `${customer.first_name || ""} ${customer.last_name || ""}`.trim() || data.customerName} />
               <FinanceDetailItem label="Phone" value={customer.phone} />
               <FinanceDetailItem label="Email" value={customer.email} copyable />
             </SectionPaper>

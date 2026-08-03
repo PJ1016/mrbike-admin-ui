@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Box, Stack, Tooltip, IconButton, Typography, Alert } from "@mui/material";
 import { Refresh } from "@mui/icons-material";
 import useFinanceTransactions from "../../hooks/useFinanceTransactions";
-import { fmtCurrency, fmtDate, sortRows, withinDateRange, TXN_LABELS } from "../../utils/financeHelpers";
+import { fmtCurrency, fmtDate, getBookingDisplayId, sortRows, withinDateRange, TXN_LABELS } from "../../utils/financeHelpers";
 import SupportSearch from "../../components/Support/SupportSearch";
 import SupportTable from "../../components/Support/SupportTable";
 import SupportEmptyState from "../../components/Support/SupportEmptyState";
@@ -14,8 +14,9 @@ const ACCENT = "#2563eb";
 
 const normalizeTxn = (t) => ({
   id: t._id || t.transactionId,
+  source: t,
   transactionId: t.transactionId || t._id || "—",
-  bookingId: t.bookingId || t.booking_id || t.booking?._id || null,
+  bookingId: getBookingDisplayId(t),
   dealerName: t.dealer?.name || t.dealer?.shopName || t.dealerName || "N/A",
   customerName:
     t.customer?.name || t.customerName || `${t.user_id?.first_name || ""} ${t.user_id?.last_name || ""}`.trim() || "N/A",
@@ -27,9 +28,35 @@ const normalizeTxn = (t) => ({
   createdAt: t.createdAt || null,
 });
 
-const columns = [
+const getColumns = (onBookingClick) => [
   { key: "transactionId", label: "Transaction ID", render: (r) => <Typography variant="caption" sx={{ fontFamily: "monospace", color: "#64748b" }}>{r.transactionId}</Typography> },
-  { key: "bookingId", label: "Booking ID", render: (r) => <Typography variant="caption" sx={{ fontFamily: "monospace", color: "#64748b" }}>{r.bookingId || "—"}</Typography> },
+  {
+    key: "bookingId",
+    label: "Booking ID",
+    render: (r) => (
+      <Typography
+        component="button"
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onBookingClick(r);
+        }}
+        variant="caption"
+        sx={{
+          p: 0,
+          border: 0,
+          bgcolor: "transparent",
+          fontFamily: "monospace",
+          color: ACCENT,
+          cursor: "pointer",
+          textDecoration: "none",
+          "&:hover": { textDecoration: "underline" },
+        }}
+      >
+        {r.bookingId || "—"}
+      </Typography>
+    ),
+  },
   { key: "dealerName", label: "Dealer", sortable: true },
   { key: "customerName", label: "Customer", sortable: true },
   { key: "amount", label: "Amount", sortable: true, render: (r) => <span style={{ fontWeight: 700 }}>{fmtCurrency(r.amount)}</span> },
@@ -52,7 +79,7 @@ const Transactions = () => {
   const [pageSize, setPageSize] = useState(10);
   const [sortKey, setSortKey] = useState("");
   const [sortDirection, setSortDirection] = useState("asc");
-  const [activeTransactionId, setActiveTransactionId] = useState(null);
+  const [activeTransaction, setActiveTransaction] = useState(null);
 
   const normalized = useMemo(() => transactions.map(normalizeTxn), [transactions]);
 
@@ -102,8 +129,9 @@ const Transactions = () => {
     }
   };
 
-  const openDrawer = (row) => setActiveTransactionId(row.id);
-  const closeDrawer = () => setActiveTransactionId(null);
+  const openDrawer = (row) => setActiveTransaction(row);
+  const closeDrawer = () => setActiveTransaction(null);
+  const columns = getColumns(openDrawer);
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: "#f8fafc", minHeight: "100vh" }}>
@@ -173,7 +201,12 @@ const Transactions = () => {
         emptyState={<SupportEmptyState filtered={normalized.length > 0} accentColor={ACCENT} onClearFilters={clearAllFilters} />}
       />
 
-      <TransactionDrawer open={Boolean(activeTransactionId)} transactionId={activeTransactionId} onClose={closeDrawer} />
+      <TransactionDrawer
+        open={Boolean(activeTransaction)}
+        transactionId={activeTransaction?.id}
+        fallbackData={activeTransaction}
+        onClose={closeDrawer}
+      />
     </Box>
   );
 };

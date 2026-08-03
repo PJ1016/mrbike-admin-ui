@@ -62,6 +62,26 @@ export const fmtDateTime = (iso) =>
 // fields, gateway response fields, etc.
 export const naFallback = (value) => (value === null || value === undefined || value === "" ? "N/A" : value);
 
+// Finance APIs may return the booking reference as a populated object or as a
+// MongoDB id. Prefer the public bookingId used across the MrBike dashboards.
+export const getBookingDisplayId = (transaction) => {
+  const booking = transaction?.booking;
+  const bookingRef = transaction?.booking_id;
+  const directBookingId = transaction?.bookingId;
+
+  return (
+    booking?.bookingId ||
+    bookingRef?.bookingId ||
+    directBookingId?.bookingId ||
+    transaction?.bookingNumber ||
+    transaction?.booking_number ||
+    (typeof directBookingId === "string" ? directBookingId : null) ||
+    (typeof bookingRef === "string" ? bookingRef : null) ||
+    booking?._id ||
+    null
+  );
+};
+
 const DATE_PRESETS = ["all", "today", "7d", "30d"];
 
 export const withinDateRange = (iso, range) => {
