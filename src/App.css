@@ -249,22 +249,30 @@ h3, .h3 { font-size: 1.25rem; font-weight: 600; color: var(--neutral-800); }
 }
 
 /* Scrollbar Modernization */
+html {
+  scrollbar-width: auto;
+  scrollbar-color: var(--neutral-400) var(--neutral-100);
+}
+
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--neutral-50);
+  background: var(--neutral-100);
+  border-radius: 8px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--neutral-300);
-  border-radius: 4px;
+  min-height: 42px;
+  background: var(--neutral-400);
+  border: 3px solid var(--neutral-100);
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--neutral-400);
+  background: var(--neutral-500);
 }
 .container .viewdealers {
   padding: 20px !important;

@@ -52,8 +52,8 @@ const Banners = () => {
     <div className="page-wrapper">
       <div className="content container-fluid">
         <div className="page-header">
-          <div className="content-page-header">
-            <h5>Banners</h5>
+          <div className="content-page-header flex-wrap gap-3">
+            <h5 style={{ color: "#1e293b", fontWeight: 700, marginBottom: 0 }}>Banners</h5>
             <div className="list-btn">
               <ul className="filter-list">
                 <li>

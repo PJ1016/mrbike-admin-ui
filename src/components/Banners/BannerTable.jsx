@@ -9,6 +9,7 @@ import ImagePreview from "../Global/ImagePreview"
 import { deleteBanner, updateBanner, getBaseServiceList } from "../../api"
 
 const IMAGE_BASE_URL = process.env.REACT_APP_IMAGE_BASE_URL
+const bannerImageUrl = (value) => /^https?:\/\//i.test(value || "") ? value : `${IMAGE_BASE_URL || ""}${value || ""}`
 
 const GOOGLE_MAPS_KEY = "AIzaSyCM15ry8lewwj6YZ-04_m7Z58dsQo_hBBA"
 
@@ -263,16 +264,31 @@ const BannerTable = ({
         <td>{data.name || "N/A"}</td>
         <td>{data.baseServiceId?.name || "N/A"}</td>
         <td>{data.displayOrder ?? 0}</td>
-        <td>{data.banner_image ? <ImagePreview image={`${IMAGE_BASE_URL}${data.banner_image}`} /> : "N/A"}</td>
+        <td>{data.banner_image ? <ImagePreview image={bannerImageUrl(data.banner_image)} /> : "N/A"}</td>
         <td>{data.from_date ? new Date(data.from_date).toLocaleDateString() : "N/A"}</td>
         <td>{data.expiry_date ? new Date(data.expiry_date).toLocaleDateString() : "N/A"}</td>
         <td>{new Date(data.createdAt).toLocaleDateString()}</td>
         <td>{new Date(data.updatedAt).toLocaleDateString()}</td>
-        <td className="d-flex align-items-center">
-          <div className="dropdown">
-            <a href="#" className="btn-action-icon" data-bs-toggle="dropdown">
-              <i className="fas fa-ellipsis-v" />
-            </a>
+        <td>
+          <div className="dropdown d-flex justify-content-center position-static">
+            <button
+              type="button"
+              className="btn dropdown-toggle p-0 d-inline-flex align-items-center justify-content-center"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+              aria-label={`Actions for ${data.name || "banner"}`}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                border: "1px solid #dbe3ef",
+                background: "#fff",
+                color: "#334155",
+                boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
+              }}
+            >
+              <i className="fas fa-ellipsis-v" aria-hidden="true" />
+            </button>
             <ul className="dropdown-menu dropdown-menu-end">
               <li>
                 <button
@@ -307,8 +323,8 @@ const BannerTable = ({
     <>
       <div className="row">
         <div className="col-sm-12">
-          <div className="card-table card p-2">
-            <div className="card-body">
+          <div className="card-table card p-2" style={{ overflow: "visible" }}>
+            <div className="card-body" style={{ minWidth: 0 }}>
               <div className="mb-3">
                 <input
                   type="text"
@@ -321,12 +337,29 @@ const BannerTable = ({
                   }}
                 />
               </div>
-              <div className="table-responsive">
-                <table ref={tableRef} id="example" className="table table-striped">
-                  <thead className="thead-light" style={{ backgroundColor: "#2e83ff" }}>
+              <div className="table-responsive" style={{ overflowX: "auto", overflowY: "visible" }}>
+                <table
+                  ref={tableRef}
+                  id="example"
+                  className="table table-striped align-middle mb-0"
+                  style={{ minWidth: 1180 }}
+                >
+                  <thead>
                     <tr>
                       {tableHeaders.map((header, index) => (
-                        <th key={index}>{header}</th>
+                        <th
+                          key={index}
+                          scope="col"
+                          style={{
+                            backgroundColor: "#eff6ff",
+                            color: "#1e3a5f",
+                            fontWeight: 700,
+                            whiteSpace: "nowrap",
+                            borderBottom: "1px solid #bfdbfe",
+                          }}
+                        >
+                          {header}
+                        </th>
                       ))}
                     </tr>
                   </thead>
@@ -362,7 +395,7 @@ const BannerTable = ({
                   </tbody>
                 </table>
               </div>
-              <div className="d-flex justify-content-between align-items-center mt-3">
+              <div className="d-flex flex-wrap gap-3 justify-content-between align-items-center mt-3">
                 <div className="text-muted">
                   Total Records: <span className="fw-bold text-primary">{filteredData.length}</span>
                 </div>
@@ -404,11 +437,33 @@ const BannerTable = ({
         </div>
       </div>
       {showEditModal && (
-        <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
+        <div
+          className="modal fade show d-block"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="view-banner-title"
+          style={{
+            backgroundColor: "rgba(15, 23, 42, 0.58)",
+            zIndex: 2000,
+            overflowX: "hidden",
+            overflowY: "hidden",
+            padding: "12px",
+            boxSizing: "border-box",
+          }}
+        >
+          <div
+            className="modal-dialog modal-lg modal-dialog-scrollable"
+            style={{
+              maxWidth: 760,
+              width: "100%",
+              height: "100%",
+              minHeight: 0,
+              margin: "0 auto",
+            }}
+          >
+            <div className="modal-content" style={{ height: "100%", maxHeight: "100%", border: 0, borderRadius: 16 }}>
               <div className="modal-header bg-primary text-white">
-                <h5 className="modal-title">View Banner</h5>
+                <h5 id="view-banner-title" className="modal-title text-white">View Banner</h5>
                 <button
                   type="button"
                   className="btn-close btn-close-white"
@@ -417,7 +472,7 @@ const BannerTable = ({
                 ></button>
               </div>
               <form onSubmit={handleEditSubmit}>
-                <div className="modal-body">
+                <div className="modal-body" style={{ overflowX: "hidden" }}>
                   {editLoading ? (
                     <div className="text-center py-4">
                       <div className="spinner-border text-primary" role="status">
@@ -468,7 +523,7 @@ const BannerTable = ({
                         <label className="form-label">Banner Image</label>
                         {editFormData.banner_image && (
                           <img
-                            src={`${IMAGE_BASE_URL}${editFormData.banner_image}`}
+                            src={bannerImageUrl(editFormData.banner_image)}
                             alt="Banner Preview"
                             className="img-thumbnail mt-2"
                             style={{ maxHeight: "200px", width: "100%", objectFit: "contain" }}
