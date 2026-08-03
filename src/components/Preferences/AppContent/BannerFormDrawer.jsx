@@ -5,11 +5,13 @@ import ImageUploadField from "../shared/ImageUploadField";
 import { BANNER_TYPES } from "../../../api/preferences/appContentApi";
 
 const ACCENTS = {
+  [BANNER_TYPES.HOME]: "#2563eb",
   [BANNER_TYPES.POPUP]: "#7c3aed",
   [BANNER_TYPES.ANNOUNCEMENT]: "#ea580c",
 };
 
 const TYPE_OPTIONS = [
+  { value: BANNER_TYPES.HOME, label: "Home Hero" },
   { value: BANNER_TYPES.POPUP, label: "Popup" },
   { value: BANNER_TYPES.ANNOUNCEMENT, label: "Announcement" },
 ];
@@ -17,11 +19,17 @@ const TYPE_OPTIONS = [
 const emptyForm = {
   type: TYPE_OPTIONS[0].value,
   title: "",
+  description: "",
   linkUrl: "",
   displayOrder: "",
   scheduleStart: "",
   scheduleEnd: "",
   isActive: true,
+  locationType: "all",
+  placeName: "",
+  latitude: "",
+  longitude: "",
+  radiusKm: "10",
 };
 
 // Create/Edit drawer for an App Popups banner (Popup / Announcement). `banner`
@@ -45,11 +53,17 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
           ? {
               type: banner.bannerType || TYPE_OPTIONS[0].value,
               title: banner.title || "",
+              description: banner.description || "",
               linkUrl: banner.linkUrl || "",
               displayOrder: banner.displayOrder ?? "",
               scheduleStart: banner.scheduleStart ? banner.scheduleStart.slice(0, 10) : "",
               scheduleEnd: banner.scheduleEnd ? banner.scheduleEnd.slice(0, 10) : "",
               isActive: banner.isActive ?? true,
+              locationType: banner.locationType || "all",
+              placeName: banner.placeName || "",
+              latitude: banner.latitude ?? "",
+              longitude: banner.longitude ?? "",
+              radiusKm: banner.radiusKm ?? "10",
             }
           : emptyForm
       );
@@ -71,6 +85,10 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
     if (form.scheduleStart && form.scheduleEnd && form.scheduleEnd < form.scheduleStart) {
       e.scheduleEnd = "Must be after Schedule Start";
     }
+    if (form.locationType === "specific" &&
+        (!form.placeName.trim() || form.latitude === "" || form.longitude === "" || Number(form.radiusKm) <= 0)) {
+      e.location = "Place, coordinates and a positive radius are required";
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -79,11 +97,17 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
     if (!validate()) return;
     const fd = new FormData();
     fd.append("title", form.title.trim());
+    fd.append("description", form.description.trim());
     fd.append("linkUrl", form.linkUrl.trim());
     fd.append("displayOrder", form.displayOrder === "" ? "0" : String(Number(form.displayOrder)));
     fd.append("scheduleStart", form.scheduleStart || "");
     fd.append("scheduleEnd", form.scheduleEnd || "");
     fd.append("isActive", String(form.isActive));
+    fd.append("locationType", form.locationType);
+    fd.append("placeName", form.placeName.trim());
+    fd.append("latitude", String(form.latitude));
+    fd.append("longitude", String(form.longitude));
+    fd.append("radiusKm", String(form.radiusKm));
     if (image) fd.append("image", image);
     onSave(fd, form.type);
   };
@@ -145,6 +169,17 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
 
         <TextField
           fullWidth
+          multiline
+          minRows={2}
+          label="Description"
+          value={form.description}
+          onChange={handleChange("description")}
+          helperText="Optional supporting text shown on the banner"
+          size="small"
+        />
+
+        <TextField
+          fullWidth
           label="Link URL"
           value={form.linkUrl}
           onChange={handleChange("linkUrl")}
@@ -190,6 +225,30 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
             InputLabelProps={{ shrink: true }}
           />
         </Stack>
+
+        <Divider />
+
+        <TextField
+          select
+          fullWidth
+          label="Banner Location"
+          value={form.locationType}
+          onChange={handleChange("locationType")}
+          size="small"
+        >
+          <MenuItem value="all">All locations</MenuItem>
+          <MenuItem value="specific">Specific location</MenuItem>
+        </TextField>
+        {form.locationType === "specific" && (
+          <>
+            <TextField fullWidth label="Place Name" value={form.placeName} onChange={handleChange("placeName")} error={!!errors.location} helperText={errors.location} size="small" />
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <TextField fullWidth type="number" label="Latitude" value={form.latitude} onChange={handleChange("latitude")} size="small" />
+              <TextField fullWidth type="number" label="Longitude" value={form.longitude} onChange={handleChange("longitude")} size="small" />
+              <TextField fullWidth type="number" label="Radius (km)" value={form.radiusKm} onChange={handleChange("radiusKm")} size="small" />
+            </Stack>
+          </>
+        )}
 
         <Divider />
 

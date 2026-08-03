@@ -18,9 +18,10 @@ const TABS = [
 // "Announcement Banners" tabs: both are the same AppBanner collection
 // discriminated by bannerType, so they're now one workspace (AppPopupsManager)
 // with a Type field/filter instead of two near-identical tabs. There is no
-// "Home Banners" tab here — that's handled by the existing, separate Banners
-// module (sidebar "Banners" / /bannerList), so it isn't duplicated in App
-// Content. The outer PrefHeader intentionally has no onAdd: "Add" is
+// Home Hero, Popup and Announcement banners are managed from the same
+// AppBanner workspace. The legacy Banners module remains available for old
+// clients, but the customer Home screen no longer consumes it. The outer
+// PrefHeader intentionally has no onAdd: "Add" is
 // contextual per-tab, so each tab's own manager component renders its own
 // PrefHeader with a tab-specific Add button instead.
 const AppContent = () => {

@@ -26,6 +26,7 @@ import {
 const ACCENT = "#7c3aed";
 
 const TYPE_META = {
+  [BANNER_TYPES.HOME]: { label: "Home Hero", bg: "#dbeafe", color: "#2563eb" },
   [BANNER_TYPES.POPUP]: { label: "Popup", bg: "#ede9fe", color: "#7c3aed" },
   [BANNER_TYPES.ANNOUNCEMENT]: { label: "Announcement", bg: "#ffedd5", color: "#ea580c" },
 };
@@ -37,10 +38,16 @@ const normalize = (b, fallbackType) => ({
   bannerType: b.bannerType || fallbackType,
   image: b.image || b.imageUrl || "",
   title: b.title || "",
+  description: b.description || "",
   linkUrl: b.linkUrl || "",
   displayOrder: b.displayOrder ?? 0,
   scheduleStart: b.scheduleStart || null,
   scheduleEnd: b.scheduleEnd || null,
+  locationType: b.locationType || "all",
+  placeName: b.placeName || "",
+  latitude: b.latitude ?? null,
+  longitude: b.longitude ?? null,
+  radiusKm: b.radiusKm ?? 10,
   isActive: b.isActive ?? true,
   createdAt: b.createdAt || null,
 });
@@ -76,12 +83,14 @@ const AppPopupsManager = () => {
     setLoading(true);
     setError("");
     try {
-      const [popupRes, announcementRes] = await Promise.all([
+      const [homeRes, popupRes, announcementRes] = await Promise.all([
+        getAppBanners(BANNER_TYPES.HOME),
         getAppBanners(BANNER_TYPES.POPUP),
         getAppBanners(BANNER_TYPES.ANNOUNCEMENT),
       ]);
       const toList = (res) => res?.data || res?.banners || (Array.isArray(res) ? res : []);
       setRows([
+        ...toList(homeRes).map((b) => normalize(b, BANNER_TYPES.HOME)),
         ...toList(popupRes).map((b) => normalize(b, BANNER_TYPES.POPUP)),
         ...toList(announcementRes).map((b) => normalize(b, BANNER_TYPES.ANNOUNCEMENT)),
       ]);
@@ -163,7 +172,7 @@ const AppPopupsManager = () => {
   // Selected ids can span both bannerType collections, so bulk actions are
   // grouped by type before hitting the (per-type) bulk/toggle endpoints.
   const groupIdsByType = (ids) => {
-    const groups = { [BANNER_TYPES.POPUP]: [], [BANNER_TYPES.ANNOUNCEMENT]: [] };
+    const groups = { [BANNER_TYPES.HOME]: [], [BANNER_TYPES.POPUP]: [], [BANNER_TYPES.ANNOUNCEMENT]: [] };
     ids.forEach((id) => {
       const row = rows.find((r) => r.id === id);
       if (row) groups[row.bannerType].push(id);
@@ -267,6 +276,7 @@ const AppPopupsManager = () => {
           value={typeFilter}
           onChange={setTypeFilter}
           options={[
+            { value: BANNER_TYPES.HOME, label: "Home Hero" },
             { value: BANNER_TYPES.POPUP, label: "Popup" },
             { value: BANNER_TYPES.ANNOUNCEMENT, label: "Announcement" },
           ]}
