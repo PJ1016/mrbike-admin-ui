@@ -1071,7 +1071,7 @@ export const getBaseAdditionalServiceList = () =>
 
 // ✅ Save dealer services configuration
 export const saveDealerServices = (payload) =>
-  apiRequest("POST", "/dealer/services", payload, true, true);
+  apiRequest("POST", "/dealer/admin/services", payload, true, true);
 
 // Request cache for dealer services to prevent duplicate calls
 const dealerServicesCache = new Map();

@@ -35,6 +35,12 @@ import Swal from "sweetalert2";
 
 const EMPTY_ARRAY = [];
 
+const pickLatestDate = (current, next) => {
+  if (!current) return next || null;
+  if (!next) return current;
+  return new Date(next).getTime() > new Date(current).getTime() ? next : current;
+};
+
 const ServiceListTab = ({
   serviceType,
   currentPricing,
@@ -83,6 +89,10 @@ const ServiceListTab = ({
       groups[svcId].entries.push(entry);
       if (entry.companyName) groups[svcId].companies.add(entry.companyName);
       if (entry.variantId) groups[svcId].bikes.add(entry.variantId);
+      groups[svcId].lastUpdated = pickLatestDate(
+        groups[svcId].lastUpdated,
+        entry.updatedAt || entry.createdAt || null
+      );
     });
 
     return Object.values(groups).map((g) => {
