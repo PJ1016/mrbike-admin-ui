@@ -3,6 +3,7 @@ import { Box, Divider, FormControlLabel, MenuItem, Stack, Switch, TextField, Typ
 import FormDrawer from "../shared/FormDrawer";
 import ImageUploadField from "../shared/ImageUploadField";
 import { BANNER_TYPES } from "../../../api/preferences/appContentApi";
+import { BANNER_IMAGE_SPECS, formatSpec } from "../../../utils/bannerImageSpecs";
 
 const ACCENTS = {
   [BANNER_TYPES.HOME]: "#2563eb",
@@ -45,6 +46,9 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
   const [errors, setErrors] = useState({});
 
   const accentColor = ACCENTS[form.type] || "#7c3aed";
+  // Each banner type renders on a differently shaped surface in the app, so
+  // the upload field is locked to that type's exact size.
+  const imageSpec = BANNER_IMAGE_SPECS[form.type] || null;
 
   useEffect(() => {
     if (open) {
@@ -76,6 +80,12 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
     const value = field === "isActive" ? e.target.checked : e.target.value;
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: null }));
+    // Switching type switches the required image size, so an already-picked
+    // file is no longer valid — drop it and make the user upload the right one.
+    if (field === "type") {
+      setImage(null);
+      setErrors((prev) => ({ ...prev, image: null }));
+    }
   };
 
   const validate = () => {
@@ -133,6 +143,7 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
           onRemove={() => setImage(null)}
           error={errors.image}
           height={160}
+          spec={imageSpec}
         />
 
         <Divider />
@@ -144,7 +155,11 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
           value={form.type}
           onChange={handleChange("type")}
           disabled={Boolean(banner)}
-          helperText={banner ? "Type cannot be changed after creation" : "Choose where this appears in the app"}
+          helperText={
+            banner
+              ? "Type cannot be changed after creation"
+              : `Choose where this appears in the app — image must be ${formatSpec(imageSpec)}`
+          }
           size="small"
           InputLabelProps={{ shrink: true }}
         >

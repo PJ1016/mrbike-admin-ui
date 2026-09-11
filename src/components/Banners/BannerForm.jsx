@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import Swal from "sweetalert2";
 import { addBanner, getBaseServiceList } from "../../api";
+import { BANNER_IMAGE_SPECS, formatSpec, validateBannerImage } from "../../utils/bannerImageSpecs";
 import { useNavigate } from "react-router-dom";
+
+// Legacy banners land on the app's home slider, so they share the Home Hero spec.
+const IMAGE_SPEC = BANNER_IMAGE_SPECS.home;
 
 const GOOGLE_MAPS_KEY = "AIzaSyCM15ry8lewwj6YZ-04_m7Z58dsQo_hBBA";
 
@@ -106,20 +110,29 @@ const BannerForm = () => {
     }
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
+    // Reset so re-picking the same rejected file fires onChange again.
+    e.target.value = "";
     if (!file) return;
 
-    const validTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
-    if (!validTypes.includes(file.type)) {
+    // Type, weight and exact pixel size are all gated here — an off-size
+    // banner gets cropped by the app's fixed-height card and cannot be fixed
+    // once it is live.
+    const result = await validateBannerImage(file, IMAGE_SPEC);
+    if (!result.ok) {
+      setImage(null);
+      setPreview(null);
+      setErrors((prev) => ({ ...prev, image: result.message }));
       Swal.fire({
         icon: "error",
-        title: "Invalid File Type",
-        text: "Only JPG, JPEG, PNG, or WEBP files are allowed.",
+        title: "Wrong Image Size",
+        text: result.message,
       });
       return;
     }
 
+    setErrors((prev) => ({ ...prev, image: null }));
     setImage(file);
     setPreview(URL.createObjectURL(file));
   };
@@ -260,10 +273,15 @@ const BannerForm = () => {
 
               <div className="input-block mb-3">
                 <label className="form-control-label">Upload Banner Image</label>
+                <div className="alert alert-info py-2 px-3 mb-2" role="alert">
+                  <strong>Required size: {formatSpec(IMAGE_SPEC)}</strong> — other sizes are not accepted.
+                  <br />
+                  <small>{IMAGE_SPEC.note}</small>
+                </div>
                 <input
                   type="file"
                   className={`form-control mb-2 ${errors.image ? "is-invalid" : ""}`}
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   onChange={handleFileChange}
                 />
                 {errors.image && <div className="invalid-feedback d-block">{errors.image}</div>}
