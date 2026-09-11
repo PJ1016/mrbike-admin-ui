@@ -20,7 +20,7 @@ const SupportUnreadContext = createContext({
 
 export const useSupportUnread = () => useContext(SupportUnreadContext);
 
-const POLL_INTERVAL_MS = 25000;
+const POLL_INTERVAL_MS = 300000;
 
 const getLoggedInAdminId = () => {
   try {
@@ -45,10 +45,34 @@ export const SupportUnreadProvider = ({ children }) => {
     }
   }, []);
 
+  // The badge is driven by the "support:unread:changed" socket event below,
+  // which the server emits on every ticket create, reply and mark-read. This
+  // interval is only a fallback for a socket that never connected or silently
+  // dropped, so it runs slowly and stops entirely while the tab is hidden —
+  // refocusing the tab refreshes right away instead of waiting it out.
   useEffect(() => {
+    const startPolling = () => {
+      clearInterval(pollRef.current);
+      pollRef.current = setInterval(refreshUnreadCount, POLL_INTERVAL_MS);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        clearInterval(pollRef.current);
+        return;
+      }
+      refreshUnreadCount();
+      startPolling();
+    };
+
     refreshUnreadCount();
-    pollRef.current = setInterval(refreshUnreadCount, POLL_INTERVAL_MS);
-    return () => clearInterval(pollRef.current);
+    startPolling();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(pollRef.current);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [refreshUnreadCount]);
 
   useEffect(() => {
@@ -56,7 +80,12 @@ export const SupportUnreadProvider = ({ children }) => {
     if (!adminId) return undefined;
 
     const socket = getSocket();
-    const join = () => socket.emit("admin:join", { adminId });
+    // Events fired while the socket was down were never delivered, so a
+    // (re)connect re-syncs the count rather than only rejoining the room.
+    const join = () => {
+      socket.emit("admin:join", { adminId });
+      refreshUnreadCount();
+    };
     join();
     socket.on("connect", join);
     socket.on("support:unread:changed", refreshUnreadCount);

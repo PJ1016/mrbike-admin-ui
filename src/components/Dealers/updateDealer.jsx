@@ -47,6 +47,7 @@ import {
 import StateCitySelect from "../Global/StateCitySelect";
 import Swal from "sweetalert2";
 import { addDealer, updateDealer } from "../../api";
+import { getApiErrorMessage, getApiFieldErrors } from "../../utils/apiError";
 import { useNavigate } from "react-router-dom";
 import { initBusinessSettings, validateBusinessSettings } from "./businessSettings";
 
@@ -480,9 +481,32 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
         Swal.fire("Saved!", response.message || "Dealer profile updated.", "success").then(() => {
           navigate("/dealers");
         });
+        return;
       }
-    } catch {
-      Swal.fire("Error", "Failed to save dealer. Please try again.", "error");
+
+      // 2xx body that still reports a failure carries the reason in `message`.
+      Swal.fire({
+        icon: "error",
+        title: isEdit ? "Failed to Update Dealer" : "Failed to Add Dealer",
+        text: response?.message || "The dealer could not be saved.",
+      });
+    } catch (error) {
+      // Report what the server actually rejected instead of a blanket
+      // "Failed to save dealer", and mark the offending field if it named one.
+      const fieldErrors = getApiFieldErrors(error, {
+        "shop-email": "email",
+        "shop-contact": "phone",
+        commission: "comission",
+      });
+      if (Object.keys(fieldErrors).length > 0) {
+        setErrors((prev) => ({ ...prev, ...fieldErrors }));
+      }
+
+      Swal.fire({
+        icon: "error",
+        title: isEdit ? "Failed to Update Dealer" : "Failed to Add Dealer",
+        text: getApiErrorMessage(error, "Failed to save dealer. Please try again."),
+      });
     } finally {
       setIsSubmitting(false);
     }

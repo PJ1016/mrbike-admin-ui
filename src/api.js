@@ -1,5 +1,9 @@
 import axios from "axios";
 import Swal from "sweetalert2";
+import {
+  getApiErrorMessage,
+  normalizeApiError,
+} from "./utils/apiError";
 
 axios.defaults.withCredentials = true;
 
@@ -56,11 +60,13 @@ const apiRequest = async (
       Swal.fire({
         icon: "error",
         title: "Oops...",
-        text: error.response?.data?.message || "Something went wrong!",
+        text: getApiErrorMessage(error),
       });
     }
 
-    throw error;
+    // Callers that suppress the alert (showAlert = false) still need the real
+    // reason, so carry it on the rejection instead of only in the dialog.
+    throw normalizeApiError(error);
   }
 };
 
@@ -106,11 +112,13 @@ const apiRequestV1 = async (
       Swal.fire({
         icon: "error",
         title: "Oops...",
-        text: error.response?.data?.message || "Something went wrong!",
+        text: getApiErrorMessage(error),
       });
     }
 
-    throw error;
+    // Callers that suppress the alert (showAlert = false) still need the real
+    // reason, so carry it on the rejection instead of only in the dialog.
+    throw normalizeApiError(error);
   }
 };
 
@@ -134,10 +142,13 @@ export const deleteAdmin = (adminId) =>
     admin_id: adminId,
   });
 
+// Deliberately silent about success/failure: all three callers (DealerForm,
+// CreateDealerAI, updateDealer) render their own outcome UI, so alerting here
+// too produced two stacked dialogs on success and let the caller's generic
+// catch block paint over the real server message on failure. The rejection
+// carries `userMessage` instead.
 export const addDealer = async (dealerData) => {
   try {
-    console.log("Dealer data here api section:-", dealerData);
-
     const response = await axios.post(
       `${API_BASE_URL}/dealer/addDealer`,
       dealerData,
@@ -148,34 +159,19 @@ export const addDealer = async (dealerData) => {
       },
     );
 
-    Swal.fire({
-      icon: "success",
-      title: "Dealer Added Successfully!",
-      text: response.data.message || "The dealer has been created.",
-      timer: 2000,
-      showConfirmButton: false,
-    });
-
     return response.data;
   } catch (error) {
     console.error(
       "Error adding dealer:",
       error.response?.data || error.message,
     );
-    Swal.fire({
-      icon: "error",
-      title: "Failed to Add Dealer",
-      text: error.response?.data?.message || "Something went wrong!",
-    });
 
-    throw error;
+    throw normalizeApiError(error, "Failed to add the dealer. Please try again.");
   }
 };
 
 export const updateDealer = async (formData) => {
   try {
-    console.log("Form data:", formData);
-
     const response = await axios.put(
       `${API_BASE_URL}/dealer/editDealer`,
       formData,
@@ -194,13 +190,10 @@ export const updateDealer = async (formData) => {
       error.response?.data || error.message,
     );
 
-    Swal.fire({
-      icon: "error",
-      title: "Failed to Update Dealer",
-      text: error.response?.data?.message || "Something went wrong!",
-    });
-
-    throw error;
+    throw normalizeApiError(
+      error,
+      "Failed to update the dealer. Please try again.",
+    );
   }
 };
 
@@ -443,7 +436,7 @@ export const addService = async (serviceData) => {
     Swal.fire({
       icon: "error",
       title: "Failed to Add Service",
-      text: error.response?.data?.message || "Something went wrong!",
+      text: getApiErrorMessage(error),
     });
 
     throw error;
@@ -565,7 +558,7 @@ export const addBanner = async (bannerData) => {
     Swal.fire({
       icon: "error",
       title: "Failed to Add Banner",
-      text: error.response?.data?.message || "Something went wrong!",
+      text: getApiErrorMessage(error),
     });
 
     throw error;
@@ -608,7 +601,7 @@ export const updateBanner = async (bannerId, bannerData) => {
     Swal.fire({
       icon: "error",
       title: "Failed to Update Banner",
-      text: error.response?.data?.message || "Something went wrong!",
+      text: getApiErrorMessage(error),
     });
 
     throw error;
@@ -715,7 +708,7 @@ export const editDealer = async (dealerData) => {
     Swal.fire({
       icon: "error",
       title: "Failed to Update Dealer",
-      text: error.response?.data?.message || "Something went wrong!",
+      text: getApiErrorMessage(error),
     });
 
     throw error;
@@ -860,7 +853,7 @@ export const addOffer = async (offerData) => {
     Swal.fire({
       icon: "error",
       title: "Failed to Add Offer",
-      text: error.response?.data?.message || "Something went wrong!",
+      text: getApiErrorMessage(error),
     });
 
     throw error;
@@ -901,7 +894,7 @@ export const editOffer = async (id, offerData) => {
     Swal.fire({
       icon: "error",
       title: "Failed to Update Offer",
-      text: error.response?.data?.message || "Something went wrong!",
+      text: getApiErrorMessage(error),
     });
 
     throw error;
@@ -1192,7 +1185,7 @@ export const createLocationFeaturedCategory = async (formData) => {
     Swal.fire({
       icon: "error",
       title: "Failed to Create Category",
-      text: error.response?.data?.message || "Something went wrong!",
+      text: getApiErrorMessage(error),
     });
     throw error;
   }
@@ -1219,7 +1212,7 @@ export const updateLocationFeaturedCategory = async (id, formData) => {
     Swal.fire({
       icon: "error",
       title: "Failed to Update Category",
-      text: error.response?.data?.message || "Something went wrong!",
+      text: getApiErrorMessage(error),
     });
     throw error;
   }
@@ -1278,7 +1271,7 @@ export const toggleLocationFeaturedCategoryStatus = async (id) => {
     Swal.fire({
       icon: "error",
       title: "Failed to Update Status",
-      text: error.response?.data?.message || "Something went wrong!",
+      text: getApiErrorMessage(error),
     });
     throw error;
   }

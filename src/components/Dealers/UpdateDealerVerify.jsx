@@ -4,6 +4,7 @@ import Swal from 'sweetalert2';
 import axios from 'axios';
 import { updateDealer } from '../../api';
 import StateCitySelect from '../Global/StateCitySelect';
+import { getApiErrorMessage } from "../../utils/apiError";
 
 const API_BASE_URL = "https://api.mrbikedoctor.cloud/bikedoctor/dealerAuth"
 
@@ -74,7 +75,7 @@ const UpdateDealerVerify = () => {
                 }
             } catch (err) {
                 console.error(err);
-                Swal.fire("Error", "Something went wrong while fetching dealer data", "error");
+                Swal.fire("Error", getApiErrorMessage(err, "Failed to fetch dealer data."), "error");
             }
         };
 
@@ -105,7 +106,11 @@ const UpdateDealerVerify = () => {
                 }
             }
         } catch (error) {
-            Swal.fire("Error", `Failed to ${action} dealer`, "error");
+            Swal.fire(
+                "Error",
+                getApiErrorMessage(error, `Failed to ${action} dealer.`),
+                "error",
+            );
         }
     };
 

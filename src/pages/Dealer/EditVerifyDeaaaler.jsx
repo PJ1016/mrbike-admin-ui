@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import DealerForm from '../../components/Dealers/updateDealer';
 import Swal from 'sweetalert2';
 import axios from 'axios';
+import { getApiErrorMessage } from "../../utils/apiError";
 
 const EditVerifyDeaaaler = () => {
 
@@ -28,7 +29,7 @@ const EditVerifyDeaaaler = () => {
                 }
             } catch (err) {
                 console.error(err);
-                Swal.fire("Error", "Something went wrong while fetching dealer data", "error");
+                Swal.fire("Error", getApiErrorMessage(err, "Failed to fetch dealer data."), "error");
             }
         };
 

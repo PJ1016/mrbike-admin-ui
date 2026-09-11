@@ -59,6 +59,7 @@ import {
 } from "../../api";
 import RequestDocumentsDialog, { DEFAULT_DOC_OPTIONS } from "./RequestDocumentsDialog";
 import DocumentRejectDialog from "./DocumentRejectDialog";
+import { getApiErrorMessage } from "../../utils/apiError";
 
 const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
   const navigate = useNavigate();
@@ -291,9 +292,7 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
       }
     } catch (error) {
       console.error("Action failed:", error);
-      const msg =
-        error?.response?.data?.message ||
-        "Something went wrong. Please try again.";
+      const msg = getApiErrorMessage(error, "Something went wrong. Please try again.");
       setActionError(msg);
       setConfirmAction(null);
     } finally {

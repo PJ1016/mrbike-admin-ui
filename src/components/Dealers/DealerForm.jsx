@@ -16,6 +16,8 @@ import {
   CircularProgress,
   Autocomplete,
   Chip,
+  Alert,
+  AlertTitle,
 } from "@mui/material";
 import {
   Storefront as ShopIcon,
@@ -31,10 +33,51 @@ import {
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import { addDealer } from "../../api";
+import { getApiErrorMessage, getApiFieldErrors } from "../../utils/apiError";
 import { useNavigate } from "react-router-dom";
 import LocationPicker from "../Common/LocationPicker";
 
 const steps = ["Shop Details", "Owner, Bank & Documents"];
+
+// Which wizard step owns each field, so a validation failure (ours or the
+// server's) can send the admin back to the step that actually has the input.
+const FIELD_STEP = {
+  ownerName: 0,
+  shopName: 0,
+  email: 0,
+  phone: 0,
+  alternatePhone: 0,
+  shopPincode: 0,
+  shopNumber: 0,
+  locality: 0,
+  state: 0,
+  city: 0,
+  comission: 0,
+  tax: 0,
+  latitude: 0,
+  longitude: 0,
+  aadharCardNo: 1,
+  panCardNo: 1,
+  accountNumber: 1,
+  ifscCode: 1,
+  accountHolderName: 1,
+  bankName: 1,
+  panCardFront: 1,
+  aadharFront: 1,
+  aadharBack: 1,
+};
+
+// addDealer answers a duplicate with { field: "shop-email" | "shop-contact" };
+// map those onto the inputs that produced them.
+const API_FIELD_ALIASES = {
+  "shop-email": "email",
+  "shop-contact": "phone",
+  comission: "comission",
+  commission: "comission",
+  aadharcardno: "aadharCardNo",
+  pancardno: "panCardNo",
+};
+
 
 const DealerForm = () => {
   const navigate = useNavigate();
@@ -48,6 +91,7 @@ const DealerForm = () => {
   const [aadharBack, setAadharBack] = useState(null);
   const [aadharBackPreview, setAadharBackPreview] = useState(null);
   const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState("");
 
   const [formData, setFormData] = useState({
     // Shop Details
@@ -164,14 +208,139 @@ const DealerForm = () => {
     if (errors[name] && name !== "aadharCardNo" && name !== "panCardNo") {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
+
+    // A server-side rejection is no longer accurate once the admin edits the
+    // field it pointed at.
+    if (submitError) setSubmitError("");
+  };
+
+  // Mirrors the checks addDealer runs server-side, so a missing commission or a
+  // malformed PAN is caught here with the field highlighted instead of coming
+  // back as an opaque 400.
+  const validateFields = (step) => {
+    const found = {};
+    const needs = (field, label) => {
+      if (!String(formData[field] ?? "").trim()) {
+        found[field] = `${label} is required`;
+      }
+    };
+
+    if (step === 0 || step === undefined) {
+      needs("ownerName", "Owner name");
+      needs("shopName", "Shop name");
+      needs("email", "Shop email");
+      needs("phone", "Shop contact");
+      needs("shopPincode", "Shop pincode");
+      needs("shopNumber", "Shop no. / building");
+      needs("locality", "Locality / area");
+      needs("state", "Shop state");
+      needs("city", "Shop city");
+
+      if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+        found.email = "Enter a valid email address";
+      }
+      if (formData.phone && !/^[6-9]\d{9}$/.test(formData.phone.trim())) {
+        found.phone = "Enter a valid 10-digit mobile number";
+      }
+      if (
+        formData.alternatePhone &&
+        !/^[6-9]\d{9}$/.test(formData.alternatePhone.trim())
+      ) {
+        found.alternatePhone = "Enter a valid 10-digit mobile number";
+      }
+      if (formData.shopPincode && !/^\d{6}$/.test(formData.shopPincode.trim())) {
+        found.shopPincode = "Pincode must be 6 digits";
+      }
+
+      // The backend rejects anything outside 0-100 (and rejects blank outright).
+      const commission = Number.parseFloat(formData.comission);
+      if (!String(formData.comission).trim()) {
+        found.comission = "Commission is required";
+      } else if (Number.isNaN(commission) || commission < 0 || commission > 100) {
+        found.comission = "Commission must be a number between 0 and 100";
+      }
+
+      // Tax is optional, but capped at 18% server-side.
+      if (String(formData.tax).trim()) {
+        const tax = Number.parseFloat(formData.tax);
+        if (Number.isNaN(tax) || tax < 0 || tax > 18) {
+          found.tax = "Tax must be a number between 0 and 18";
+        }
+      }
+
+      if (!String(formData.latitude).trim() || !String(formData.longitude).trim()) {
+        found.latitude = "Pick the shop location on the map";
+      }
+    }
+
+    if (step === 1 || step === undefined) {
+      needs("aadharCardNo", "Aadhar card number");
+      needs("panCardNo", "PAN card number");
+      needs("accountNumber", "Account number");
+      needs("ifscCode", "IFSC code");
+      needs("accountHolderName", "Account holder name");
+      needs("bankName", "Bank name");
+
+      if (formData.aadharCardNo && !validateAadhar(formData.aadharCardNo.trim())) {
+        found.aadharCardNo = "Aadhar must be 12 digits";
+      }
+      if (formData.panCardNo && !validatePAN(formData.panCardNo.trim())) {
+        found.panCardNo = "Invalid PAN format (e.g. ABCDE1234F)";
+      }
+      if (
+        formData.ifscCode &&
+        !/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(formData.ifscCode.trim())
+      ) {
+        found.ifscCode = "Invalid IFSC format (e.g. HDFC0001234)";
+      }
+      if (
+        formData.accountNumber &&
+        !/^\d{9,18}$/.test(formData.accountNumber.trim())
+      ) {
+        found.accountNumber = "Account number must be 9-18 digits";
+      }
+
+      // addDealer treats these three as mandatory uploads.
+      if (!panCardFront) found.panCardFront = "PAN card front is required";
+      if (!aadharFront) found.aadharFront = "Aadhar front is required";
+      if (!aadharBack) found.aadharBack = "Aadhar back is required";
+    }
+
+    return found;
+  };
+
+  // Sends the admin to the earliest step that has a problem and lists the
+  // problems in the banner, so nothing is hidden behind a collapsed step.
+  const reportValidation = (found) => {
+    setErrors(found);
+    const targetStep = Math.min(
+      ...Object.keys(found).map((field) => FIELD_STEP[field] ?? 0),
+    );
+    if (Number.isFinite(targetStep) && targetStep !== activeStep) {
+      setActiveStep(targetStep);
+    }
+    setSubmitError(
+      `Please fix ${Object.keys(found).length} field${
+        Object.keys(found).length > 1 ? "s" : ""
+      } before continuing: ${Object.values(found).join("; ")}`,
+    );
+    window.scrollTo(0, 0);
   };
 
   const handleNext = () => {
+    const found = validateFields(activeStep);
+    if (Object.keys(found).length > 0) {
+      reportValidation(found);
+      return;
+    }
+    setErrors({});
+    setSubmitError("");
     setActiveStep((prev) => prev + 1);
     window.scrollTo(0, 0);
   };
 
   const handleBack = () => {
+    setSubmitError("");
     setActiveStep((prev) => prev - 1);
     window.scrollTo(0, 0);
   };
@@ -238,17 +407,29 @@ const DealerForm = () => {
     setShopImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleFileChange = async (e, fileSetter, previewSetter) => {
+  const handleFileChange = async (e, fileSetter, previewSetter, fieldName) => {
     const file = e.target.files[0];
     if (file) {
       const { file: optimized, preview } = await compressImage(file);
       fileSetter(optimized);
       previewSetter(preview);
+      if (fieldName) setErrors((prev) => ({ ...prev, [fieldName]: "" }));
     }
   };
 
   const handleSubmit = async () => {
+    // Validate every step, not just the current one - a field left blank on
+    // step 0 is otherwise only discovered by the server.
+    const found = validateFields();
+    if (Object.keys(found).length > 0) {
+      reportValidation(found);
+      return;
+    }
+
+    setErrors({});
+    setSubmitError("");
     setIsSubmitting(true);
+
     const apiData = new FormData();
     Object.keys(formData).forEach((key) => apiData.append(key, formData[key]));
 
@@ -261,12 +442,42 @@ const DealerForm = () => {
 
     try {
       const res = await addDealer(apiData);
-      if (res.success) {
-        Swal.fire("Success", "Dealer added successfully", "success");
+      if (res?.success) {
+        await Swal.fire({
+          icon: "success",
+          title: "Dealer Added Successfully!",
+          text: res.message || "The dealer has been created.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
         navigate("/dealers");
+        return;
       }
+
+      // 2xx with success:false - still a failure, and it has a reason.
+      const message = res?.message || "The dealer could not be created.";
+      setSubmitError(message);
+      Swal.fire({ icon: "error", title: "Failed to Add Dealer", text: message });
     } catch (err) {
-      Swal.fire("Error", "Something went wrong", "error");
+      // Show exactly what the server said (e.g. "Commission must be between
+      // 0-100%", "Shop Email already exists") and highlight the field it named.
+      const message = getApiErrorMessage(
+        err,
+        "Failed to add the dealer. Please try again.",
+      );
+      const fieldErrors = getApiFieldErrors(err, API_FIELD_ALIASES);
+
+      setSubmitError(message);
+      if (Object.keys(fieldErrors).length > 0) {
+        setErrors(fieldErrors);
+        const targetStep = Math.min(
+          ...Object.keys(fieldErrors).map((field) => FIELD_STEP[field] ?? 0),
+        );
+        if (Number.isFinite(targetStep)) setActiveStep(targetStep);
+      }
+      window.scrollTo(0, 0);
+
+      Swal.fire({ icon: "error", title: "Failed to Add Dealer", text: message });
     } finally {
       setIsSubmitting(false);
     }
@@ -314,6 +525,8 @@ const DealerForm = () => {
           name="ownerName"
           value={formData.ownerName}
           onChange={handleChange}
+          error={!!errors.ownerName}
+          helperText={errors.ownerName}
           required
           InputProps={{
             startAdornment: (
@@ -329,6 +542,8 @@ const DealerForm = () => {
           name="shopName"
           value={formData.shopName}
           onChange={handleChange}
+          error={!!errors.shopName}
+          helperText={errors.shopName}
           required
           InputProps={{
             startAdornment: (
@@ -344,6 +559,8 @@ const DealerForm = () => {
           name="email"
           value={formData.email}
           onChange={handleChange}
+          error={!!errors.email}
+          helperText={errors.email}
           required
           InputProps={{
             startAdornment: (
@@ -361,6 +578,8 @@ const DealerForm = () => {
           name="phone"
           value={formData.phone}
           onChange={handleChange}
+          error={!!errors.phone}
+          helperText={errors.phone || "10-digit mobile number"}
           required
           InputProps={{
             startAdornment: (
@@ -376,6 +595,8 @@ const DealerForm = () => {
           name="alternatePhone"
           value={formData.alternatePhone}
           onChange={handleChange}
+          error={!!errors.alternatePhone}
+          helperText={errors.alternatePhone}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -398,7 +619,11 @@ const DealerForm = () => {
               </InputAdornment>
             ),
           }}
-          helperText={pincodeLoading ? "Looking up location..." : ""}
+          error={!!errors.shopPincode}
+          helperText={
+            errors.shopPincode ||
+            (pincodeLoading ? "Looking up location..." : "6-digit pincode")
+          }
         />,
       ])}
       {renderGridRow([
@@ -408,6 +633,8 @@ const DealerForm = () => {
           name="shopNumber"
           value={formData.shopNumber}
           onChange={handleChange}
+          error={!!errors.shopNumber}
+          helperText={errors.shopNumber}
           required
         />,
         <Autocomplete
@@ -427,10 +654,12 @@ const DealerForm = () => {
               label="Locality / Area"
               name="locality"
               required
+              error={!!errors.locality}
               helperText={
-                localities.length > 0
+                errors.locality ||
+                (localities.length > 0
                   ? "Select from auto-filled areas or type"
-                  : ""
+                  : "")
               }
             />
           )}
@@ -441,6 +670,8 @@ const DealerForm = () => {
           name="state"
           value={formData.state}
           onChange={handleChange}
+          error={!!errors.state}
+          helperText={errors.state}
           required
         />,
       ])}
@@ -451,6 +682,8 @@ const DealerForm = () => {
           name="city"
           value={formData.city}
           onChange={handleChange}
+          error={!!errors.city}
+          helperText={errors.city}
           required
         />,
         <TextField
@@ -459,6 +692,8 @@ const DealerForm = () => {
           name="comission"
           value={formData.comission}
           onChange={handleChange}
+          error={!!errors.comission}
+          helperText={errors.comission || "Between 0 and 100"}
           required
           InputProps={{
             endAdornment: <InputAdornment position="end">%</InputAdornment>,
@@ -470,6 +705,8 @@ const DealerForm = () => {
           name="tax"
           value={formData.tax}
           onChange={handleChange}
+          error={!!errors.tax}
+          helperText={errors.tax || "Optional, max 18"}
           InputProps={{
             endAdornment: <InputAdornment position="end">%</InputAdornment>,
           }}
@@ -481,6 +718,11 @@ const DealerForm = () => {
 
       {renderGridRow([
         <Box sx={{ gridColumn: "span 3" }}>
+          {errors.latitude && (
+            <Alert severity="error" sx={{ mb: 1.5, borderRadius: 2 }}>
+              {errors.latitude}
+            </Alert>
+          )}
           <LocationPicker
             value={{ lat: formData.latitude, lng: formData.longitude }}
             onChange={(newVal) => {
@@ -556,6 +798,8 @@ const DealerForm = () => {
           name="accountNumber"
           value={formData.accountNumber}
           onChange={handleChange}
+          error={!!errors.accountNumber}
+          helperText={errors.accountNumber}
           required
         />,
         <TextField
@@ -564,6 +808,8 @@ const DealerForm = () => {
           name="ifscCode"
           value={formData.ifscCode}
           onChange={handleChange}
+          error={!!errors.ifscCode}
+          helperText={errors.ifscCode}
           required
         />,
         <TextField
@@ -572,6 +818,8 @@ const DealerForm = () => {
           name="accountHolderName"
           value={formData.accountHolderName}
           onChange={handleChange}
+          error={!!errors.accountHolderName}
+          helperText={errors.accountHolderName}
           required
           InputProps={{
             startAdornment: (
@@ -589,6 +837,8 @@ const DealerForm = () => {
           name="bankName"
           value={formData.bankName}
           onChange={handleChange}
+          error={!!errors.bankName}
+          helperText={errors.bankName}
           required
           InputProps={{
             startAdornment: (
@@ -695,6 +945,15 @@ const DealerForm = () => {
           >
             PAN CARD FRONT
           </Typography>
+          {errors.panCardFront && (
+            <Typography
+              variant="caption"
+              color="error"
+              sx={{ display: "block", mb: 1, fontWeight: 600 }}
+            >
+              {errors.panCardFront}
+            </Typography>
+          )}
           {panPreview && (
             <Paper
               sx={{
@@ -727,7 +986,7 @@ const DealerForm = () => {
               hidden
               accept="image/*"
               onChange={(e) =>
-                handleFileChange(e, setPanCardFront, setPanPreview)
+                handleFileChange(e, setPanCardFront, setPanPreview, "panCardFront")
               }
             />
           </Button>
@@ -739,6 +998,15 @@ const DealerForm = () => {
           >
             AADHAR FRONT
           </Typography>
+          {errors.aadharFront && (
+            <Typography
+              variant="caption"
+              color="error"
+              sx={{ display: "block", mb: 1, fontWeight: 600 }}
+            >
+              {errors.aadharFront}
+            </Typography>
+          )}
           {aadharFrontPreview && (
             <Paper
               sx={{
@@ -771,7 +1039,7 @@ const DealerForm = () => {
               hidden
               accept="image/*"
               onChange={(e) =>
-                handleFileChange(e, setAadharFront, setAadharFrontPreview)
+                handleFileChange(e, setAadharFront, setAadharFrontPreview, "aadharFront")
               }
             />
           </Button>
@@ -783,6 +1051,15 @@ const DealerForm = () => {
           >
             AADHAR BACK
           </Typography>
+          {errors.aadharBack && (
+            <Typography
+              variant="caption"
+              color="error"
+              sx={{ display: "block", mb: 1, fontWeight: 600 }}
+            >
+              {errors.aadharBack}
+            </Typography>
+          )}
           {aadharBackPreview && (
             <Paper
               sx={{
@@ -815,7 +1092,7 @@ const DealerForm = () => {
               hidden
               accept="image/*"
               onChange={(e) =>
-                handleFileChange(e, setAadharBack, setAadharBackPreview)
+                handleFileChange(e, setAadharBack, setAadharBackPreview, "aadharBack")
               }
             />
           </Button>
@@ -829,6 +1106,17 @@ const DealerForm = () => {
       elevation={0}
       sx={{ p: { xs: 2, md: 4 }, borderRadius: 4, border: "1px solid #eef2f6" }}
     >
+      {submitError && (
+        <Alert
+          severity="error"
+          onClose={() => setSubmitError("")}
+          sx={{ mb: 3, borderRadius: 2 }}
+        >
+          <AlertTitle sx={{ fontWeight: 700 }}>Could not add dealer</AlertTitle>
+          {submitError}
+        </Alert>
+      )}
+
       <Stepper activeStep={activeStep} sx={{ mb: 5 }}>
         {steps.map((label) => (
           <Step key={label}>

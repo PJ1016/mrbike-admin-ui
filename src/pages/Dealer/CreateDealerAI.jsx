@@ -45,6 +45,7 @@ import {
   Visibility as VisibilityIcon,
 } from "@mui/icons-material";
 import { addDealer, API_BASE_URL } from "../../api";
+import { getApiErrorMessage } from "../../utils/apiError";
 
 const steps = ["Upload Documents", "Review Details", "Submit"];
 
@@ -148,11 +149,24 @@ const CreateDealerAI = () => {
       const response = await fetch(`${API_BASE_URL}/dealer/process`, {
         method: "POST",
         body: formDataToSend,
+        // /dealer/process is behind requireAdmin; without the token every
+        // upload came back as a bare 401 the UI reported as a parse failure.
+        headers: { token: localStorage.getItem("adminToken") || "" },
       });
 
-      const result = await response.json();
+      // A gateway error answers with HTML, not JSON - don't let response.json()
+      // throw and turn a readable 502 into "Failed to process documents".
+      const result = await response.json().catch(() => null);
 
-      if (result.success) {
+      if (!response.ok) {
+        setError(
+          result?.message ||
+            `Document processing failed (HTTP ${response.status}). Please try again.`,
+        );
+        return;
+      }
+
+      if (result?.success) {
         console.log("AI Result:", result.data); // Debug log
 
         setFormData({
@@ -182,11 +196,16 @@ const CreateDealerAI = () => {
         setFormEnabled(true);
         setActiveStep(1);
       } else {
-        setError(result.message || "Failed to process documents");
+        setError(result?.message || "Failed to process documents");
       }
     } catch (error) {
       console.error("Auto-fill failed:", error);
-      setError("Failed to process documents. Please try again.");
+      setError(
+        getApiErrorMessage(
+          error,
+          "Failed to process documents. Please try again.",
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -339,15 +358,20 @@ const CreateDealerAI = () => {
 
       const result = await addDealer(formDataToSend);
 
-      if (result.success) {
+      if (result?.success) {
         setActiveStep(2);
       } else {
-        setError(result.message || "Failed to create dealer");
+        setError(result?.message || "Failed to create dealer");
       }
     } catch (error) {
       console.error("Submission failed:", error);
+      // Surface the server's own reason (validation failure, duplicate email,
+      // missing document) rather than assuming every failure is the network.
       setError(
-        "Failed to create dealer. Please check your connection and try again.",
+        getApiErrorMessage(
+          error,
+          "Failed to create dealer. Please check your connection and try again.",
+        ),
       );
     } finally {
       setLoading(false);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Badge, Box, IconButton, Menu, Stack, Tooltip, Typography } from "@mui/material";
 import { NotificationsNone, Forum, AddComment, CheckCircle } from "@mui/icons-material";
 import moment from "moment";
@@ -39,16 +39,26 @@ const NotificationPanel = () => {
   const [events, setEvents] = useState([]);
   const navigate = useNavigate();
 
+  // buildEvents needs the whole ticket list, which is far too heavy to pull on
+  // a timer for a menu that is closed almost all the time. It is fetched once
+  // so the bell badge has a count, then refreshed each time the menu is opened
+  // — the only moment the list itself is actually on screen.
+  const load = useCallback(
+    () =>
+      getTicketList()
+        .then((tickets) => setEvents(buildEvents(tickets)))
+        .catch(() => {}),
+    []
+  );
+
   useEffect(() => {
-    let cancelled = false;
-    const load = () => getTicketList().then((tickets) => !cancelled && setEvents(buildEvents(tickets))).catch(() => {});
     load();
-    const interval = setInterval(load, 60000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, []);
+  }, [load]);
+
+  const handleOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+    load();
+  };
 
   const handleClick = (ticket) => {
     setAnchorEl(null);
@@ -59,7 +69,7 @@ const NotificationPanel = () => {
   return (
     <>
       <Tooltip title="Notifications">
-        <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ color: "text.secondary" }}>
+        <IconButton onClick={handleOpen} sx={{ color: "text.secondary" }}>
           <Badge badgeContent={events.length} color="error" max={9}>
             <NotificationsNone sx={{ fontSize: 20 }} />
           </Badge>

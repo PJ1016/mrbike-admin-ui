@@ -16,6 +16,7 @@ import {
   ArrowBack as ArrowBackIcon,
   NavigateNext as NavigateNextIcon,
 } from "@mui/icons-material";
+import { getApiErrorMessage } from "../../utils/apiError";
 
 const DealerUpdate = () => {
     const { id } = useParams();
@@ -33,7 +34,7 @@ const DealerUpdate = () => {
                 }
             } catch (err) {
                 console.error("Fetch error:", err);
-                Swal.fire("Error", "Something went wrong while fetching dealer data", "error")
+                Swal.fire("Error", getApiErrorMessage(err, "Failed to fetch dealer data."), "error")
             }
         }
         fetchDealer()
