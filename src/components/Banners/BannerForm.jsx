@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Swal from "sweetalert2";
 import { addBanner, getBaseServiceList } from "../../api";
+import ImageCropDialog from "../Common/ImageCropDialog";
 import { BANNER_IMAGE_SPECS, formatSpec, validateBannerImage } from "../../utils/bannerImageSpecs";
 import { useNavigate } from "react-router-dom";
 
@@ -42,6 +43,8 @@ const BannerForm = () => {
   const navigate = useNavigate()
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
+  // The picked file waiting to be cropped — also the crop dialog's open flag.
+  const [cropSource, setCropSource] = useState(null);
   const [errors, setErrors] = useState({});
   const [services, setServices] = useState([]);
   const [locationQuery, setLocationQuery] = useState("");
@@ -118,15 +121,23 @@ const BannerForm = () => {
 
     // Type, weight and exact pixel size are all gated here — an off-size
     // banner gets cropped by the app's fixed-height card and cannot be fixed
-    // once it is live.
+    // once it is live. A wrong-size file is not bounced, though: the admin
+    // crops it to size right here, so they decide what gets cut off.
     const result = await validateBannerImage(file, IMAGE_SPEC);
+    if (result.needsCrop) {
+      setImage(null);
+      setPreview(null);
+      setErrors((prev) => ({ ...prev, image: null }));
+      setCropSource(file);
+      return;
+    }
     if (!result.ok) {
       setImage(null);
       setPreview(null);
       setErrors((prev) => ({ ...prev, image: result.message }));
       Swal.fire({
         icon: "error",
-        title: "Wrong Image Size",
+        title: "Image Not Accepted",
         text: result.message,
       });
       return;
@@ -135,6 +146,24 @@ const BannerForm = () => {
     setErrors((prev) => ({ ...prev, image: null }));
     setImage(file);
     setPreview(URL.createObjectURL(file));
+  };
+
+  const handleCropped = (croppedFile) => {
+    setCropSource(null);
+    setErrors((prev) => ({ ...prev, image: null }));
+    setImage(croppedFile);
+    setPreview(URL.createObjectURL(croppedFile));
+  };
+
+  const handleCropCancel = () => {
+    const pending = cropSource;
+    setCropSource(null);
+    if (!image && pending) {
+      setErrors((prev) => ({
+        ...prev,
+        image: `Crop cancelled — the banner must be exactly ${formatSpec(IMAGE_SPEC)}. Choose the image again to crop it.`,
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -274,7 +303,7 @@ const BannerForm = () => {
               <div className="input-block mb-3">
                 <label className="form-control-label">Upload Banner Image</label>
                 <div className="alert alert-info py-2 px-3 mb-2" role="alert">
-                  <strong>Required size: {formatSpec(IMAGE_SPEC)}</strong> — other sizes are not accepted.
+                  <strong>Required size: {formatSpec(IMAGE_SPEC)}</strong> — any other size opens the crop tool.
                   <br />
                   <small>{IMAGE_SPEC.note}</small>
                 </div>
@@ -292,6 +321,16 @@ const BannerForm = () => {
                       alt="Preview"
                       style={{ maxWidth: "100%", maxHeight: "200px", objectFit: "contain" }}
                     />
+                    <div className="mt-2">
+                      <span className="badge bg-success me-2">{formatSpec(IMAGE_SPEC)}</span>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => setCropSource(image)}
+                      >
+                        Adjust crop
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -385,6 +424,14 @@ const BannerForm = () => {
           </div>
         </div>
       </div>
+
+      <ImageCropDialog
+        open={Boolean(cropSource)}
+        file={cropSource}
+        spec={IMAGE_SPEC}
+        onCancel={handleCropCancel}
+        onCropped={handleCropped}
+      />
     </div>
   );
 };

@@ -60,6 +60,9 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
     return {
       ...base,
       note: "Finished creative — the app shows this image alone, with no title, description or button over it. Keep important content away from the rounded corners.",
+      // No app-drawn overlay in this mode, so the crop dialog must not shade
+      // the bottom of the frame as if there were one.
+      overlayBottomPct: 0,
     };
   }, [form.type, form.imageOnly]);
 
