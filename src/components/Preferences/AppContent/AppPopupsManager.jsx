@@ -48,6 +48,7 @@ const normalize = (b, fallbackType) => ({
   latitude: b.latitude ?? null,
   longitude: b.longitude ?? null,
   radiusKm: b.radiusKm ?? 10,
+  imageOnly: b.imageOnly ?? false,
   isActive: b.isActive ?? true,
   createdAt: b.createdAt || null,
 });

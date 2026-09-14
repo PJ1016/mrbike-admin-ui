@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Box, Divider, FormControlLabel, MenuItem, Stack, Switch, TextField, Typography } from "@mui/material";
 import FormDrawer from "../shared/FormDrawer";
 import ImageUploadField from "../shared/ImageUploadField";
@@ -26,6 +26,7 @@ const emptyForm = {
   scheduleStart: "",
   scheduleEnd: "",
   isActive: true,
+  imageOnly: false,
   locationType: "all",
   placeName: "",
   latitude: "",
@@ -47,8 +48,20 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
 
   const accentColor = ACCENTS[form.type] || "#7c3aed";
   // Each banner type renders on a differently shaped surface in the app, so
-  // the upload field is locked to that type's exact size.
-  const imageSpec = BANNER_IMAGE_SPECS[form.type] || null;
+  // the upload field is locked to that type's exact size. The design note
+  // flips with "Image already has text": that mode turns the app's own
+  // overlay off, so the artwork must be the finished creative instead of a
+  // plain background. Memoized — ImageUploadField resets its rejection
+  // message whenever the spec identity changes.
+  const imageSpec = useMemo(() => {
+    const base = BANNER_IMAGE_SPECS[form.type];
+    if (!base) return null;
+    if (!form.imageOnly) return base;
+    return {
+      ...base,
+      note: "Finished creative — the app shows this image alone, with no title, description or button over it. Keep important content away from the rounded corners.",
+    };
+  }, [form.type, form.imageOnly]);
 
   useEffect(() => {
     if (open) {
@@ -63,6 +76,7 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
               scheduleStart: banner.scheduleStart ? banner.scheduleStart.slice(0, 10) : "",
               scheduleEnd: banner.scheduleEnd ? banner.scheduleEnd.slice(0, 10) : "",
               isActive: banner.isActive ?? true,
+              imageOnly: banner.imageOnly ?? false,
               locationType: banner.locationType || "all",
               placeName: banner.placeName || "",
               latitude: banner.latitude ?? "",
@@ -77,7 +91,7 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
   }, [open, banner]);
 
   const handleChange = (field) => (e) => {
-    const value = field === "isActive" ? e.target.checked : e.target.value;
+    const value = field === "isActive" || field === "imageOnly" ? e.target.checked : e.target.value;
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: null }));
     // Switching type switches the required image size, so an already-picked
@@ -113,6 +127,7 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
     fd.append("scheduleStart", form.scheduleStart || "");
     fd.append("scheduleEnd", form.scheduleEnd || "");
     fd.append("isActive", String(form.isActive));
+    fd.append("imageOnly", String(form.imageOnly));
     fd.append("locationType", form.locationType);
     fd.append("placeName", form.placeName.trim());
     fd.append("latitude", String(form.latitude));
@@ -144,6 +159,20 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
           error={errors.image}
           height={160}
           spec={imageSpec}
+        />
+
+        <FormControlLabel
+          control={<Switch checked={form.imageOnly} onChange={handleChange("imageOnly")} color="primary" />}
+          label={
+            <Box>
+              <Typography variant="body2" fontWeight={600}>Image already has text</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {form.type === BANNER_TYPES.HOME
+                  ? "On: the app hides its dark gradient, title and Bike Service button, and shows your creative as-is. Turn this on for ready-made posters."
+                  : "On: the app hides the title and description under the image and shows your creative as-is."}
+              </Typography>
+            </Box>
+          }
         />
 
         <Divider />
