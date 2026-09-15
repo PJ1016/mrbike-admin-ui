@@ -591,8 +591,19 @@ const BannerTable = ({
                   disabled={editLoading}
                 ></button>
               </div>
-              <form onSubmit={handleEditSubmit}>
-                <div className="modal-body" style={{ overflowX: "hidden" }}>
+              {/* The form sits between .modal-content and .modal-body, which
+                  breaks Bootstrap's scrollable-modal flex chain: the body ends
+                  up with no bounded height, so it grows past the content box
+                  instead of scrolling and the overflow is simply clipped.
+                  Carry the column layout through the form to restore it. */}
+              <form
+                onSubmit={handleEditSubmit}
+                style={{ display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0, overflow: "hidden" }}
+              >
+                <div
+                  className="modal-body"
+                  style={{ overflowX: "hidden", overflowY: "auto", flex: "1 1 auto", minHeight: 0 }}
+                >
                   {editLoading ? (
                     <div className="text-center py-4">
                       <div className="spinner-border text-primary" role="status">
@@ -787,7 +798,7 @@ const BannerTable = ({
                     </>
                   )}
                 </div>
-                <div className="modal-footer">
+                <div className="modal-footer" style={{ flexShrink: 0 }}>
                   <button
                     type="button"
                     className="btn btn-secondary"
