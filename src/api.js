@@ -1419,3 +1419,61 @@ export const getTopGaragesForCity = (city, serviceId) => {
   if (serviceId) params.append("serviceId", serviceId);
   return apiRequestV1("GET", `/admin/home/top-garages?${params.toString()}`, {}, false);
 };
+
+// ─── Service Detail CMS (admin-gated, /api/v1) ─────────────────────────────
+// Rich content for the user app's Service Detail screen. Stored in the
+// separate `servicedetails` collection, so none of these touch the existing
+// base-service CRUD above — that remains the sole writer of
+// name/image/description/basePrice/duration/warranty/category.
+
+export const getServiceDetail = (serviceId) =>
+  apiRequestV1("GET", `/admin/services/${serviceId}/detail`, {}, false);
+
+// Renders exactly what GET /api/v1/services/:id would return for the app,
+// but including unpublished content, plus a publishBlockers checklist.
+export const getServiceDetailPreview = (serviceId) =>
+  apiRequestV1("GET", `/admin/services/${serviceId}/detail/preview`, {}, false);
+
+// Partial upsert — fields left out are preserved server-side, so saving one
+// tab never clears another.
+export const saveServiceDetail = (serviceId, data) =>
+  apiRequestV1("PUT", `/admin/services/${serviceId}/detail`, data, false);
+
+// Publishing is gated server-side; a 400 carries a `blockers` array naming
+// every missing requirement, which the editor renders as a checklist.
+export const setServiceDetailPublished = (serviceId, isPublished) =>
+  apiRequestV1("PATCH", `/admin/services/${serviceId}/detail/publish`, { isPublished }, false);
+
+export const uploadServiceDetailMedia = async (serviceId, formData) => {
+  try {
+    const response = await axios.post(
+      `${API_V1_BASE_URL}/admin/services/${serviceId}/detail/media`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          token: getAuthToken(),
+        },
+      },
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Service media upload failed:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Deletes the gallery entry and its S3 object. The service's main `image` is
+// protected server-side and cannot be removed through this route.
+export const deleteServiceDetailMedia = async (serviceId, url) => {
+  try {
+    const response = await axios.delete(
+      `${API_V1_BASE_URL}/admin/services/${serviceId}/detail/media`,
+      { headers: { token: getAuthToken() }, data: { url } },
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Service media delete failed:", error.response?.data || error.message);
+    throw error;
+  }
+};
