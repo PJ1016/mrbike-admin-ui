@@ -48,7 +48,12 @@ const InvoiceDocument = forwardRef(({ invoice }, ref) => {
           {dealer.name || "MR Bike Service Center"}
         </Typography>
         {dealer.address && <Typography sx={{ fontSize: 11.5, color: "#666" }}>{dealer.address}</Typography>}
-        {dealer.phone && <Typography sx={{ fontSize: 11.5, color: "#666" }}>Ph: {dealer.phone}</Typography>}
+        {invoice.support?.phone && (
+          <Typography sx={{ fontSize: 11.5, color: "#666" }}>Support: {invoice.support.phone}</Typography>
+        )}
+        {invoice.support?.email && (
+          <Typography sx={{ fontSize: 11.5, color: "#666" }}>{invoice.support.email}</Typography>
+        )}
         {dealer.gstNumber && <Typography sx={{ fontSize: 11.5, color: "#666" }}>GSTIN: {dealer.gstNumber}</Typography>}
       </Box>
 
@@ -112,6 +117,9 @@ const InvoiceDocument = forwardRef(({ invoice }, ref) => {
 
       <SectionDivider />
       <Row label={`GST (${formatGST(tax.rate)})`} value={formatCurrency(tax.amount)} />
+      {invoice.platformFee?.amount > 0 && (
+        <Row label={invoice.platformFee.label || "Platform Fee"} value={formatCurrency(invoice.platformFee.amount)} />
+      )}
 
       <SectionDivider />
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -127,6 +135,15 @@ const InvoiceDocument = forwardRef(({ invoice }, ref) => {
         label={`Platform Commission (${formatGST(settlement.commissionRate)})`}
         value={formatCurrency(settlement.commissionAmount)}
       />
+      {settlement.commissionTaxAmount > 0 && (
+        <>
+          <Row
+            label={`GST on Commission (${formatGST(settlement.commissionTaxRate)})`}
+            value={formatCurrency(settlement.commissionTaxAmount)}
+          />
+          <Row label="Total Deduction" value={formatCurrency(settlement.commissionTotal)} />
+        </>
+      )}
       <Row label="Net Dealer Payout" value={formatCurrency(settlement.dealerPayout)} bold />
 
       <SectionDivider />
