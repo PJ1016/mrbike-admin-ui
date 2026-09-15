@@ -45,7 +45,11 @@ export const BANNER_IMAGE_SPECS = {
 
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
-export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+// Every "max size" string in the UI is derived from MAX_IMAGE_BYTES so the
+// number in the copy can never drift away from the number being enforced.
+export const MAX_IMAGE_LABEL = `${Math.round(MAX_IMAGE_BYTES / (1024 * 1024))}MB`;
 
 // Cropping blows the chosen box back up to the spec's exact pixel size, so a
 // source much smaller than the target only ever produces a blurry banner.
@@ -106,7 +110,7 @@ export const validateBannerImage = async (file, spec) => {
   }
 
   if (file.size > MAX_IMAGE_BYTES) {
-    return { ok: false, reason: "size", message: "Image must be smaller than 5MB." };
+    return { ok: false, reason: "size", message: `Image must be smaller than ${MAX_IMAGE_LABEL}.` };
   }
 
   if (!spec) return { ok: true };
@@ -212,7 +216,7 @@ const croppedFileName = (name, spec, type) => {
 // Cuts `crop` out of `file` and re-encodes it at exactly the spec's size.
 // Returns a File ready to hand straight to the form's FormData.
 // PNG sources stay PNG so a creative with transparent corners survives; a
-// re-encode that busts the 5MB cap falls back to progressively harder JPEG.
+// re-encode that busts the size cap falls back to progressively harder JPEG.
 export const cropImageToSpec = async (file, spec, crop) => {
   const { img, revoke } = await loadImageElement(file);
   try {
@@ -228,7 +232,7 @@ export const cropImageToSpec = async (file, spec, crop) => {
     }
 
     if (blob.size > MAX_IMAGE_BYTES) {
-      throw new Error("The cropped image is still larger than 5MB. Try a less detailed photo.");
+      throw new Error(`The cropped image is still larger than ${MAX_IMAGE_LABEL}. Try a less detailed photo.`);
     }
 
     return new File([blob], croppedFileName(file.name, spec, type), {

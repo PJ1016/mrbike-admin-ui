@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Alert, Box, Button, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import { AddPhotoAlternate, Crop, Delete } from "@mui/icons-material";
 import ImageCropDialog from "../../Common/ImageCropDialog";
-import { formatSpec, validateBannerImage } from "../../../utils/bannerImageSpecs";
+import { formatSpec, MAX_IMAGE_LABEL, validateBannerImage } from "../../../utils/bannerImageSpecs";
 
 // Reusable image upload box (upload → crop → preview → remove), generalized
 // from the pattern in LocationFeaturedCategoryForm so every Preferences module
@@ -97,7 +97,9 @@ const ImageUploadField = ({
   const shownError = sizeError || error;
   const hint =
     helperText ||
-    (spec ? `JPG, PNG, WEBP · exactly ${formatSpec(spec)} (Max 5MB)` : "JPG, PNG, WEBP (Max 5MB)");
+    (spec
+      ? `JPG, PNG, WEBP · exactly ${formatSpec(spec)} (Max ${MAX_IMAGE_LABEL})`
+      : `JPG, PNG, WEBP (Max ${MAX_IMAGE_LABEL})`);
 
   return (
     <Box>
