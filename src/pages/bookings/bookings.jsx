@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useMemo } from "react";
+import React, { useCallback, useRef, useState, useEffect, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -41,27 +41,30 @@ const Bookings = () => {
   const triggerDownloadExcel = useRef(null);
   const triggerDownloadPDF = useRef(null);
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        setLoading(true);
-        const response = await getAllBookings();
-        if (response.status === 200) {
-          setData(response.data);
-          setFilteredData(response.data);
-        } else {
-          setError("Failed to fetch bookings.");
-        }
-      } catch (error) {
-        console.error("Error fetching booking list:", error);
-        setError("An error occurred while fetching bookings.");
-      } finally {
-        setLoading(false);
+  // Hoisted out of the mount effect so the table can re-run it after a change
+  // that alters a booking's pricing (e.g. a towing charge added from the
+  // booking details dialog).
+  const fetchBookings = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await getAllBookings();
+      if (response.status === 200) {
+        setData(response.data);
+        setFilteredData(response.data);
+      } else {
+        setError("Failed to fetch bookings.");
       }
-    };
-
-    fetchBookings();
+    } catch (error) {
+      console.error("Error fetching booking list:", error);
+      setError("An error occurred while fetching bookings.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
 
   // ✅ Filter Logic
   useEffect(() => {
@@ -435,6 +438,7 @@ const Bookings = () => {
               datas={filteredData}
               loading={loading}
               error={error}
+              onRefresh={fetchBookings}
               triggerDownloadExcel={triggerDownloadExcel}
               triggerDownloadPDF={triggerDownloadPDF}
             />

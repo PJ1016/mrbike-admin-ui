@@ -21,6 +21,27 @@ export const formatDate = (dateString) => {
 export const getBookingAmount = (booking) =>
   booking?.customerTotal ?? booking?.totalBill ?? 0;
 
+// Mirrors Booking.bikeCondition on the backend. A booking created before this
+// field existed has none, which reads as Rideable — exactly what it was.
+export const BIKE_CONDITION_LABELS = {
+  RIDEABLE: "Rideable",
+  NOT_RIDEABLE: "Not Rideable",
+  COMPLETELY_DEAD: "Completely Dead",
+};
+
+// The towing charge may only be revised while the customer still owes the
+// money. The backend enforces this and is the authority; this only decides
+// whether to offer the editor.
+export const canEditTowingCharge = (booking) => {
+  if (!booking?.towingRequired) return false;
+  if (booking?.billGenerated) return false;
+  if (booking?.billStatus && booking.billStatus !== "pending") return false;
+  if (booking?.payment_status === "completed") return false;
+  return !["rejected", "user_cancelled", "cancelled", "expired", "delivered"].includes(
+    booking?.status,
+  );
+};
+
 export const getStatusConfig = (status) => {
   const s = status?.toLowerCase() || "";
 

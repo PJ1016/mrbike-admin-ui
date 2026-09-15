@@ -108,6 +108,7 @@ const InvoiceDocument = forwardRef(({ invoice }, ref) => {
       <Row label="Subtotal" value={formatCurrency(invoice.subtotal)} />
       {charges.pickupCharge > 0 && <Row label="Pickup Charges" value={formatCurrency(charges.pickupCharge)} />}
       {charges.dropCharge > 0 && <Row label="Drop Charges" value={formatCurrency(charges.dropCharge)} />}
+      {charges.towingCharge > 0 && <Row label="Towing Charge" value={formatCurrency(charges.towingCharge)} />}
 
       <SectionDivider />
       <Row label={`GST (${formatGST(tax.rate)})`} value={formatCurrency(tax.amount)} />

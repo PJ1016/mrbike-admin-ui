@@ -74,11 +74,11 @@ const BusinessSettingsTab = ({ dealer, onRefresh }) => {
     <Box sx={{ px: { xs: 2, md: 4 }, py: 3 }}>
       <Grid container spacing={3}>
 
-        {/* Pickup & Drop */}
+        {/* Pickup, Drop & Towing */}
         <Grid item xs={12} md={6}>
           <Card elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
             <CardContent sx={{ p: 3 }}>
-              <SectionHeader icon={<TwoWheelerIcon />} title="Pickup & Drop" />
+              <SectionHeader icon={<TwoWheelerIcon />} title="Pickup, Drop & Towing" />
               <Grid container spacing={2.5}>
                 <Grid item xs={12} sm={6}>
                   <FormControlLabel
@@ -150,6 +150,54 @@ const BusinessSettingsTab = ({ dealer, onRefresh }) => {
                     }}
                     inputProps={{ min: 0 }}
                   />
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={settings.providesTowing}
+                        onChange={handleChange("providesTowing")}
+                        color="primary"
+                      />
+                    }
+                    label={
+                      <Typography fontWeight="700" variant="body2">
+                        Provides Towing
+                      </Typography>
+                    }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Towing Charges"
+                    type="number"
+                    size="small"
+                    fullWidth
+                    disabled={!settings.providesTowing}
+                    value={settings.towingCharges}
+                    onChange={handleChange("towingCharges")}
+                    error={!!errors.towingCharges}
+                    helperText={errors.towingCharges || " "}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <CurrencyRupeeIcon fontSize="small" />
+                        </InputAdornment>
+                      ),
+                    }}
+                    inputProps={{ min: 0 }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Alert severity="info" sx={{ borderRadius: 2 }}>
+                    Towing is charged when the customer declares their bike as
+                    <b> Not Rideable</b> or <b>Completely Dead</b> at booking.
+                    The amount is snapshotted onto the booking and billed as a
+                    separate line item — it is never hardcoded in the apps. You
+                    or the dealer can still revise it on an individual booking
+                    until it is paid.
+                  </Alert>
                 </Grid>
               </Grid>
             </CardContent>

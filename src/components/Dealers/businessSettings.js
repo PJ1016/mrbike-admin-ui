@@ -18,8 +18,10 @@ export const BUSINESS_SETTINGS_FIELDS = [
   "tax",
   "pickupCharges",
   "dropCharges",
+  "towingCharges",
   "providesPickup",
   "providesDrop",
+  "providesTowing",
   "minWalletAmount",
   "serviceRadiusKm",
   "adminNotes",
@@ -30,8 +32,12 @@ export const initBusinessSettings = (dealer = {}) => ({
   tax: dealer.tax ?? "",
   pickupCharges: dealer.pickupCharges ?? "",
   dropCharges: dealer.dropCharges ?? "",
+  // Applied to a booking when the customer declares their bike as not
+  // rideable or completely dead, so it is never hardcoded in any frontend.
+  towingCharges: dealer.towingCharges ?? "",
   providesPickup: !!dealer.providesPickup,
   providesDrop: !!dealer.providesDrop,
+  providesTowing: !!dealer.providesTowing,
   minWalletAmount: dealer.minWalletAmount ?? "",
   // How far around the shop this dealer serves. A user outside it never sees
   // the garage or its services in the app.
@@ -41,6 +47,8 @@ export const initBusinessSettings = (dealer = {}) => ({
 
 export const validateBusinessSettings = (data) => {
   const e = {};
+  if (data.towingCharges !== "" && (isNaN(data.towingCharges) || Number(data.towingCharges) < 0))
+    e.towingCharges = "Must be 0 or more";
   if (data.comission !== "" && (isNaN(data.comission) || Number(data.comission) < 0 || Number(data.comission) > 100))
     e.comission = "Must be between 0 and 100";
   if (data.tax !== "" && (isNaN(data.tax) || Number(data.tax) < 0 || Number(data.tax) > 18))

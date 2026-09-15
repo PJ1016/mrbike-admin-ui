@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDownloadExcel } from "react-export-table-to-excel";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
@@ -45,6 +45,7 @@ const BookingTable = ({
   datas,
   loading,
   error,
+  onRefresh,
 }) => {
   const tableRef = useRef(null);
   const [page, setPage] = useState(0);
@@ -55,6 +56,15 @@ const BookingTable = ({
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [order, setOrder] = useState("desc");
   const [orderBy, setOrderBy] = useState("pickupDate");
+
+  // `datas` is replaced wholesale on every refresh, so an open details dialog
+  // would otherwise keep rendering the pre-refresh row object.
+  useEffect(() => {
+    setSelectedBooking((current) => {
+      if (!current) return current;
+      return datas?.find((b) => b._id === current._id) ?? current;
+    });
+  }, [datas]);
 
   // ✅ Relative Date Formatter (Today, Yesterday, etc.)
   const formatRelativeDate = (dateString) => {
@@ -668,6 +678,7 @@ const BookingTable = ({
         open={Boolean(selectedBooking)}
         booking={selectedBooking}
         onClose={() => setSelectedBooking(null)}
+        onRefresh={onRefresh}
       />
     </Box>
   );

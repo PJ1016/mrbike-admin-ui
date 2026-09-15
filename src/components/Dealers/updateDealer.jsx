@@ -440,7 +440,7 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
     if (isEdit && dealerId) form.append("id", dealerId);
 
     const nestedKeys = [
-      "openingTime", "closingTime", "upiId", "providesPickup", "providesDrop",
+      "openingTime", "closingTime", "upiId", "providesPickup", "providesDrop", "providesTowing",
       "fullAddress", "state", "city",
       "permanentAddress", "permanentState", "permanentCity",
       "presentAddress", "presentState", "presentCity",
@@ -455,6 +455,7 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
     form.append("bankDetails[upiId]", formData.upiId || "");
     form.append("providesPickup", formData.providesPickup);
     form.append("providesDrop", formData.providesDrop);
+    form.append("providesTowing", formData.providesTowing);
 
     // Permanent/present address are nested objects on the backend
     // (permanentAddress: { address, state, city }), so submit them
@@ -1354,6 +1355,64 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
             ),
           }}
           helperText="Charged to the customer for bike drop-off"
+          inputProps={{ min: 0 }}
+        />
+      </Grid>
+    </Grid>
+  </Grid>
+
+  {/* Towing Row — applied when the customer declares the bike Not Rideable
+      or Completely Dead at booking time. */}
+  <Grid item xs={12}>
+    <Grid container spacing={2} alignItems="center">
+      <Grid item xs={12} sm={6} md={3}>
+        <Box
+          sx={{
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 2,
+            p: 2,
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <FormControlLabel
+            control={
+              <Switch
+                name="providesTowing"
+                checked={!!formData.providesTowing}
+                onChange={handleChange}
+                color="primary"
+                size="small"
+              />
+            }
+            label={
+              <Typography variant="body2" fontWeight={700}>
+                Provides Towing
+              </Typography>
+            }
+          />
+        </Box>
+      </Grid>
+
+      <Grid item xs={12} sm={6} md={3}>
+        <TextField
+          fullWidth
+          label="Towing Charges"
+          name="towingCharges"
+          type="number"
+          value={formData.towingCharges}
+          onChange={handleChange}
+          disabled={!formData.providesTowing}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <CurrencyRupeeIcon fontSize="small" color="action" />
+              </InputAdornment>
+            ),
+          }}
+          helperText="Charged when the bike is not rideable and must be towed"
           inputProps={{ min: 0 }}
         />
       </Grid>

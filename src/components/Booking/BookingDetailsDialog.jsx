@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -16,6 +16,10 @@ import {
   Stepper,
   Step,
   StepLabel,
+  TextField,
+  InputAdornment,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import {
   TwoWheeler as TwoWheelerIcon,
@@ -28,20 +32,71 @@ import {
   EventNote as CalendarIcon,
   Cancel as CancelIcon,
   ReceiptLong as InvoiceIcon,
+  LocalShipping as TowingIcon,
+  CurrencyRupee as CurrencyRupeeIcon,
 } from "@mui/icons-material";
+import Swal from "sweetalert2";
+import { updateBookingTowingCharge } from "../../api";
 import {
   formatDate,
   getBookingAmount,
   getStatusConfig,
   getActiveStep,
   lifecycleSteps,
+  BIKE_CONDITION_LABELS,
+  canEditTowingCharge,
 } from "./bookingHelpers";
 import InvoiceModal from "../Invoice/InvoiceModal";
 
 // Reusable booking details view — used by the Bookings table and the Customer Details modal's
 // "View Booking" action so both surfaces share the exact same booking view.
-const BookingDetailsDialog = ({ open, booking, onClose }) => {
+const BookingDetailsDialog = ({ open, booking, onClose, onRefresh }) => {
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [towingChargeInput, setTowingChargeInput] = useState("");
+  const [savingTowingCharge, setSavingTowingCharge] = useState(false);
+
+  // The recomputed pricing the towing-charge endpoint returns, layered over
+  // the booking row this dialog was handed. `onRefresh` is optional (the
+  // Customer Details modal has no list to reload), so this is what guarantees
+  // the dialog shows the new total on every surface immediately.
+  const [pricingPatch, setPricingPatch] = useState(null);
+  const view = pricingPatch ? { ...booking, ...pricingPatch } : booking;
+
+  useEffect(() => {
+    setPricingPatch(null);
+  }, [booking?._id]);
+
+  // Keep the editor in step with whatever the booking currently holds — both
+  // on open and after another surface (the Dealer App) has changed it.
+  useEffect(() => {
+    setTowingChargeInput(view?.towingCharge ? String(view.towingCharge) : "");
+  }, [view?._id, view?.towingCharge]);
+
+  // Sends only the towing amount. The server recomputes the entire pricing
+  // breakdown from it and is the only thing that decides the new total.
+  const saveTowingCharge = async () => {
+    const amount = Number(towingChargeInput);
+    if (towingChargeInput === "" || !Number.isFinite(amount) || amount < 0) {
+      Swal.fire("Invalid amount", "Enter a towing charge of 0 or more.", "warning");
+      return;
+    }
+
+    setSavingTowingCharge(true);
+    try {
+      const res = await updateBookingTowingCharge(booking._id, amount);
+      if (res?.success) {
+        setPricingPatch(res.data || null);
+        await onRefresh?.();
+        Swal.fire("Saved", "Towing charge updated. The booking total has been recalculated.", "success");
+      } else {
+        throw new Error(res?.message || "Failed to update towing charge");
+      }
+    } catch (e) {
+      Swal.fire("Error", e.message, "error");
+    } finally {
+      setSavingTowingCharge(false);
+    }
+  };
 
   return (
     <Dialog
@@ -367,7 +422,7 @@ const BookingDetailsDialog = ({ open, booking, onClose }) => {
                         <Typography variant="h6" component="span" sx={{ fontWeight: 700, mt: 0.5 }}>
                           ₹
                         </Typography>
-                        {getBookingAmount(booking).toLocaleString()}
+                        {getBookingAmount(view).toLocaleString()}
                       </Typography>
                     </Box>
                     <Divider sx={{ borderStyle: "dashed" }} />
@@ -394,7 +449,125 @@ const BookingDetailsDialog = ({ open, booking, onClose }) => {
                 </Paper>
               </Grid>
 
-              {/* Section 3: Verification & Security */}
+              {/* Section 3: Bike Condition & Towing */}
+              <Grid item xs={12}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
+                  <Avatar sx={{ bgcolor: "primary.soft", width: 32, height: 32 }}>
+                    <TowingIcon sx={{ color: "primary.main", fontSize: 18 }} />
+                  </Avatar>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontWeight: 800,
+                      color: "#4a5568",
+                      letterSpacing: 0.8,
+                      textTransform: "uppercase",
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    Bike Condition & Towing
+                  </Typography>
+                </Box>
+                <Paper
+                  elevation={0}
+                  sx={{ p: 3, borderRadius: 4, border: "1px solid #e2e8f0", bgcolor: "#fff" }}
+                >
+                  <Grid container spacing={2.5}>
+                    <Grid item xs={12} sm={4}>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                        Bike Condition
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5 }}>
+                        {BIKE_CONDITION_LABELS[view.bikeCondition] || "Rideable"}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                        Towing Required
+                      </Typography>
+                      <Chip
+                        label={view.towingRequired ? "YES" : "NO"}
+                        size="small"
+                        color={view.towingRequired ? "warning" : "default"}
+                        sx={{ fontWeight: 900, fontSize: "0.65rem", borderRadius: 1.5, px: 1, mt: 0.5 }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                        Towing Charge
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5 }}>
+                        {view.towingRequired
+                          ? view.towingCharge > 0
+                            ? `₹${Number(view.towingCharge).toLocaleString()}`
+                            : "Not set"
+                          : "—"}
+                      </Typography>
+                    </Grid>
+
+                    {!!view.towingNote && (
+                      <Grid item xs={12}>
+                        <Divider sx={{ borderStyle: "dashed", mb: 1.5 }} />
+                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                          Customer's Note
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                          {view.towingNote}
+                        </Typography>
+                      </Grid>
+                    )}
+
+                    {/* Editable only while the customer still owes the money —
+                        the backend enforces the same rule and rejects the call
+                        once the booking is billed or paid. */}
+                    {canEditTowingCharge(view) && (
+                      <Grid item xs={12}>
+                        <Divider sx={{ borderStyle: "dashed", mb: 2 }} />
+                        <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", flexWrap: "wrap" }}>
+                          <TextField
+                            label="Towing Charge"
+                            type="number"
+                            size="small"
+                            value={towingChargeInput}
+                            onChange={(e) => setTowingChargeInput(e.target.value)}
+                            disabled={savingTowingCharge}
+                            InputProps={{
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <CurrencyRupeeIcon fontSize="small" />
+                                </InputAdornment>
+                              ),
+                            }}
+                            inputProps={{ min: 0 }}
+                            sx={{ width: 200 }}
+                          />
+                          <Button
+                            variant="contained"
+                            disableElevation
+                            onClick={saveTowingCharge}
+                            disabled={savingTowingCharge}
+                            startIcon={
+                              savingTowingCharge ? (
+                                <CircularProgress size={16} color="inherit" />
+                              ) : null
+                            }
+                            sx={{ borderRadius: 2, fontWeight: 800, textTransform: "none", px: 3, py: 1 }}
+                          >
+                            {savingTowingCharge ? "Saving…" : "Save Charge"}
+                          </Button>
+                        </Box>
+                        <Alert severity="info" sx={{ borderRadius: 2, mt: 2 }}>
+                          The server recalculates subtotal, tax, customer total,
+                          commission and dealer payout from this amount. It is
+                          billed as a separate line item on the invoice.
+                        </Alert>
+                      </Grid>
+                    )}
+                  </Grid>
+                </Paper>
+              </Grid>
+
+              {/* Section 4: Verification & Security */}
               <Grid item xs={12}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
                   <Avatar sx={{ bgcolor: "primary.soft", width: 32, height: 32 }}>
