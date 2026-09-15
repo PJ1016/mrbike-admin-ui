@@ -136,6 +136,20 @@ const ImageUploadField = ({
           <Box sx={{ position: "relative", width: "100%", display: "flex", justifyContent: "center", p: 1.5 }}>
             <img src={displayUrl} alt={label} style={{ maxHeight: 220, maxWidth: "100%", borderRadius: 4, objectFit: "contain" }} />
             <Stack direction="row" spacing={0.5} sx={{ position: "absolute", top: 8, right: 8 }}>
+              {/* Swapping the artwork is the common edit, so it gets its own
+                  button — removing first and then uploading is one step too
+                  many, and on an already-saved banner the empty upload box
+                  never even appeared. */}
+              <Tooltip title="Replace image">
+                <IconButton
+                  component="label"
+                  size="small"
+                  sx={{ bgcolor: "rgba(255,255,255,0.9)", "&:hover": { bgcolor: "#fff" } }}
+                >
+                  <AddPhotoAlternate fontSize="small" />
+                  <input type="file" hidden accept="image/jpeg,image/png,image/webp" onChange={handleSelect} />
+                </IconButton>
+              </Tooltip>
               {/* Re-crop is only possible for a file picked in this session —
                   an already-uploaded image lives on another origin and would
                   taint the canvas. */}

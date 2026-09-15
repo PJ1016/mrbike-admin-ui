@@ -6,7 +6,14 @@ import { useDownloadExcel } from "react-export-table-to-excel"
 import jsPDF from "jspdf"
 import "jspdf-autotable"
 import ImagePreview from "../Global/ImagePreview"
+import ImageCropDialog from "../Common/ImageCropDialog"
+import { BANNER_IMAGE_SPECS, formatSpec, validateBannerImage } from "../../utils/bannerImageSpecs"
 import { deleteBanner, updateBanner, getBaseServiceList } from "../../api"
+
+// Legacy banners land on the app's home slider, so they share the Home Hero
+// spec the create form enforces — an edit must not be able to sneak an
+// off-size image past the gate the create form applies.
+const HOME_SPEC = BANNER_IMAGE_SPECS.home
 
 const IMAGE_BASE_URL = process.env.REACT_APP_IMAGE_BASE_URL
 const bannerImageUrl = (value) => /^https?:\/\//i.test(value || "") ? value : `${IMAGE_BASE_URL || ""}${value || ""}`
@@ -58,6 +65,12 @@ const BannerTable = ({
     imageOnly: false,
   })
   const [editLoading, setEditLoading] = useState(false)
+  // A newly picked replacement image — null means "keep the saved artwork".
+  const [newImage, setNewImage] = useState(null)
+  const [newImagePreview, setNewImagePreview] = useState(null)
+  // The picked file waiting to be cropped — also the crop dialog's open flag.
+  const [cropSource, setCropSource] = useState(null)
+  const [imageError, setImageError] = useState(null)
   const [services, setServices] = useState([])
   const [editLocationQuery, setEditLocationQuery] = useState("")
   const [googleReady, setGoogleReady] = useState(!!window.google?.maps?.places)
@@ -100,6 +113,31 @@ const BannerTable = ({
     })
   }, [googleReady, showEditModal, editFormData.locationType])
 
+  // "Image already has text" turns the app's own overlay off, so the artwork
+  // has to be the finished creative — and the crop dialog must stop shading the
+  // bottom of the frame as if the app were going to paint text there.
+  const imageSpec = useMemo(
+    () =>
+      editFormData.imageOnly
+        ? {
+            ...HOME_SPEC,
+            note: "Finished creative — the app shows this image alone, with no title, description or button over it. Keep important content away from the rounded corners.",
+            overlayBottomPct: 0,
+          }
+        : HOME_SPEC,
+    [editFormData.imageOnly]
+  )
+
+  useEffect(() => {
+    if (!newImage) {
+      setNewImagePreview(null)
+      return
+    }
+    const url = URL.createObjectURL(newImage)
+    setNewImagePreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [newImage])
+
   const { onDownload } = useDownloadExcel({
     currentTableRef: tableRef.current,
     filename: "Banner_List",
@@ -126,7 +164,58 @@ const BannerTable = ({
       imageOnly: banner.imageOnly === true,
     })
     setEditLocationQuery(banner.placeName || "")
+    setNewImage(null)
+    setCropSource(null)
+    setImageError(null)
     setShowEditModal(true)
+  }
+
+  const closeEditModal = () => {
+    setShowEditModal(false)
+    setNewImage(null)
+    setCropSource(null)
+    setImageError(null)
+  }
+
+  // Same gate as the create form: type, weight and exact pixel size. An
+  // off-size file is not bounced — the admin crops it here, so they decide
+  // what gets cut off rather than the app's fixed-height card deciding for them.
+  const handleImageSelect = async (e) => {
+    const file = e.target.files?.[0]
+    // Reset so re-picking the same rejected file fires onChange again.
+    e.target.value = ""
+    if (!file) return
+
+    const result = await validateBannerImage(file, imageSpec)
+    if (result.needsCrop) {
+      setNewImage(null)
+      setImageError(null)
+      setCropSource(file)
+      return
+    }
+    if (!result.ok) {
+      setNewImage(null)
+      setImageError(result.message)
+      Swal.fire({ icon: "error", title: "Image Not Accepted", text: result.message })
+      return
+    }
+
+    setImageError(null)
+    setNewImage(file)
+  }
+
+  const handleCropped = (croppedFile) => {
+    setCropSource(null)
+    setImageError(null)
+    setNewImage(croppedFile)
+  }
+
+  const handleCropCancel = () => {
+    const pending = cropSource
+    setCropSource(null)
+    if (!newImage && pending) {
+      setImageError(`Crop cancelled — the banner must be exactly ${formatSpec(imageSpec)}. Choose the image again to crop it.`)
+    }
   }
 
   const handleInputChange = (e) => {
@@ -156,6 +245,21 @@ const BannerTable = ({
   const handleEditSubmit = async (e) => {
     e.preventDefault()
 
+    if (!editFormData.name.trim()) {
+      Swal.fire("Error!", "Banner name is required.", "error")
+      return
+    }
+
+    if (!editFormData.from_date || !editFormData.expiry_date) {
+      Swal.fire("Error!", "From date and expiry date are required.", "error")
+      return
+    }
+
+    if (new Date(editFormData.from_date) >= new Date(editFormData.expiry_date)) {
+      Swal.fire("Error!", "From date must be before the expiry date.", "error")
+      return
+    }
+
     if (editFormData.locationType === "specific") {
       const { placeName, latitude, longitude, radius } = editFormData
       if (!placeName || !latitude || !longitude || !radius || isNaN(Number(radius)) || Number(radius) <= 0) {
@@ -164,24 +268,37 @@ const BannerTable = ({
       }
     }
 
+    const fields = {
+      name: editFormData.name,
+      from_date: editFormData.from_date,
+      expiry_date: editFormData.expiry_date,
+      baseServiceId: editFormData.baseServiceId,
+      locationType: editFormData.locationType,
+      placeId: editFormData.placeId,
+      placeName: editFormData.placeName,
+      latitude: editFormData.latitude,
+      longitude: editFormData.longitude,
+      radius: editFormData.radius,
+      displayOrder: editFormData.displayOrder,
+      imageOnly: editFormData.imageOnly,
+    }
+
+    // A replacement image makes this a multipart update under the same "images"
+    // field the create form uses; with no new file the saved artwork is sent
+    // back untouched as JSON.
+    let payload
+    if (newImage) {
+      payload = new FormData()
+      Object.entries(fields).forEach(([key, value]) => payload.append(key, String(value ?? "")))
+      payload.append("images", newImage)
+    } else {
+      payload = { ...fields, banner_image: editFormData.banner_image }
+    }
+
     setEditLoading(true)
     try {
-      await updateBanner(editFormData._id, {
-        name: editFormData.name,
-        banner_image: editFormData.banner_image,
-        from_date: editFormData.from_date,
-        expiry_date: editFormData.expiry_date,
-        baseServiceId: editFormData.baseServiceId,
-        locationType: editFormData.locationType,
-        placeId: editFormData.placeId,
-        placeName: editFormData.placeName,
-        latitude: editFormData.latitude,
-        longitude: editFormData.longitude,
-        radius: editFormData.radius,
-        displayOrder: editFormData.displayOrder,
-        imageOnly: editFormData.imageOnly,
-      })
-      setShowEditModal(false)
+      await updateBanner(editFormData._id, payload)
+      closeEditModal()
       onBannerDeleted() // Refresh the list
     } catch (error) {
       // error Swal already shown by updateBanner()
@@ -301,7 +418,7 @@ const BannerTable = ({
                     handleEdit(data)
                   }}
                 >
-                  <i className="far fa-edit me-2" /> View
+                  <i className="far fa-edit me-2" /> Edit
                 </button>
               </li>
               <li>
@@ -444,7 +561,7 @@ const BannerTable = ({
           className="modal fade show d-block"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="view-banner-title"
+          aria-labelledby="edit-banner-title"
           style={{
             backgroundColor: "rgba(15, 23, 42, 0.58)",
             zIndex: 2000,
@@ -466,11 +583,11 @@ const BannerTable = ({
           >
             <div className="modal-content" style={{ height: "100%", maxHeight: "100%", border: 0, borderRadius: 16 }}>
               <div className="modal-header bg-primary text-white">
-                <h5 id="view-banner-title" className="modal-title text-white">View Banner</h5>
+                <h5 id="edit-banner-title" className="modal-title text-white">Edit Banner</h5>
                 <button
                   type="button"
                   className="btn-close btn-close-white"
-                  onClick={() => setShowEditModal(false)}
+                  onClick={closeEditModal}
                   disabled={editLoading}
                 ></button>
               </div>
@@ -493,7 +610,6 @@ const BannerTable = ({
                           value={editFormData.name}
                           onChange={handleInputChange}
                           required
-                          disabled
                         />
                       </div>
                       <div className="row">
@@ -506,7 +622,6 @@ const BannerTable = ({
                             value={editFormData.from_date}
                             onChange={handleInputChange}
                             required
-                            disabled
                           />
                         </div>
                         <div className="col-md-6 mb-3">
@@ -518,19 +633,57 @@ const BannerTable = ({
                             value={editFormData.expiry_date}
                             onChange={handleInputChange}
                             required
-                            disabled
                           />
                         </div>
                       </div>
                       <div className="mb-3">
                         <label className="form-label">Banner Image</label>
-                        {editFormData.banner_image && (
-                          <img
-                            src={bannerImageUrl(editFormData.banner_image)}
-                            alt="Banner Preview"
-                            className="img-thumbnail mt-2"
-                            style={{ maxHeight: "200px", width: "100%", objectFit: "contain" }}
-                          />
+                        <div className="alert alert-info py-2 px-3 mb-2" role="alert">
+                          <strong>Required size: {formatSpec(imageSpec)}</strong> — any other size opens the crop tool.
+                          <br />
+                          <small>{imageSpec.note}</small>
+                        </div>
+                        <input
+                          type="file"
+                          className={`form-control mb-2 ${imageError ? "is-invalid" : ""}`}
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={handleImageSelect}
+                        />
+                        <small className="text-muted d-block mb-2">
+                          Leave this empty to keep the current image.
+                        </small>
+                        {imageError && <div className="invalid-feedback d-block">{imageError}</div>}
+                        {(newImagePreview || editFormData.banner_image) && (
+                          <div className="border rounded p-2 bg-light text-center">
+                            <img
+                              src={newImagePreview || bannerImageUrl(editFormData.banner_image)}
+                              alt="Banner Preview"
+                              style={{ maxWidth: "100%", maxHeight: "200px", objectFit: "contain" }}
+                            />
+                            <div className="mt-2">
+                              {newImage ? (
+                                <>
+                                  <span className="badge bg-success me-2">New image · {formatSpec(imageSpec)}</span>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-secondary me-2"
+                                    onClick={() => setCropSource(newImage)}
+                                  >
+                                    Adjust crop
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-danger"
+                                    onClick={() => { setNewImage(null); setImageError(null) }}
+                                  >
+                                    Keep current image
+                                  </button>
+                                </>
+                              ) : (
+                                <span className="badge bg-secondary">Current image</span>
+                              )}
+                            </div>
+                          </div>
                         )}
                       </div>
 
@@ -638,7 +791,7 @@ const BannerTable = ({
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    onClick={() => setShowEditModal(false)}
+                    onClick={closeEditModal}
                     disabled={editLoading}
                   >
                     Close
@@ -652,6 +805,15 @@ const BannerTable = ({
           </div>
         </div>
       )}
+
+      <ImageCropDialog
+        open={Boolean(cropSource)}
+        file={cropSource}
+        spec={imageSpec}
+        zIndex={2100}
+        onCancel={handleCropCancel}
+        onCropped={handleCropped}
+      />
     </>
   )
 }

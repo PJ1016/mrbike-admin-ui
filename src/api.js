@@ -569,15 +569,25 @@ export const addBanner = async (bannerData) => {
 export const getBannerList = () =>
   apiRequest("GET", "/banner/bannerlist", {}, false);
 
-// ✅ Update banner (JSON body — editbanner route has no file upload)
+// ✅ Update banner. Pass a FormData (with the new file under "images") to also
+// replace the artwork, or a plain object to update just the text fields.
 export const updateBanner = async (bannerId, bannerData) => {
   try {
+    const isMultipart = typeof FormData !== "undefined" && bannerData instanceof FormData;
+    let payload;
+    if (isMultipart) {
+      payload = bannerData;
+      payload.append("banner_id", bannerId);
+    } else {
+      payload = { banner_id: bannerId, ...bannerData };
+    }
+
     const response = await axios.put(
       `${API_BASE_URL}/banner/editbanner`,
-      { banner_id: bannerId, ...bannerData },
+      payload,
       {
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": isMultipart ? "multipart/form-data" : "application/json",
           token: getAuthToken(),
         },
       },

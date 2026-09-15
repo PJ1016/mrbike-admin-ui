@@ -44,6 +44,10 @@ const emptyForm = {
 const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
   const [form, setForm] = useState(emptyForm);
   const [image, setImage] = useState(null);
+  // Remove on an already-saved banner only clears the preview: the upload box
+  // has to come back, and the saved image stays on the banner until a new file
+  // actually replaces it (the API has no "delete the image" update).
+  const [existingCleared, setExistingCleared] = useState(false);
   const [errors, setErrors] = useState({});
 
   const accentColor = ACCENTS[form.type] || "#7c3aed";
@@ -89,9 +93,21 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
           : emptyForm
       );
       setImage(null);
+      setExistingCleared(false);
       setErrors({});
     }
   }, [open, banner]);
+
+  const handleImageChange = (file) => {
+    setImage(file);
+    if (file) setExistingCleared(false);
+    if (errors.image) setErrors((prev) => ({ ...prev, image: null }));
+  };
+
+  const handleImageRemove = () => {
+    setImage(null);
+    setExistingCleared(true);
+  };
 
   const handleChange = (field) => (e) => {
     const value = field === "isActive" || field === "imageOnly" ? e.target.checked : e.target.value;
@@ -108,7 +124,7 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
   const validate = () => {
     const e = {};
     if (!form.title.trim()) e.title = "Title is required";
-    if (!banner && !image) e.image = "Banner image is required";
+    if (!image && (!banner || existingCleared)) e.image = "Banner image is required";
     if (form.scheduleStart && form.scheduleEnd && form.scheduleEnd < form.scheduleStart) {
       e.scheduleEnd = "Must be after Schedule Start";
     }
@@ -154,11 +170,11 @@ const BannerFormDrawer = ({ open, banner, saving, onClose, onSave }) => {
       <Stack spacing={2.5}>
         <ImageUploadField
           label="Banner Image"
-          required={!banner}
+          required={!banner || existingCleared}
           file={image}
-          existingUrl={banner?.image}
-          onFileChange={setImage}
-          onRemove={() => setImage(null)}
+          existingUrl={existingCleared ? null : banner?.image}
+          onFileChange={handleImageChange}
+          onRemove={handleImageRemove}
           error={errors.image}
           height={160}
           spec={imageSpec}

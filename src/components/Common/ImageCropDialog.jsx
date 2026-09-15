@@ -37,7 +37,10 @@ const FRAME_MAX_H = 380;
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-const ImageCropDialog = ({ open, file, spec, onCancel, onCropped }) => {
+// `zIndex` is for callers that open this from inside a hand-rolled modal with
+// its own stacking context (the Banners edit modal sits at 2000) — MUI's
+// default 1300 would otherwise hide the crop dialog behind it.
+const ImageCropDialog = ({ open, file, spec, onCancel, onCropped, zIndex }) => {
   const [source, setSource] = useState(null); // { url, width, height }
   const [availWidth, setAvailWidth] = useState(0);
   const [zoom, setZoom] = useState(1);
@@ -186,7 +189,7 @@ const ImageCropDialog = ({ open, file, spec, onCancel, onCropped }) => {
   };
 
   return (
-    <Dialog open={open} onClose={busy ? undefined : onCancel} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={busy ? undefined : onCancel} maxWidth="sm" fullWidth sx={zIndex ? { zIndex } : undefined}>
       <DialogTitle sx={{ pb: 0.5 }}>
         <Typography variant="h6" fontWeight={700}>
           Crop to {formatSpec(spec)}
