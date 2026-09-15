@@ -20,6 +20,7 @@ import TwoWheelerIcon from "@mui/icons-material/TwoWheeler";
 import PercentIcon from "@mui/icons-material/Percent";
 import CurrencyRupeeIcon from "@mui/icons-material/CurrencyRupee";
 import NoteAltIcon from "@mui/icons-material/NoteAlt";
+import MyLocationIcon from "@mui/icons-material/MyLocation";
 import Swal from "sweetalert2";
 import { updateDealer } from "../../../../api";
 import { SectionHeader } from "../DealerShared";
@@ -27,6 +28,9 @@ import {
   initBusinessSettings,
   validateBusinessSettings,
   appendBusinessSettingsToForm,
+  SERVICE_RADIUS_MIN_KM,
+  SERVICE_RADIUS_MAX_KM,
+  SERVICE_RADIUS_DEFAULT_KM,
 } from "../../businessSettings";
 
 const BusinessSettingsTab = ({ dealer, onRefresh }) => {
@@ -146,6 +150,47 @@ const BusinessSettingsTab = ({ dealer, onRefresh }) => {
                     }}
                     inputProps={{ min: 0 }}
                   />
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Service Area */}
+        <Grid item xs={12}>
+          <Card elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
+            <CardContent sx={{ p: 3 }}>
+              <SectionHeader icon={<MyLocationIcon />} title="Service Area" />
+              <Grid container spacing={2.5} alignItems="flex-start">
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Service Radius"
+                    type="number"
+                    size="small"
+                    fullWidth
+                    value={settings.serviceRadiusKm}
+                    onChange={handleChange("serviceRadiusKm")}
+                    error={!!errors.serviceRadiusKm}
+                    helperText={
+                      errors.serviceRadiusKm ||
+                      `${SERVICE_RADIUS_MIN_KM}–${SERVICE_RADIUS_MAX_KM} km. Blank uses the ${SERVICE_RADIUS_DEFAULT_KM} km default.`
+                    }
+                    InputProps={{
+                      endAdornment: <InputAdornment position="end">km</InputAdornment>,
+                    }}
+                    inputProps={{
+                      min: SERVICE_RADIUS_MIN_KM,
+                      max: SERVICE_RADIUS_MAX_KM,
+                      step: 0.5,
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={8}>
+                  <Alert severity="info" sx={{ borderRadius: 2 }}>
+                    This garage and its services only appear in the customer app
+                    for users whose location falls inside this radius of the shop.
+                    The dealer can also change it from the Dealer App.
+                  </Alert>
                 </Grid>
               </Grid>
             </CardContent>

@@ -49,7 +49,13 @@ import Swal from "sweetalert2";
 import { addDealer, updateDealer } from "../../api";
 import { getApiErrorMessage, getApiFieldErrors } from "../../utils/apiError";
 import { useNavigate } from "react-router-dom";
-import { initBusinessSettings, validateBusinessSettings } from "./businessSettings";
+import {
+  initBusinessSettings,
+  validateBusinessSettings,
+  SERVICE_RADIUS_MIN_KM,
+  SERVICE_RADIUS_MAX_KM,
+  SERVICE_RADIUS_DEFAULT_KM,
+} from "./businessSettings";
 
 const IMAGE_BASE_URL = process.env.REACT_APP_IMAGE_BASE_URL || "";
 const getImageUrl = (path) =>
@@ -327,7 +333,7 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
     shop: ["shopName", "shopEmail", "shopPincode", "shopContact", "gstNumber"],
     location: ["fullAddress", "state", "city"],
     bank: ["accountNumber", "ifscCode"],
-    business: ["comission", "tax"],
+    business: ["comission", "tax", "serviceRadiusKm"],
   };
   const countSectionErrors = (keys) =>
     submitAttempted ? keys.filter((k) => errors[k]).length : 0;
@@ -1137,7 +1143,7 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
       <SectionCard
         icon={<SettingsIcon />}
         title="Business Settings"
-        subtitle="Commission, charges, wallet limits, and admin notes"
+        subtitle="Service area, commission, charges, wallet limits, and admin notes"
         errorCount={countSectionErrors(sectionErrors.business)}
       >
         <Grid container spacing={2.5}>
@@ -1182,7 +1188,30 @@ const DealerForm = ({ dealerData, dealerId, isEdit }) => {
               inputProps={{ min: 0, max: 18, step: 0.1 }}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={6}>
+          <Grid item xs={12} sm={6} md={3}>
+            <TextField
+              fullWidth
+              label="Service Radius (km)"
+              name="serviceRadiusKm"
+              type="number"
+              value={formData.serviceRadiusKm}
+              onChange={handleChange}
+              error={!!errors.serviceRadiusKm}
+              helperText={
+                errors.serviceRadiusKm ||
+                `Users within this many km of the shop see this garage (${SERVICE_RADIUS_MIN_KM}–${SERVICE_RADIUS_MAX_KM}, default ${SERVICE_RADIUS_DEFAULT_KM})`
+              }
+              InputProps={{
+                endAdornment: <InputAdornment position="end">km</InputAdornment>,
+              }}
+              inputProps={{
+                min: SERVICE_RADIUS_MIN_KM,
+                max: SERVICE_RADIUS_MAX_KM,
+                step: 0.5,
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
             <TextField
               fullWidth
               label="Minimum Wallet Amount"

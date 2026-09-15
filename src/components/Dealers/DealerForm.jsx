@@ -36,6 +36,11 @@ import { addDealer } from "../../api";
 import { getApiErrorMessage, getApiFieldErrors } from "../../utils/apiError";
 import { useNavigate } from "react-router-dom";
 import LocationPicker from "../Common/LocationPicker";
+import {
+  SERVICE_RADIUS_MIN_KM,
+  SERVICE_RADIUS_MAX_KM,
+  SERVICE_RADIUS_DEFAULT_KM,
+} from "./businessSettings";
 
 const steps = ["Shop Details", "Owner, Bank & Documents"];
 
@@ -54,6 +59,7 @@ const FIELD_STEP = {
   city: 0,
   comission: 0,
   tax: 0,
+  serviceRadiusKm: 0,
   latitude: 0,
   longitude: 0,
   aadharCardNo: 1,
@@ -105,6 +111,9 @@ const DealerForm = () => {
     city: "",
     comission: "",
     tax: "",
+    // How far around the shop this garage is shown to users. Blank submits
+    // nothing and the backend applies its own default.
+    serviceRadiusKm: String(SERVICE_RADIUS_DEFAULT_KM),
     latitude: "",
     longitude: "",
     // Personal Details
@@ -265,6 +274,19 @@ const DealerForm = () => {
         const tax = Number.parseFloat(formData.tax);
         if (Number.isNaN(tax) || tax < 0 || tax > 18) {
           found.tax = "Tax must be a number between 0 and 18";
+        }
+      }
+
+      // Service radius is optional too — left blank, addDealer stores its own
+      // default. Bounds match helper/dealerServiceRadius.js on the backend.
+      if (String(formData.serviceRadiusKm).trim()) {
+        const radius = Number.parseFloat(formData.serviceRadiusKm);
+        if (
+          Number.isNaN(radius) ||
+          radius < SERVICE_RADIUS_MIN_KM ||
+          radius > SERVICE_RADIUS_MAX_KM
+        ) {
+          found.serviceRadiusKm = `Service radius must be between ${SERVICE_RADIUS_MIN_KM} and ${SERVICE_RADIUS_MAX_KM} km`;
         }
       }
 
@@ -709,6 +731,29 @@ const DealerForm = () => {
           helperText={errors.tax || "Optional, max 18"}
           InputProps={{
             endAdornment: <InputAdornment position="end">%</InputAdornment>,
+          }}
+        />,
+      ])}
+      {renderGridRow([
+        <TextField
+          fullWidth
+          label="Service Radius (km)"
+          name="serviceRadiusKm"
+          type="number"
+          value={formData.serviceRadiusKm}
+          onChange={handleChange}
+          error={!!errors.serviceRadiusKm}
+          helperText={
+            errors.serviceRadiusKm ||
+            `Only users within this many km of the shop will see this garage (default ${SERVICE_RADIUS_DEFAULT_KM})`
+          }
+          InputProps={{
+            endAdornment: <InputAdornment position="end">km</InputAdornment>,
+          }}
+          inputProps={{
+            min: SERVICE_RADIUS_MIN_KM,
+            max: SERVICE_RADIUS_MAX_KM,
+            step: 0.5,
           }}
         />,
       ])}

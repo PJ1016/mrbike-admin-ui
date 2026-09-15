@@ -60,6 +60,7 @@ import {
 import RequestDocumentsDialog, { DEFAULT_DOC_OPTIONS } from "./RequestDocumentsDialog";
 import DocumentRejectDialog from "./DocumentRejectDialog";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { SERVICE_RADIUS_DEFAULT_KM } from "./businessSettings";
 
 const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
   const navigate = useNavigate();
@@ -779,6 +780,10 @@ const DealerVerficationTable = ({ datas, loading, onRefresh }) => {
                         selectedDealer.pickupCharges != null
                           ? `₹${selectedDealer.pickupCharges}`
                           : null,
+                    },
+                    {
+                      label: "Service radius",
+                      value: `${selectedDealer.serviceRadiusKm ?? SERVICE_RADIUS_DEFAULT_KM} km`,
                     },
                     {
                       label: "Shop Pincode",

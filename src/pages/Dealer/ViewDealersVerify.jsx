@@ -17,6 +17,7 @@ import {
   FaTimesCircle,
 } from "react-icons/fa";
 import { getServiceList } from "../../api";
+import { SERVICE_RADIUS_DEFAULT_KM } from "../../components/Dealers/businessSettings";
 import React from "react";
 
 const validateAadhar = (number) => /^\d{12}$/.test(number);
@@ -172,7 +173,9 @@ const ViewDealersVerify = () => {
                     <strong>Comission:</strong> {dealer.commission || 0} % |{" "}
                     <strong>Tax:</strong> {dealer.tax || 0} % |{" "}
                     <strong>Pickup charges:</strong> ₹{dealer.pickupCharges || 0} |{" "}
-                    <strong>Min Wallet:</strong> ₹{dealer.minWalletAmount || 0}
+                    <strong>Min Wallet:</strong> ₹{dealer.minWalletAmount || 0} |{" "}
+                    <strong>Service radius:</strong>{" "}
+                    {dealer.serviceRadiusKm || SERVICE_RADIUS_DEFAULT_KM} km
                   </p>
                   <p>
                     <strong>Shop Images: &nbsp;</strong>

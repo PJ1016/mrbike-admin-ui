@@ -46,6 +46,11 @@ import {
 } from "@mui/icons-material";
 import { addDealer, API_BASE_URL } from "../../api";
 import { getApiErrorMessage } from "../../utils/apiError";
+import {
+  SERVICE_RADIUS_MIN_KM,
+  SERVICE_RADIUS_MAX_KM,
+  SERVICE_RADIUS_DEFAULT_KM,
+} from "../../components/Dealers/businessSettings";
 
 const steps = ["Upload Documents", "Review Details", "Submit"];
 
@@ -87,6 +92,9 @@ const CreateDealerAI = () => {
     commission: "",
     tax: "",
     pickupCharges: "",
+    // How far around the shop this garage is shown to users. Blank lets the
+    // backend apply its own default.
+    serviceRadiusKm: String(SERVICE_RADIUS_DEFAULT_KM),
   });
 
   const [formEnabled, setFormEnabled] = useState(false);
@@ -348,6 +356,7 @@ const CreateDealerAI = () => {
         aadharCardNo: formData.aadhaarNumber,
         panCardNo: formData.panNumber,
         pickupCharges: formData.pickupCharges,
+        serviceRadiusKm: formData.serviceRadiusKm,
       };
 
       Object.entries(dataMapping).forEach(([key, value]) => {
@@ -1241,6 +1250,24 @@ const CreateDealerAI = () => {
                               type="number"
                               inputProps={{ min: 0 }}
                               helperText="Flat charges for pick up service"
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={4}>
+                            <TextField
+                              fullWidth
+                              label="Service radius (km)"
+                              placeholder="Enter service radius"
+                              value={formData.serviceRadiusKm}
+                              onChange={(e) =>
+                                handleInputChange("serviceRadiusKm", e.target.value)
+                              }
+                              type="number"
+                              inputProps={{
+                                min: SERVICE_RADIUS_MIN_KM,
+                                max: SERVICE_RADIUS_MAX_KM,
+                                step: 0.5,
+                              }}
+                              helperText={`Only users within this many km of the shop see this garage (default ${SERVICE_RADIUS_DEFAULT_KM})`}
                             />
                           </Grid>
                         </Grid>
