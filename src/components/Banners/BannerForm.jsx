@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import Swal from "sweetalert2";
 import { addBanner, getBaseServiceList } from "../../api";
 import ImageCropDialog from "../Common/ImageCropDialog";
@@ -6,7 +6,7 @@ import { BANNER_IMAGE_SPECS, formatSpec, validateBannerImage } from "../../utils
 import { useNavigate } from "react-router-dom";
 
 // Legacy banners land on the app's home slider, so they share the Home Hero spec.
-const IMAGE_SPEC = BANNER_IMAGE_SPECS.home;
+const HOME_SPEC = BANNER_IMAGE_SPECS.home;
 
 const GOOGLE_MAPS_KEY = "AIzaSyCM15ry8lewwj6YZ-04_m7Z58dsQo_hBBA";
 
@@ -39,6 +39,7 @@ const BannerForm = () => {
     longitude: "",
     radius: "",
     displayOrder: "0",
+    imageOnly: false,
   });
   const navigate = useNavigate()
   const [image, setImage] = useState(null);
@@ -51,6 +52,21 @@ const BannerForm = () => {
   const [googleReady, setGoogleReady] = useState(!!window.google?.maps?.places);
   const searchInputRef = useRef(null);
   const autocompleteRef = useRef(null);
+
+  // "Image already has text" turns the app's own overlay off, so the artwork
+  // has to be the finished creative — and the crop dialog must stop shading
+  // the bottom of the frame as if the app were going to paint text there.
+  const imageSpec = useMemo(
+    () =>
+      formData.imageOnly
+        ? {
+            ...HOME_SPEC,
+            note: "Finished creative — the app shows this image alone, with no title, description or button over it. Keep important content away from the rounded corners.",
+            overlayBottomPct: 0,
+          }
+        : HOME_SPEC,
+    [formData.imageOnly]
+  );
 
   useEffect(() => {
     getBaseServiceList()
@@ -90,9 +106,9 @@ const BannerForm = () => {
   }, [googleReady, formData.locationType]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData((prev) => {
-      const updated = { ...prev, [name]: value };
+      const updated = { ...prev, [name]: type === "checkbox" ? checked : value };
       if (name === "locationType" && value === "all") {
         updated.placeId = "";
         updated.placeName = "";
@@ -123,7 +139,7 @@ const BannerForm = () => {
     // banner gets cropped by the app's fixed-height card and cannot be fixed
     // once it is live. A wrong-size file is not bounced, though: the admin
     // crops it to size right here, so they decide what gets cut off.
-    const result = await validateBannerImage(file, IMAGE_SPEC);
+    const result = await validateBannerImage(file, imageSpec);
     if (result.needsCrop) {
       setImage(null);
       setPreview(null);
@@ -161,7 +177,7 @@ const BannerForm = () => {
     if (!image && pending) {
       setErrors((prev) => ({
         ...prev,
-        image: `Crop cancelled — the banner must be exactly ${formatSpec(IMAGE_SPEC)}. Choose the image again to crop it.`,
+        image: `Crop cancelled — the banner must be exactly ${formatSpec(imageSpec)}. Choose the image again to crop it.`,
       }));
     }
   };
@@ -223,6 +239,7 @@ const BannerForm = () => {
     form.append("longitude", formData.longitude || "");
     form.append("radius", formData.radius || "");
     form.append("displayOrder", formData.displayOrder || "0");
+    form.append("imageOnly", String(formData.imageOnly));
 
     try {
       const response = await addBanner(form);
@@ -245,6 +262,7 @@ const BannerForm = () => {
         longitude: "",
         radius: "",
         displayOrder: "0",
+        imageOnly: false,
       });
       setLocationQuery("");
       setImage(null);
@@ -303,9 +321,9 @@ const BannerForm = () => {
               <div className="input-block mb-3">
                 <label className="form-control-label">Upload Banner Image</label>
                 <div className="alert alert-info py-2 px-3 mb-2" role="alert">
-                  <strong>Required size: {formatSpec(IMAGE_SPEC)}</strong> — any other size opens the crop tool.
+                  <strong>Required size: {formatSpec(imageSpec)}</strong> — any other size opens the crop tool.
                   <br />
-                  <small>{IMAGE_SPEC.note}</small>
+                  <small>{imageSpec.note}</small>
                 </div>
                 <input
                   type="file"
@@ -322,7 +340,7 @@ const BannerForm = () => {
                       style={{ maxWidth: "100%", maxHeight: "200px", objectFit: "contain" }}
                     />
                     <div className="mt-2">
-                      <span className="badge bg-success me-2">{formatSpec(IMAGE_SPEC)}</span>
+                      <span className="badge bg-success me-2">{formatSpec(imageSpec)}</span>
                       <button
                         type="button"
                         className="btn btn-sm btn-outline-secondary"
@@ -333,6 +351,27 @@ const BannerForm = () => {
                     </div>
                   </div>
                 )}
+              </div>
+
+              <div className="input-block mb-3 border rounded p-3">
+                <div className="form-check form-switch">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    id="bannerImageOnly"
+                    name="imageOnly"
+                    checked={formData.imageOnly}
+                    onChange={handleChange}
+                  />
+                  <label className="form-control-label fw-bold mb-0" htmlFor="bannerImageOnly">
+                    Image already has text
+                  </label>
+                </div>
+                <small className="text-muted d-block mt-1">
+                  On: the app hides its dark gradient, title and Bike Service button, and shows your
+                  creative as-is. Turn this on for ready-made posters.
+                </small>
               </div>
 
               <div className="input-block mb-3">
@@ -428,7 +467,7 @@ const BannerForm = () => {
       <ImageCropDialog
         open={Boolean(cropSource)}
         file={cropSource}
-        spec={IMAGE_SPEC}
+        spec={imageSpec}
         onCancel={handleCropCancel}
         onCropped={handleCropped}
       />

@@ -55,6 +55,7 @@ const BannerTable = ({
     longitude: "",
     radius: "",
     displayOrder: "0",
+    imageOnly: false,
   })
   const [editLoading, setEditLoading] = useState(false)
   const [services, setServices] = useState([])
@@ -122,15 +123,16 @@ const BannerTable = ({
       longitude: banner.longitude != null ? String(banner.longitude) : "",
       radius: banner.radius != null ? String(banner.radius) : "",
       displayOrder: banner.displayOrder != null ? String(banner.displayOrder) : "0",
+      imageOnly: banner.imageOnly === true,
     })
     setEditLocationQuery(banner.placeName || "")
     setShowEditModal(true)
   }
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
+    const { name, value, type, checked } = e.target
     setEditFormData((prev) => {
-      const updated = { ...prev, [name]: value }
+      const updated = { ...prev, [name]: type === "checkbox" ? checked : value }
       if (name === "locationType" && value === "all") {
         updated.placeId = ""
         updated.placeName = ""
@@ -177,6 +179,7 @@ const BannerTable = ({
         longitude: editFormData.longitude,
         radius: editFormData.radius,
         displayOrder: editFormData.displayOrder,
+        imageOnly: editFormData.imageOnly,
       })
       setShowEditModal(false)
       onBannerDeleted() // Refresh the list
@@ -529,6 +532,27 @@ const BannerTable = ({
                             style={{ maxHeight: "200px", width: "100%", objectFit: "contain" }}
                           />
                         )}
+                      </div>
+
+                      <div className="mb-3 border rounded p-3">
+                        <div className="form-check form-switch">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            role="switch"
+                            id="editBannerImageOnly"
+                            name="imageOnly"
+                            checked={editFormData.imageOnly}
+                            onChange={handleInputChange}
+                          />
+                          <label className="form-label fw-bold mb-0" htmlFor="editBannerImageOnly">
+                            Image already has text
+                          </label>
+                        </div>
+                        <small className="text-muted d-block mt-1">
+                          On: the app hides its dark gradient, title and Bike Service button, and
+                          shows your creative as-is. Turn this on for ready-made posters.
+                        </small>
                       </div>
 
                       <div className="mb-3">
