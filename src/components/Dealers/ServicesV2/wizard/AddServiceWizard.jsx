@@ -22,6 +22,7 @@ import Step4SelectCCRanges from "./Step4SelectCCRanges";
 import Step4Pricing from "./Step4Pricing";
 import Step5Review from "./Step5Review";
 import { saveDealerServices } from "../../../../api";
+import { getApiErrorMessage } from "../../../../utils/apiError";
 import Swal from "sweetalert2";
 
 export const STEPS = [
@@ -230,7 +231,7 @@ const AddServiceWizard = ({
       Swal.fire({
         icon: "error",
         title: "Save Failed",
-        text: err?.message || "Could not save service. Please try again.",
+        text: getApiErrorMessage(err, "Could not save service. Please try again."),
       });
     } finally {
       dispatch({ type: "SET_SAVING", payload: false });

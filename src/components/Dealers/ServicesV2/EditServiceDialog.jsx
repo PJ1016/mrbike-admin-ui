@@ -41,6 +41,7 @@ import CurrencyRupeeIcon from "@mui/icons-material/CurrencyRupee";
 import BusinessIcon from "@mui/icons-material/Business";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import { useDispatch, useSelector } from "react-redux";
+import { getApiErrorMessage } from "../../../utils/apiError";
 import {
   fetchCompanies,
   fetchBikesByCompany,
@@ -317,7 +318,7 @@ const EditServiceDialog = ({
       Swal.fire({
         icon: "error",
         title: "Save Failed",
-        text: err?.message || "Could not save changes.",
+        text: getApiErrorMessage(err, "Could not save changes."),
       });
     } finally {
       setIsSaving(false);
