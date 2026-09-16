@@ -15,13 +15,25 @@ import {
   TextField,
   CircularProgress,
   Alert,
-  Tooltip,
+  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import CategoryIcon from "@mui/icons-material/Category";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import {
   DndContext,
   closestCenter,
@@ -47,7 +59,95 @@ import {
   deleteServiceCategory,
 } from "../../api";
 
-const SortableRow = ({ category, onToggle, onEdit, onDeleteClick }) => {
+// Rendered on a <button> so the name is keyboard-reachable — hence the reset.
+const categoryNameSx = {
+  border: 0,
+  p: 0,
+  background: "none",
+  fontFamily: "inherit",
+  fontSize: "0.95rem",
+  fontWeight: 700,
+  color: "#1e293b",
+  cursor: "pointer",
+  textAlign: "left",
+  "&:hover": { color: "#2563eb", textDecoration: "underline" },
+};
+
+const SortableTableRow = ({ category, index, onToggle, onEdit, onMenuOpen }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: category._id,
+  });
+
+  const style = {
+    // Translate only — a table row must not be scaled while it drags.
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    backgroundColor: isDragging ? "#f8fafc" : undefined,
+  };
+
+  return (
+    <TableRow ref={setNodeRef} style={style} hover sx={{ "&:last-child td": { borderBottom: 0 } }}>
+      <TableCell sx={{ width: 56, pr: 0 }}>
+        <Box
+          {...attributes}
+          {...listeners}
+          sx={{ cursor: "grab", color: "#94a3b8", display: "flex", touchAction: "none" }}
+        >
+          <DragIndicatorIcon />
+        </Box>
+      </TableCell>
+
+      <TableCell sx={{ color: "#94a3b8", fontWeight: 600, width: 60 }}>{index + 1}</TableCell>
+
+      <TableCell sx={{ minWidth: 240 }}>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              flexShrink: 0,
+              borderRadius: "10px",
+              backgroundColor: "#eff6ff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <CategoryIcon sx={{ color: "#2563eb", fontSize: 20 }} />
+          </Box>
+          <Typography component="button" onClick={() => onEdit(category)} sx={categoryNameSx}>
+            {category.name}
+          </Typography>
+        </Stack>
+      </TableCell>
+
+      <TableCell sx={{ minWidth: 140 }}>
+        <Chip
+          label={category.icon || "—"}
+          size="small"
+          sx={{ backgroundColor: "#f1f5f9", color: "#475569", fontWeight: 600, fontSize: "0.72rem" }}
+        />
+      </TableCell>
+
+      <TableCell sx={{ width: 110 }}>
+        <Switch
+          checked={!!category.isActive}
+          onChange={(e) => onToggle(category, e.target.checked)}
+          color="primary"
+        />
+      </TableCell>
+
+      <TableCell align="center" sx={{ width: 80 }}>
+        <IconButton size="small" onClick={(e) => onMenuOpen(e, category)} sx={{ color: "#64748b" }}>
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  );
+};
+
+const SortableCard = ({ category, index, onToggle, onEdit, onMenuOpen }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: category._id,
   });
@@ -71,34 +171,24 @@ const SortableRow = ({ category, onToggle, onEdit, onDeleteClick }) => {
         backgroundColor: "#ffffff",
       }}
     >
-      <Stack direction="row" spacing={2} alignItems="center">
+      <Stack direction="row" spacing={1.5} alignItems="center">
         <Box
           {...attributes}
           {...listeners}
-          sx={{ cursor: "grab", color: "#94a3b8", display: "flex" }}
+          sx={{ cursor: "grab", color: "#94a3b8", display: "flex", touchAction: "none" }}
         >
           <DragIndicatorIcon />
         </Box>
 
-        <Box
-          sx={{
-            width: 44,
-            height: 44,
-            borderRadius: "10px",
-            backgroundColor: "#eff6ff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <CategoryIcon sx={{ color: "#2563eb", fontSize: 20 }} />
-        </Box>
-
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontWeight: 700, color: "#1e293b" }}>{category.name}</Typography>
-          <Typography variant="caption" sx={{ color: "#94a3b8" }}>
-            icon: {category.icon}
+          <Typography component="button" onClick={() => onEdit(category)} sx={categoryNameSx}>
+            {index + 1}. {category.name}
           </Typography>
+          <Chip
+            label={category.icon || "—"}
+            size="small"
+            sx={{ mt: 0.75, backgroundColor: "#f1f5f9", color: "#475569", fontWeight: 600, fontSize: "0.72rem" }}
+          />
         </Box>
 
         <Switch
@@ -107,22 +197,18 @@ const SortableRow = ({ category, onToggle, onEdit, onDeleteClick }) => {
           color="primary"
         />
 
-        <Tooltip title="Edit">
-          <IconButton onClick={() => onEdit(category)} sx={{ color: "#64748b" }}>
-            <EditIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Delete">
-          <IconButton onClick={() => onDeleteClick(category)} sx={{ color: "#94a3b8", "&:hover": { color: "#ef4444" } }}>
-            <DeleteIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <IconButton size="small" onClick={(e) => onMenuOpen(e, category)} sx={{ color: "#64748b" }}>
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
       </Stack>
     </Paper>
   );
 };
 
 const ServiceCategories = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -132,6 +218,9 @@ const ServiceCategories = () => {
   const [formErrors, setFormErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [globalError, setGlobalError] = useState(null);
+
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [menuCategory, setMenuCategory] = useState(null);
 
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
@@ -184,6 +273,16 @@ const ServiceCategories = () => {
     }
   };
 
+  const handleMenuOpen = (e, category) => {
+    setAnchorEl(e.currentTarget);
+    setMenuCategory(category);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setMenuCategory(null);
+  };
+
   const openCreate = () => {
     setEditingCategory(null);
     setForm({ name: "", icon: "" });
@@ -198,6 +297,17 @@ const ServiceCategories = () => {
     setFormErrors({});
     setGlobalError(null);
     setDialogOpen(true);
+  };
+
+  const handleMenuEdit = () => {
+    if (menuCategory) openEdit(menuCategory);
+    handleMenuClose();
+  };
+
+  const handleMenuDelete = () => {
+    setDeleteTarget(menuCategory);
+    setDeleteError(null);
+    setAnchorEl(null);
   };
 
   const handleSubmit = async () => {
@@ -239,10 +349,16 @@ const ServiceCategories = () => {
     }
   };
 
+  const rowProps = {
+    onToggle: handleToggle,
+    onEdit: openEdit,
+    onMenuOpen: handleMenuOpen,
+  };
+
   return (
     <Box sx={{ backgroundColor: "#f8fafc", minHeight: "100vh", pb: 8 }}>
-      <Container maxWidth="md">
-        <Box sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+        <Box sx={{ py: { xs: 3, md: 4 } }}>
           <PageHeader
             title="Service Categories"
             breadcrumbs={[
@@ -262,7 +378,7 @@ const ServiceCategories = () => {
               <CircularProgress size={40} sx={{ color: "#2563eb" }} />
             </Box>
           ) : categories.length === 0 ? (
-            <Paper elevation={0} sx={{ py: 10, textAlign: "center", borderRadius: "20px", border: "1px dashed #cbd5e1" }}>
+            <Paper elevation={0} sx={{ py: 10, px: 3, textAlign: "center", borderRadius: "20px", border: "1px dashed #cbd5e1" }}>
               <Typography sx={{ color: "#64748b", fontWeight: 600 }}>No categories yet</Typography>
               <Typography variant="body2" sx={{ color: "#94a3b8", mt: 1 }}>
                 Add one to start organizing services on Home.
@@ -271,20 +387,82 @@ const ServiceCategories = () => {
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={categoryIds} strategy={verticalListSortingStrategy}>
-                {categories.map((category) => (
-                  <SortableRow
-                    key={category._id}
-                    category={category}
-                    onToggle={handleToggle}
-                    onEdit={openEdit}
-                    onDeleteClick={setDeleteTarget}
-                  />
-                ))}
+                {isMobile ? (
+                  <Box>
+                    {categories.map((category, index) => (
+                      <SortableCard key={category._id} category={category} index={index} {...rowProps} />
+                    ))}
+                  </Box>
+                ) : (
+                  <TableContainer
+                    component={Paper}
+                    elevation={0}
+                    sx={{ borderRadius: "16px", border: "1px solid #e2e8f0", overflowX: "auto" }}
+                  >
+                    <Table sx={{ minWidth: 720 }}>
+                      <TableHead sx={{ backgroundColor: "#f8fafc" }}>
+                        <TableRow>
+                          {["", "#", "Category", "Icon", "Status", "Actions"].map((label, idx) => (
+                            <TableCell
+                              key={label || "drag"}
+                              align={idx === 5 ? "center" : "left"}
+                              sx={{
+                                fontWeight: 700,
+                                color: "#475569",
+                                fontSize: "0.8rem",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.04em",
+                                whiteSpace: "nowrap",
+                                borderBottom: "1px solid #e2e8f0",
+                              }}
+                            >
+                              {label}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {categories.map((category, index) => (
+                          <SortableTableRow key={category._id} category={category} index={index} {...rowProps} />
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
               </SortableContext>
             </DndContext>
           )}
         </Box>
       </Container>
+
+      {/* Row action menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        PaperProps={{
+          sx: { borderRadius: "12px", minWidth: 170, boxShadow: "0 4px 20px rgba(0,0,0,0.12)" },
+        }}
+      >
+        <MenuItem onClick={handleMenuEdit}>
+          <ListItemIcon>
+            <EditIcon fontSize="small" sx={{ color: "#2563eb" }} />
+          </ListItemIcon>
+          <Typography variant="body2" fontWeight={600}>
+            View / Edit
+          </Typography>
+        </MenuItem>
+        <MenuItem onClick={handleMenuDelete}>
+          <ListItemIcon>
+            <DeleteIcon fontSize="small" sx={{ color: "#ef4444" }} />
+          </ListItemIcon>
+          <Typography variant="body2" fontWeight={600} sx={{ color: "#ef4444" }}>
+            Delete
+          </Typography>
+        </MenuItem>
+      </Menu>
 
       {/* Create / Edit dialog */}
       <Dialog open={dialogOpen} onClose={() => !submitting && setDialogOpen(false)} maxWidth="xs" fullWidth>
