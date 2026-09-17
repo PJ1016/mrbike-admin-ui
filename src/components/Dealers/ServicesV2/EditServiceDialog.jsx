@@ -43,6 +43,10 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import { useDispatch, useSelector } from "react-redux";
 import { getApiErrorMessage } from "../../../utils/apiError";
 import {
+  editableBikeToPricingEntry,
+  pricingEntriesToEditableBikes,
+} from "./pricingRows";
+import {
   fetchCompanies,
   fetchBikesByCompany,
 } from "../../../redux/slices/bikeSlice";
@@ -80,6 +84,7 @@ const ADD_BIKE_COLUMNS = [
     ),
   },
   { field: "company_name", headerName: "Company", flex: 1 },
+  { field: "model_name", headerName: "Model", flex: 1 },
   {
     field: "cc",
     headerName: "CC",
@@ -116,19 +121,13 @@ const EditServiceDialog = ({
   );
 
   const [currentBikes, setCurrentBikes] = useState(() =>
-    existingEntries.map((e) => ({
-      _id: e.variantId,
-      variant_name: e.bikeName || e.variantId,
-      company_name: e.companyName || "",
-      model_name: e.modelName || "",
-      cc: Number(e.cc || 0),
-    }))
+    pricingEntriesToEditableBikes(existingEntries)
   );
 
   const [pricing, setPricing] = useState(() => {
     const map = {};
-    existingEntries.forEach((e) => {
-      map[e.variantId] = String(e.price);
+    pricingEntriesToEditableBikes(existingEntries).forEach((bike) => {
+      map[bike._id] = String(bike.price);
     });
     return map;
   });
@@ -138,6 +137,7 @@ const EditServiceDialog = ({
   const [selectedCompanyIds, setSelectedCompanyIds] = useState([]);
   const [addSelection, setAddSelection] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
   const prevCompanyRef = useRef(null);
 
   useEffect(() => {
@@ -191,7 +191,9 @@ const EditServiceDialog = ({
   }, [currentBikes, search]);
 
   const availableToAdd = useMemo(() => {
-    const currentIds = new Set(currentBikes.map((b) => b._id));
+    const currentIds = new Set(
+      currentBikes.map((b) => b.variant_id).filter(Boolean)
+    );
     return bikes
       .filter((b) => !currentIds.has(b._id || b.variant_id))
       .map((b) => ({
@@ -270,6 +272,7 @@ const EditServiceDialog = ({
   }, [bikes, addSelection]);
 
   const handleSave = useCallback(async () => {
+    setSaveError(null);
     const invalid = currentBikes.filter(
       (b) =>
         pricing[b._id] === undefined ||
@@ -277,26 +280,20 @@ const EditServiceDialog = ({
         Number(pricing[b._id]) <= 0
     );
     if (invalid.length > 0) {
-      Swal.fire({
-        icon: "warning",
-        title: "Missing Prices",
-        text: `${invalid.length} bike(s) need a valid price.`,
-      });
+      setSaveError(`${invalid.length} bike(s) need a valid price.`);
       return;
     }
 
     setIsSaving(true);
     try {
-      const newEntries = currentBikes.map((bike) => ({
-        type: serviceType,
-        serviceId: serviceRow.serviceId,
-        variantId: String(bike._id),
-        cc: Number(bike.cc || 0),
-        price: Number(pricing[bike._id] || 0),
-        bikeName: bike.variant_name,
-        companyName: bike.company_name,
-        modelName: bike.model_name,
-      }));
+      const newEntries = currentBikes.map((bike) =>
+        editableBikeToPricingEntry({
+          bike,
+          serviceType,
+          serviceId: serviceRow.serviceId,
+          price: pricing[bike._id],
+        })
+      );
 
       const filtered = allPricing.filter(
         (p) =>
@@ -315,11 +312,7 @@ const EditServiceDialog = ({
       });
       onClose();
     } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: "Save Failed",
-        text: getApiErrorMessage(err, "Could not save changes."),
-      });
+      setSaveError(getApiErrorMessage(err, "Could not save changes."));
     } finally {
       setIsSaving(false);
     }
@@ -402,6 +395,15 @@ const EditServiceDialog = ({
       </Box>
 
       <DialogContent sx={{ py: 2, overflow: "auto" }}>
+        {saveError && (
+          <Alert
+            severity="error"
+            onClose={() => setSaveError(null)}
+            sx={{ mb: 2, whiteSpace: "normal", overflowWrap: "anywhere" }}
+          >
+            {saveError}
+          </Alert>
+        )}
         {/* ── Tab 0: Current bikes + prices ── */}
         {activeTab === 0 && (
           <Box>
@@ -554,6 +556,7 @@ const EditServiceDialog = ({
                   >
                     <TableCell>Bike Name</TableCell>
                     <TableCell>Company</TableCell>
+                    <TableCell>Model</TableCell>
                     <TableCell align="center">CC</TableCell>
                     <TableCell>Price</TableCell>
                     <TableCell align="center">Remove</TableCell>
@@ -563,7 +566,7 @@ const EditServiceDialog = ({
                   {filteredCurrent.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={5}
+                        colSpan={6}
                         align="center"
                         sx={{ py: 4, color: "text.disabled" }}
                       >
@@ -587,6 +590,11 @@ const EditServiceDialog = ({
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">
                             {bike.company_name}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {bike.model_name || (bike.isGeneric ? "Generic" : "—")}
                           </Typography>
                         </TableCell>
                         <TableCell align="center">
@@ -627,8 +635,8 @@ const EditServiceDialog = ({
         {activeTab === 1 && (
           <Box>
             <Typography variant="body2" color="text.secondary" mb={2}>
-              Select companies to load their bikes, then pick which ones to add
-              to this service.
+              Select companies, then choose the exact model and variant to add.
+              Bikes sharing a CC are still separate compatibility mappings.
             </Typography>
 
             <Box sx={{ mb: 2 }}>

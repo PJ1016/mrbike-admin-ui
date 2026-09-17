@@ -15,21 +15,10 @@ export const fetchCompanies = createAsyncThunk(
 
 export const fetchBikesByCompany = createAsyncThunk(
   'bike/fetchBikesByCompany',
-  async (companyIds, { rejectWithValue, getState }) => {
+  async (companyIds, { rejectWithValue }) => {
     try {
-      const state = getState();
-      const currentCompanyIds = state.bike.lastFetchedCompanyIds;
-      
-      // Check if we already have data for the same company IDs
-      if (currentCompanyIds && 
-          Array.isArray(currentCompanyIds) && 
-          Array.isArray(companyIds) &&
-          companyIds.length === currentCompanyIds.length &&
-          companyIds.every(id => currentCompanyIds.includes(id))) {
-        // Return existing data instead of making a new API call
-        return state.bike.bikes;
-      }
-      
+      // Bike master data changes independently of dealer services. Always
+      // refresh exact variants so newly-created bikes are immediately mappable.
       const response = await filterBikesByCompaniesMultiple([...companyIds]);
       return response.data || response;
     } catch (error) {

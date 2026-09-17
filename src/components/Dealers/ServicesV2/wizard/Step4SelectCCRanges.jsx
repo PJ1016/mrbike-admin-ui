@@ -136,8 +136,9 @@ const Step4SelectCCRanges = ({ state, dispatch }) => {
         />
       </Stack>
       <Typography variant="body2" color="text.secondary" mb={2}>
-        Choose which CC ranges this service should cover. Only bikes in the
-        selected CC ranges proceed to pricing.
+        Choose which CC groups proceed to pricing. This filters the exact
+        variants selected in the previous step; it does not select every bike
+        with that CC automatically.
       </Typography>
 
       {/* Warn about cc=0 bikes but don't hard-block */}

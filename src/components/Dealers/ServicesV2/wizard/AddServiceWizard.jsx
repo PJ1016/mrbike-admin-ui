@@ -1,4 +1,4 @@
-import React, { useReducer, useCallback } from "react";
+import React, { useReducer, useCallback, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -13,6 +13,7 @@ import {
   CircularProgress,
   Divider,
   IconButton,
+  Alert,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import Step1SelectService from "./Step1SelectService";
@@ -21,7 +22,6 @@ import Step3SelectBikes from "./Step3SelectBikes";
 import Step4SelectCCRanges from "./Step4SelectCCRanges";
 import Step4Pricing from "./Step4Pricing";
 import Step5Review from "./Step5Review";
-import { saveDealerServices } from "../../../../api";
 import { getApiErrorMessage } from "../../../../utils/apiError";
 import Swal from "sweetalert2";
 
@@ -141,13 +141,16 @@ const AddServiceWizard = ({
   onSave,
 }) => {
   const [state, dispatch] = useReducer(wizardReducer, initialState);
+  const [saveError, setSaveError] = useState(null);
 
   const handleClose = useCallback(() => {
     dispatch({ type: "RESET" });
+    setSaveError(null);
     onClose();
   }, [onClose]);
 
   const handleSave = useCallback(async () => {
+    setSaveError(null);
     dispatch({ type: "SET_SAVING", payload: true });
     try {
       // Only save bikes whose CC is in the selected CC ranges
@@ -228,11 +231,9 @@ const AddServiceWizard = ({
       });
       handleClose();
     } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: "Save Failed",
-        text: getApiErrorMessage(err, "Could not save service. Please try again."),
-      });
+      setSaveError(
+        getApiErrorMessage(err, "Could not save service. Please try again.")
+      );
     } finally {
       dispatch({ type: "SET_SAVING", payload: false });
     }
@@ -304,6 +305,15 @@ const AddServiceWizard = ({
 
       {/* ── Step Content ── */}
       <DialogContent sx={{ py: 3, px: 3, overflowY: "auto" }}>
+        {saveError && (
+          <Alert
+            severity="error"
+            onClose={() => setSaveError(null)}
+            sx={{ mb: 2, whiteSpace: "normal", overflowWrap: "anywhere" }}
+          >
+            {saveError}
+          </Alert>
+        )}
         {state.activeStep === 0 && <Step1SelectService {...stepProps} />}
         {state.activeStep === 1 && <Step2SelectCompanies {...stepProps} />}
         {state.activeStep === 2 && <Step3SelectBikes {...stepProps} />}

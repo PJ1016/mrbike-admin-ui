@@ -129,8 +129,8 @@ const Step3SelectBikes = ({ state, dispatch: wizardDispatch }) => {
         Select Bikes
       </Typography>
       <Typography variant="body2" color="text.secondary" mb={2}>
-        Choose the bikes this service will cover. Only bikes from your selected
-        companies are shown. Use search and CC filter to narrow down.
+        Choose the exact variants this service will cover. Bikes with the same
+        CC remain separate mappings; use search and CC only to narrow the list.
       </Typography>
 
       {/* Toolbar */}
