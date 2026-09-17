@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Box, Stack, Tooltip, IconButton, Typography, Alert } from "@mui/material";
 import { Refresh } from "@mui/icons-material";
 import useFinanceTransactions from "../../hooks/useFinanceTransactions";
-import { fmtCurrency, fmtDate, getBookingDisplayId, sortRows, withinDateRange, TXN_LABELS } from "../../utils/financeHelpers";
+import useDealerWallets from "../../hooks/useDealerWallets";
+import { fmtCurrency, fmtDate, getBookingDisplayId, getDateRangeParams, TXN_LABELS } from "../../utils/financeHelpers";
 import SupportSearch from "../../components/Support/SupportSearch";
 import SupportTable from "../../components/Support/SupportTable";
 import SupportEmptyState from "../../components/Support/SupportEmptyState";
@@ -78,15 +79,22 @@ const Transactions = () => {
   const [sortKey, setSortKey] = useState("");
   const [sortDirection, setSortDirection] = useState("asc");
   const [activeTransaction, setActiveTransaction] = useState(null);
+  const dateParams = getDateRangeParams(dateRange);
+  const { wallets } = useDealerWallets({ page: 1, limit: 100, sortBy: "dealerName", sortOrder: "asc" });
   const { transactions, pagination, loading, error, refetch } = useFinanceTransactions({
     page, limit: pageSize, ...(search ? { search } : {}), ...(status ? { status } : {}),
+    ...(dealer ? { dealer_id: dealer } : {}),
+    ...dateParams,
     ...(paymentMethod ? { payment_method: paymentMethod } : {}),
     ...(sortKey ? { sortBy: sortKey === "amount" ? "amount" : "createdAt", sortOrder: sortDirection } : {}),
   });
 
   const normalized = useMemo(() => transactions.map(normalizeTxn), [transactions]);
 
-  const dealerOptions = useMemo(() => Array.from(new Set(normalized.map((t) => t.dealerName).filter(Boolean))), [normalized]);
+  const dealerOptions = useMemo(() => wallets.map((wallet) => ({
+    id: wallet._id || wallet.dealer?._id || wallet.dealerId,
+    name: wallet.dealerName || wallet.dealer?.name || wallet.shopName || "Dealer",
+  })), [wallets]);
   const statusOptions = useMemo(() => Array.from(new Set(normalized.map((t) => t.status).filter(Boolean))), [normalized]);
   const paymentMethodOptions = useMemo(() => Array.from(new Set(normalized.map((t) => t.paymentMethod).filter((m) => m && m !== "—"))), [normalized]);
 

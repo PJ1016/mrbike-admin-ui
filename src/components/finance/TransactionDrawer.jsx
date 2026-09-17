@@ -84,6 +84,8 @@ const TransactionDrawer = ({ open, transactionId, fallbackData, onClose }) => {
     : [];
 
   const type = data?.type || data?.transactionType;
+  const isDeposit = (data?.transactionType || data?.transaction_type || type || "").toLowerCase() === "deposit";
+  const breakdown = data?.amountBreakdown || {};
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: "100%", sm: 480 }, display: "flex", flexDirection: "column" } }}>
@@ -171,9 +173,18 @@ const TransactionDrawer = ({ open, transactionId, fallbackData, onClose }) => {
               </Grid>
             </SectionPaper>
 
+            {isDeposit && (
+              <SectionPaper title="Deposit Details">
+                <FinanceDetailItem label="Reference" value={data.orderId || data.reference} copyable />
+                <FinanceDetailItem label="Balance Before" value={breakdown.preBalance != null ? fmtCurrency(breakdown.preBalance) : null} />
+                <FinanceDetailItem label="Balance After" value={breakdown.postBalance != null ? fmtCurrency(breakdown.postBalance) : null} />
+                <FinanceDetailItem label="Reason" value={data.note || data.reason} />
+              </SectionPaper>
+            )}
+
             <SectionPaper title="Gateway Response">
-              <FinanceDetailItem label="Gateway Order ID" value={gateway.orderId || gateway.cf_order_id} copyable />
-              <FinanceDetailItem label="Gateway Payment ID" value={gateway.paymentId || gateway.cf_payment_id} copyable />
+              <FinanceDetailItem label="Cashfree Order ID" value={(gateway.cf_payment_id || gateway.paymentId) ? (gateway.orderId || gateway.cf_order_id || data.orderId) : null} copyable />
+              <FinanceDetailItem label="Cashfree Payment ID" value={gateway.paymentId || gateway.cf_payment_id || gateway.transaction_id} copyable />
               <FinanceDetailItem label="Gateway Status" value={gateway.status || gateway.txStatus} />
               <FinanceDetailItem label="Gateway Message" value={gateway.message} />
             </SectionPaper>

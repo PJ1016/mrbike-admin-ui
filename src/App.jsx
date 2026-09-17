@@ -45,7 +45,9 @@ import DealerPayoutList from "./pages/Dealer/DealerPayoutList";
 import FinanceDashboard from "./pages/finance/FinanceDashboard";
 import WithdrawalManagement from "./pages/finance/WithdrawalManagement";
 import DealerWallets from "./pages/finance/DealerWallets";
+import DealerWalletDetail from "./pages/finance/DealerWalletDetail";
 import Transactions from "./pages/finance/Transactions";
+import Deposits from "./pages/finance/Deposits";
 import DealerVerify from "./pages/Dealer/DealerVerify";
 import Offer from "./pages/Offers/AddOffer";
 import ViewDealerDetails from "./components/Dealers/ViewDealerDetails";
@@ -286,6 +288,8 @@ const AppContent = () => {
           <Route path="/finance/withdrawals" element={<WithdrawalManagement />} />
           {/* Finance Phase 2 */}
           <Route path="/finance/dealer-wallets" element={<DealerWallets />} />
+          <Route path="/finance/dealer-wallets/:walletId" element={<DealerWalletDetail />} />
+          <Route path="/finance/deposits" element={<Deposits />} />
           <Route path="/finance/transactions" element={<Transactions />} />
           <Route path="/add-offer" element={<Offer />} />
 

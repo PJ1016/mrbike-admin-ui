@@ -31,6 +31,7 @@ import {
   PersonOutline as CustomerIcon,
   PowerSettingsNew as LogoutIcon,
   ReceiptLongOutlined as TransactionIcon,
+  SavingsOutlined as DepositIcon,
   ReviewsOutlined as ReviewsIcon,
   SellOutlined as PromoCodeIcon,
   SupportAgentOutlined as SupportIcon,
@@ -110,7 +111,8 @@ export const menuSections = [
     title: "FINANCE",
     items: [
       { title: "Finance Overview", icon: <FinanceIcon />, path: "/finance" },
-      { title: "Dealer Wallets", icon: <WalletIcon />, path: "/finance/dealer-wallets" },
+      { title: "Dealer Wallets", icon: <WalletIcon />, path: "/finance/dealer-wallets", activePaths: ["/finance/dealer-wallets/:walletId"] },
+      { title: "Deposits", icon: <DepositIcon />, path: "/finance/deposits" },
       { title: "Transactions", icon: <TransactionIcon />, path: "/finance/transactions" },
       { title: "Withdrawals", icon: <WithdrawalIcon />, path: "/finance/withdrawals", activePaths: ["/approve"] },
       { title: "Payments", icon: <PaymentsIcon />, path: "/paymentList" },

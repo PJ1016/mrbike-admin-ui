@@ -1,14 +1,15 @@
 import React, { useMemo, useState } from "react";
-import { Box, Stack, Tooltip, IconButton, Typography, Alert } from "@mui/material";
-import { Refresh } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
+import { Box, Button, Snackbar, Stack, Tooltip, IconButton, Typography, Alert } from "@mui/material";
+import { Add, Refresh } from "@mui/icons-material";
 import useDealerWallets from "../../hooks/useDealerWallets";
-import { fmtCurrency, fmtDate, sortRows } from "../../utils/financeHelpers";
+import { fmtCurrency, fmtDate } from "../../utils/financeHelpers";
 import SupportSearch from "../../components/Support/SupportSearch";
 import SupportTable from "../../components/Support/SupportTable";
 import SupportEmptyState from "../../components/Support/SupportEmptyState";
 import DealerWalletFilters from "../../components/finance/DealerWalletFilters";
 import FinanceStatusBadge from "../../components/finance/FinanceStatusBadge";
-import DealerWalletDrawer from "../../components/finance/DealerWalletDrawer";
+import DepositDialog from "../../components/finance/DepositDialog";
 
 const ACCENT = "#0ea5e9";
 
@@ -24,13 +25,13 @@ const normalizeWallet = (w) => ({
   pendingBalance: w.pendingBalance ?? 0,
   lifetimeEarnings: w.lifetimeEarnings ?? w.totalEarnings ?? w.totalCredits ?? 0,
   totalWithdrawn: w.totalWithdrawn ?? w.totalDebits ?? 0,
-  pendingWithdrawal: w.pendingWithdrawal ?? 0,
+  pendingWithdrawal: w.pendingWithdrawal ?? w.pendingWithdrawalAmount ?? 0,
   lastTransactionAt: w.lastTransactionAt || w.lastTransactionDate || null,
-  status: w.status || (w.isActive === false ? "INACTIVE" : "ACTIVE"),
-  createdAt: w.createdAt || null,
+  status: w.walletStatus || w.status || (w.isActive === false ? "INACTIVE" : "ACTIVE"),
+  createdAt: w.createdAt || w.createdDate || null,
 });
 
-const columns = [
+const getColumns = (onDeposit) => [
   { key: "dealerName", label: "Dealer", sortable: true, render: (r) => <Typography variant="body2" sx={{ fontWeight: 600 }}>{r.dealerName}</Typography> },
   { key: "shopName", label: "Shop", sortable: true },
   { key: "phone", label: "Phone" },
@@ -43,16 +44,34 @@ const columns = [
   { key: "lastTransactionAt", label: "Last Transaction", sortable: true, render: (r) => fmtDate(r.lastTransactionAt) },
   { key: "status", label: "Status", render: (r) => <FinanceStatusBadge status={r.status} /> },
   { key: "createdAt", label: "Created Date", sortable: true, render: (r) => fmtDate(r.createdAt) },
+  {
+    key: "deposit",
+    label: "Deposit",
+    render: (row) => (
+      <Button
+        size="small"
+        variant="contained"
+        color="success"
+        startIcon={<Add />}
+        onClick={(event) => { event.stopPropagation(); onDeposit(row); }}
+        sx={{ whiteSpace: "nowrap", textTransform: "none", boxShadow: "none" }}
+      >
+        Deposit
+      </Button>
+    ),
+  },
 ];
 
 const DealerWallets = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortKey, setSortKey] = useState("");
   const [sortDirection, setSortDirection] = useState("asc");
-  const [activeWallet, setActiveWallet] = useState(null);
+  const [depositWallet, setDepositWallet] = useState(null);
+  const [depositNotice, setDepositNotice] = useState("");
   const { wallets, pagination, loading, error, refetch } = useDealerWallets({
     page, limit: pageSize, search, ...(status ? { status } : {}),
     ...(sortKey ? { sortBy: sortKey, sortOrder: sortDirection } : {}),
@@ -85,8 +104,12 @@ const DealerWallets = () => {
     }
   };
 
-  const openDrawer = (row) => setActiveWallet(row);
-  const closeDrawer = () => setActiveWallet(null);
+  const openWallet = (row) => navigate(`/finance/dealer-wallets/${row.walletId || row.dealerId}`);
+  const columns = getColumns(setDepositWallet);
+  const handleDeposited = (result) => {
+    setDepositNotice(result?.idempotent ? "This deposit was already processed; the wallet was not credited again." : "Deposit completed and recorded in the wallet ledger.");
+    refetch();
+  };
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: "#f8fafc", minHeight: "100vh" }}>
@@ -141,19 +164,23 @@ const DealerWallets = () => {
         total={total}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
-        onRowClick={openDrawer}
+        onRowClick={openWallet}
         sortKey={sortKey}
         sortDirection={sortDirection}
         onSortChange={handleSortChange}
         emptyState={<SupportEmptyState filtered={normalized.length > 0} accentColor={ACCENT} onClearFilters={clearAllFilters} />}
       />
 
-      <DealerWalletDrawer
-        open={Boolean(activeWallet)}
-        walletId={activeWallet?.walletId}
-        dealerName={activeWallet?.dealerName}
-        onClose={closeDrawer}
+      <DepositDialog
+        open={Boolean(depositWallet)}
+        walletId={depositWallet?.walletId || depositWallet?.dealerId}
+        dealerName={depositWallet?.dealerName}
+        onClose={() => setDepositWallet(null)}
+        onDeposited={handleDeposited}
       />
+      <Snackbar open={Boolean(depositNotice)} autoHideDuration={5000} onClose={() => setDepositNotice("")} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+        <Alert severity="success" variant="filled" onClose={() => setDepositNotice("")}>{depositNotice}</Alert>
+      </Snackbar>
     </Box>
   );
 };

@@ -6,6 +6,7 @@ import {
   getDealerWalletDetails,
   getFinanceTransactions,
   getFinanceTransactionDetails,
+  adminDepositToDealer,
 } from "../api";
 
 export const fetchFinanceSummary = async () => {
@@ -86,4 +87,40 @@ export const fetchFinanceTransactionDetails = async (id) => {
     gatewayResponse: raw.paymentGatewayResponse,
     refund: raw.refundInformation && { amount: raw.refundInformation.refundAmount, status: raw.refundInformation.refundStatus },
   };
+};
+
+export const createDealerWalletDeposit = async ({ walletId, amount, reason, reference, idempotencyKey }) =>
+  adminDepositToDealer({ walletId, amount, reason, reference, idempotencyKey });
+
+// Deposits are wallet-ledger transactions. The list endpoint owns filtering and
+// pagination; the existing detail endpoint supplies ledger balances and gateway
+// identifiers that are intentionally not duplicated in the compact list shape.
+export const fetchFinanceDeposits = async (params = {}) => {
+  const result = await fetchFinanceTransactions({ ...params, transaction_type: "deposit" });
+  const data = await Promise.all(
+    result.data.map(async (deposit) => {
+      const id = deposit._id || deposit.transactionId;
+      if (!id) return deposit;
+      try {
+        const detail = await fetchFinanceTransactionDetails(id);
+        return { ...deposit, detail };
+      } catch (_) {
+        return deposit;
+      }
+    })
+  );
+  return { ...result, data };
+};
+
+export const fetchAllDealerTransactions = async (dealerId) => {
+  const limit = 100;
+  const first = await fetchFinanceTransactions({ dealer_id: dealerId, page: 1, limit });
+  const pages = first.pagination?.pages || 1;
+  if (pages <= 1) return first.data;
+  const rest = await Promise.all(
+    Array.from({ length: pages - 1 }, (_, index) =>
+      fetchFinanceTransactions({ dealer_id: dealerId, page: index + 2, limit })
+    )
+  );
+  return [first, ...rest].flatMap((result) => result.data);
 };

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Box, CircularProgress, Divider, Drawer, IconButton, Paper, Stack, Tooltip, Typography } from "@mui/material";
-import { Close, Refresh } from "@mui/icons-material";
-import { fetchDealerWalletDetails } from "../../services/financeService";
+import { Box, Button, CircularProgress, Divider, Drawer, IconButton, Paper, Stack, Tooltip, Typography } from "@mui/material";
+import { Add, Close, Refresh } from "@mui/icons-material";
+import { fetchAllDealerTransactions, fetchDealerWalletDetails } from "../../services/financeService";
 import { fmtCurrency } from "../../utils/financeHelpers";
 import FinanceStatusBadge from "./FinanceStatusBadge";
 import FinanceStatCell from "./FinanceStatCell";
 import FinanceDetailItem from "./FinanceDetailItem";
 import TransactionRow from "./TransactionRow";
+import DepositDialog from "./DepositDialog";
 
 const SectionPaper = ({ title, action, children }) => (
   <Paper elevation={0} sx={{ p: 2, borderRadius: "12px", border: "1px solid #f1f5f9", mb: 2.5 }}>
@@ -24,18 +25,33 @@ const SectionPaper = ({ title, action, children }) => (
 // Details" modal, but as a proper MUI Drawer (consistent with
 // PaymentDetailsDrawer / TicketDrawer) so it can be opened from the new
 // Dealer Wallets table without duplicating that modal.
-const DealerWalletDrawer = ({ open, walletId, dealerName, onClose }) => {
+const transactionType = (transaction) => (transaction.transactionType || transaction.transaction_type || "").toLowerCase();
+const signedAmount = (transaction) => {
+  const type = transactionType(transaction);
+  const direction = transaction.direction || transaction.ledgerType || transaction.type;
+  return type === "withdrawal" || type === "settlement_cash" || direction === "Debit"
+    ? -Number(transaction.amount || 0)
+    : Number(transaction.amount || 0);
+};
+
+const DealerWalletDrawer = ({ open, walletId, dealerName, onClose, onDeposited }) => {
   const [data, setData] = useState(null);
+  const [allTransactions, setAllTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [depositOpen, setDepositOpen] = useState(false);
 
   const load = async () => {
     if (!walletId) return;
     setLoading(true);
     setError("");
     try {
-      const res = await fetchDealerWalletDetails(walletId);
+      const [res, transactions] = await Promise.all([
+        fetchDealerWalletDetails(walletId),
+        fetchAllDealerTransactions(walletId),
+      ]);
       setData(res);
+      setAllTransactions(transactions);
     } catch (e) {
       setError(e?.message || "Failed to load wallet details");
     } finally {
@@ -52,9 +68,12 @@ const DealerWalletDrawer = ({ open, walletId, dealerName, onClose }) => {
   }, [open, walletId]);
 
   const dealer = data?.dealer || {};
-  const transactions = data?.transactions ?? data?.recentTransactions ?? [];
-  const withdrawals = transactions.filter((t) => (t.type || t.transaction_type || "").toLowerCase() === "withdrawal");
-  const recent = transactions.slice(0, 10);
+  const transactions = allTransactions.length ? allTransactions : (data?.transactions ?? data?.recentTransactions ?? []);
+  const deposits = transactions.filter((transaction) => transactionType(transaction) === "deposit");
+  const withdrawals = transactions.filter((transaction) => transactionType(transaction) === "withdrawal");
+  const settlements = transactions.filter((transaction) => transactionType(transaction).startsWith("settlement_"));
+  const adjustments = transactions.filter((transaction) => transactionType(transaction) === "manual");
+  const sum = (items, signed = false) => items.reduce((total, transaction) => total + (signed ? signedAmount(transaction) : Number(transaction.amount || 0)), 0);
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: "100%", sm: 460 }, display: "flex", flexDirection: "column" } }}>
@@ -63,7 +82,7 @@ const DealerWalletDrawer = ({ open, walletId, dealerName, onClose }) => {
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="caption" sx={{ color: "#94a3b8", fontWeight: 700 }}>WALLET DETAILS</Typography>
           <Typography variant="h6" sx={{ fontWeight: 800, color: "#0f172a" }} noWrap>
-            {dealer.name || dealer.shopName || dealerName || "Dealer"}
+            {dealer.dealerName || dealer.name || dealer.shopName || dealerName || "Dealer"}
           </Typography>
         </Box>
         <IconButton onClick={onClose} aria-label="Close wallet drawer">
@@ -98,24 +117,45 @@ const DealerWalletDrawer = ({ open, walletId, dealerName, onClose }) => {
               <FinanceDetailItem label="Email" value={dealer.email} copyable />
             </SectionPaper>
 
-            <SectionPaper title="Wallet Summary" action={<FinanceStatusBadge status={data.status || (data.isActive === false ? "INACTIVE" : "ACTIVE")} />}>
+            <SectionPaper
+              title="Wallet Summary"
+              action={
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <FinanceStatusBadge status={data.status || dealer.walletStatus || (data.isActive === false ? "INACTIVE" : "ACTIVE")} />
+                  <Button size="small" variant="contained" color="success" startIcon={<Add />} onClick={() => setDepositOpen(true)} sx={{ textTransform: "none", boxShadow: "none" }}>
+                    Deposit
+                  </Button>
+                </Stack>
+              }
+            >
               <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 1.25 }}>
-                <FinanceStatCell label="Wallet Balance" value={fmtCurrency(data.walletBalance ?? data.balance)} />
-                <FinanceStatCell label="Available Balance" value={fmtCurrency(data.availableBalance ?? data.balance)} valueColor="#166534" />
-                <FinanceStatCell label="Pending Balance" value={fmtCurrency(data.pendingBalance)} valueColor="#c2410c" />
-                <FinanceStatCell label="Lifetime Earnings" value={fmtCurrency(data.lifetimeEarnings ?? data.totalCredits)} valueColor="#166534" />
-                <FinanceStatCell label="Total Withdrawn" value={fmtCurrency(data.totalWithdrawn ?? data.totalDebits)} valueColor="#dc2626" />
-                <FinanceStatCell label="Pending Withdrawal" value={fmtCurrency(data.pendingWithdrawal)} valueColor="#c2410c" />
+                <FinanceStatCell label="Current Balance" value={fmtCurrency(data.walletBalance ?? data.balance)} valueColor="#166534" />
+                <FinanceStatCell label="Total Deposits" value={fmtCurrency(sum(deposits))} valueColor="#166534" />
+                <FinanceStatCell label="Total Withdrawals" value={fmtCurrency(data.totalWithdrawn ?? sum(withdrawals))} valueColor="#dc2626" />
+                <FinanceStatCell label="Booking Settlements" value={fmtCurrency(sum(settlements, true))} />
+                <FinanceStatCell label="Manual Adjustments" value={fmtCurrency(sum(adjustments, true))} />
               </Box>
             </SectionPaper>
 
-            <SectionPaper title="Recent Transactions">
-              {recent.length === 0 ? (
+            <SectionPaper title="Deposit History">
+              {deposits.length === 0 ? (
+                <Typography variant="caption" sx={{ color: "#94a3b8" }}>No deposit history.</Typography>
+              ) : (
+                <Box sx={{ maxHeight: 220, overflowY: "auto", borderRadius: "8px", border: "1px solid #f8fafc" }}>
+                  {deposits.map((transaction, index) => (
+                    <TransactionRow key={transaction._id || index} txn={transaction} isLast={index === deposits.length - 1} />
+                  ))}
+                </Box>
+              )}
+            </SectionPaper>
+
+            <SectionPaper title="Full Transaction History">
+              {transactions.length === 0 ? (
                 <Typography variant="caption" sx={{ color: "#94a3b8" }}>No transactions found.</Typography>
               ) : (
-                <Box sx={{ maxHeight: 260, overflowY: "auto", borderRadius: "8px", border: "1px solid #f8fafc" }}>
-                  {recent.map((t, i) => (
-                    <TransactionRow key={t._id || i} txn={t} isLast={i === recent.length - 1} />
+                <Box sx={{ maxHeight: 360, overflowY: "auto", borderRadius: "8px", border: "1px solid #f8fafc" }}>
+                  {transactions.map((t, i) => (
+                    <TransactionRow key={t._id || i} txn={t} isLast={i === transactions.length - 1} />
                   ))}
                 </Box>
               )}
@@ -137,6 +177,13 @@ const DealerWalletDrawer = ({ open, walletId, dealerName, onClose }) => {
           </>
         )}
       </Box>
+      <DepositDialog
+        open={depositOpen}
+        walletId={walletId}
+        dealerName={dealer.dealerName || dealer.name || dealer.shopName || dealerName}
+        onClose={() => setDepositOpen(false)}
+        onDeposited={(result) => { load(); onDeposited?.(result); }}
+      />
     </Drawer>
   );
 };

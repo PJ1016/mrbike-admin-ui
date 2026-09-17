@@ -28,6 +28,9 @@ export const TXN_LABELS = {
   booking_payment: "Booking Payment",
   commission: "Commission",
   refund: "Refund",
+  manual: "Manual Adjustment",
+  reconciliation: "Reconciliation",
+  rollback: "Rollback",
 };
 
 export const DEBIT_TYPES = ["withdrawal"];
@@ -91,6 +94,22 @@ export const withinDateRange = (iso, range) => {
   if (range === "7d") return m.isSameOrAfter(moment().subtract(7, "days"));
   if (range === "30d") return m.isSameOrAfter(moment().subtract(30, "days"));
   return true;
+};
+
+const toLocalDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+export const getDateRangeParams = (range, now = new Date()) => {
+  if (!range || range === "all") return {};
+  const to = new Date(now);
+  const from = new Date(now);
+  if (range === "7d") from.setDate(from.getDate() - 7);
+  else if (range === "30d") from.setDate(from.getDate() - 30);
+  return { from: toLocalDate(from), to: toLocalDate(to) };
 };
 
 // Generic client-side column sort — comparable values (numbers, ISO date

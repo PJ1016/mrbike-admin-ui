@@ -33,13 +33,13 @@ const TransactionFilters = ({
       size="small"
       value={dealer}
       onChange={(e) => onDealerChange(e.target.value)}
-      renderValue={(selected) => (selected ? `Dealer: ${selected}` : "Dealer")}
+      renderValue={(selected) => (selected ? `Dealer: ${dealerOptions.find((option) => option.id === selected)?.name || selected}` : "Dealer")}
       sx={{ borderRadius: "999px", bgcolor: "#f8fafc", minWidth: 140, "& fieldset": { borderColor: "#e2e8f0" } }}
     >
       <MenuItem value="">All dealers</MenuItem>
       {dealerOptions.map((opt) => (
-        <MenuItem key={opt} value={opt}>
-          {opt}
+        <MenuItem key={opt.id} value={opt.id}>
+          {opt.name}
         </MenuItem>
       ))}
     </Select>

@@ -3,7 +3,7 @@ import { TXN_LABELS, isDebitTxn, fmtCurrency, fmtDate } from "../../utils/financ
 import FinanceStatusBadge from "./FinanceStatusBadge";
 
 const TransactionRow = ({ txn, isLast, onClick }) => {
-  const type = txn.type || txn.transaction_type || txn.transactionType;
+  const type = txn.transactionType || txn.transaction_type || txn.type;
   const bookingId = txn.bookingId || txn.booking_id;
   const debit = isDebitTxn(txn);
 

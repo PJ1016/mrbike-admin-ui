@@ -813,11 +813,20 @@ export const updateWithdrawalStatus = (walletId, status) =>
 export const getDealerWallet = (dealerId) =>
   apiRequest("GET", `/dealer/dealerWallet/${dealerId}`, {}, false);
 
-export const adminDepositToDealer = async ({ dealerId, amount, note, reference, idempotencyKey }) => {
+export const adminDepositToDealer = async ({ dealerId, walletId, amount, reason, note, reference, idempotencyKey }) => {
   const token = getAuthToken();
+  const targetId = walletId || dealerId;
   const response = await axios.post(
-    `${API_BASE_URL}/finance/wallets/${dealerId}/adjustments`,
-    { amount, direction: "Credit", reason: note, reference },
+    `${API_BASE_URL}/finance/wallets/${targetId}/adjustments`,
+    {
+      amount,
+      direction: "Credit",
+      reason: reason || note,
+      reference,
+      // Newer servers use this explicit intent; older servers safely ignore it
+      // while still creating the required credit ledger entry.
+      transactionType: "deposit",
+    },
     { headers: { ...(token ? { token } : {}), "x-idempotency-key": idempotencyKey }, withCredentials: true },
   );
   return response.data;
