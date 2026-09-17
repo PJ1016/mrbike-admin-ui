@@ -43,24 +43,47 @@ export const fetchAllPayouts = async () => {
 // GET /finance/wallets — full list, filtered/sorted/paginated client-side
 // (mirrors fetchAllPayouts / getTicketList — no other list endpoint in this
 // codebase relies on server-side pagination).
-export const fetchDealerWallets = async () => {
-  const res = await getDealerWallets();
-  const raw = res?.data ?? res?.wallets ?? res;
-  return Array.isArray(raw) ? raw : [];
+export const fetchDealerWallets = async (params = {}) => {
+  const res = await getDealerWallets(params);
+  return { data: Array.isArray(res?.data) ? res.data : [], pagination: res?.pagination || null };
 };
 
 export const fetchDealerWalletDetails = async (id) => {
   const res = await getDealerWalletDetails(id);
-  return res?.data ?? res ?? null;
+  const raw = res?.data ?? res ?? null;
+  if (!raw) return null;
+  const summary = raw.walletSummary || {};
+  return {
+    ...raw,
+    dealer: raw.dealer || {},
+    walletBalance: summary.availableBalance,
+    availableBalance: summary.availableBalance,
+    pendingBalance: summary.pendingBalance,
+    lifetimeEarnings: summary.lifetimeEarnings,
+    totalWithdrawn: summary.totalWithdrawals,
+    transactions: raw.recentTransactions || [],
+    withdrawalHistory: raw.withdrawalHistory || { data: [], pagination: null },
+  };
 };
 
-export const fetchFinanceTransactions = async () => {
-  const res = await getFinanceTransactions();
-  const raw = res?.data ?? res?.transactions ?? res;
-  return Array.isArray(raw) ? raw : [];
+export const fetchFinanceTransactions = async (params = {}) => {
+  const res = await getFinanceTransactions(params);
+  return { data: Array.isArray(res?.data) ? res.data : [], pagination: res?.pagination || null };
 };
 
 export const fetchFinanceTransactionDetails = async (id) => {
   const res = await getFinanceTransactionDetails(id);
-  return res?.data ?? res ?? null;
+  const raw = res?.data ?? res ?? null;
+  if (!raw) return null;
+  return {
+    ...raw,
+    amount: raw.amountBreakdown?.walletAmount,
+    commission: raw.amountBreakdown?.platformCommission,
+    tax: raw.amountBreakdown?.taxes,
+    booking: raw.bookingDetails,
+    dealer: raw.dealerDetails,
+    customer: raw.customerDetails,
+    gatewayResponse: raw.paymentGatewayResponse,
+    refund: raw.refundInformation && { amount: raw.refundInformation.refundAmount, status: raw.refundInformation.refundStatus },
+  };
 };

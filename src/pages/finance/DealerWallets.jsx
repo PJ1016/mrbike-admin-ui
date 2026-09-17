@@ -46,8 +46,6 @@ const columns = [
 ];
 
 const DealerWallets = () => {
-  const { wallets, loading, error, refetch } = useDealerWallets();
-
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
@@ -55,6 +53,10 @@ const DealerWallets = () => {
   const [sortKey, setSortKey] = useState("");
   const [sortDirection, setSortDirection] = useState("asc");
   const [activeWallet, setActiveWallet] = useState(null);
+  const { wallets, pagination, loading, error, refetch } = useDealerWallets({
+    page, limit: pageSize, search, ...(status ? { status } : {}),
+    ...(sortKey ? { sortBy: sortKey, sortOrder: sortDirection } : {}),
+  });
 
   const normalized = useMemo(() => wallets.map(normalizeWallet), [wallets]);
 
@@ -63,25 +65,10 @@ const DealerWallets = () => {
     [normalized]
   );
 
-  const filtered = useMemo(() => {
-    let rows = [...normalized];
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      rows = rows.filter(
-        (w) =>
-          w.dealerName?.toLowerCase().includes(q) ||
-          w.shopName?.toLowerCase().includes(q) ||
-          w.phone?.toLowerCase?.().includes(q)
-      );
-    }
-    if (status) rows = rows.filter((w) => w.status === status);
-    return sortRows(rows, sortKey, sortDirection);
-  }, [normalized, search, status, sortKey, sortDirection]);
-
   React.useEffect(() => setPage(1), [search, status]);
 
-  const total = filtered.length;
-  const paged = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page, pageSize]);
+  const total = pagination?.total ?? normalized.length;
+  const paged = normalized;
 
   const hasActiveFilters = Boolean(search || status);
   const clearAllFilters = () => {

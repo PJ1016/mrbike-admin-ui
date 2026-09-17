@@ -68,8 +68,6 @@ const getColumns = (onBookingClick) => [
 ];
 
 const Transactions = () => {
-  const { transactions, loading, error, refetch } = useFinanceTransactions();
-
   const [search, setSearch] = useState("");
   const [dealer, setDealer] = useState("");
   const [status, setStatus] = useState("");
@@ -80,6 +78,11 @@ const Transactions = () => {
   const [sortKey, setSortKey] = useState("");
   const [sortDirection, setSortDirection] = useState("asc");
   const [activeTransaction, setActiveTransaction] = useState(null);
+  const { transactions, pagination, loading, error, refetch } = useFinanceTransactions({
+    page, limit: pageSize, ...(search ? { search } : {}), ...(status ? { status } : {}),
+    ...(paymentMethod ? { payment_method: paymentMethod } : {}),
+    ...(sortKey ? { sortBy: sortKey === "amount" ? "amount" : "createdAt", sortOrder: sortDirection } : {}),
+  });
 
   const normalized = useMemo(() => transactions.map(normalizeTxn), [transactions]);
 
@@ -87,29 +90,10 @@ const Transactions = () => {
   const statusOptions = useMemo(() => Array.from(new Set(normalized.map((t) => t.status).filter(Boolean))), [normalized]);
   const paymentMethodOptions = useMemo(() => Array.from(new Set(normalized.map((t) => t.paymentMethod).filter((m) => m && m !== "—"))), [normalized]);
 
-  const filtered = useMemo(() => {
-    let rows = [...normalized];
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      rows = rows.filter(
-        (t) =>
-          t.transactionId?.toLowerCase().includes(q) ||
-          String(t.bookingId || "").toLowerCase().includes(q) ||
-          t.dealerName?.toLowerCase().includes(q) ||
-          t.customerName?.toLowerCase().includes(q)
-      );
-    }
-    if (dealer) rows = rows.filter((t) => t.dealerName === dealer);
-    if (status) rows = rows.filter((t) => t.status === status);
-    if (paymentMethod) rows = rows.filter((t) => t.paymentMethod === paymentMethod);
-    rows = rows.filter((t) => withinDateRange(t.createdAt, dateRange));
-    return sortRows(rows, sortKey, sortDirection);
-  }, [normalized, search, dealer, status, paymentMethod, dateRange, sortKey, sortDirection]);
-
   useEffect(() => setPage(1), [search, dealer, status, paymentMethod, dateRange]);
 
-  const total = filtered.length;
-  const paged = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page, pageSize]);
+  const total = pagination?.total ?? normalized.length;
+  const paged = normalized;
 
   const hasActiveFilters = Boolean(search || dealer || status || paymentMethod || dateRange !== "all");
   const clearAllFilters = () => {

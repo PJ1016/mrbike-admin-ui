@@ -176,13 +176,15 @@ const WithdrawalManagementTable = ({ datas = [], fetchLatest, triggerDownloadExc
   }
 
   const handleDeposit = async () => {
-    if (!depositForm.dealerId || !depositForm.amount) return
+    if (!depositForm.dealerId || !depositForm.amount || !depositForm.note.trim()) return
     setDepositLoading(true)
     try {
       await adminDepositToDealer({
         dealerId: depositForm.dealerId,
         amount:   Number(depositForm.amount),
         note:     depositForm.note,
+        reference: `ADMIN-DEP-${Date.now()}`,
+        idempotencyKey: `admin-deposit-${depositForm.dealerId}-${Date.now()}`,
       })
       closeDepositModal()
       await fetchLatest()

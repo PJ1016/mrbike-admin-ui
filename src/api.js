@@ -813,8 +813,15 @@ export const updateWithdrawalStatus = (walletId, status) =>
 export const getDealerWallet = (dealerId) =>
   apiRequest("GET", `/dealer/dealerWallet/${dealerId}`, {}, false);
 
-export const adminDepositToDealer = (data) =>
-  apiRequest("POST", "/dealer/deposit", data);
+export const adminDepositToDealer = async ({ dealerId, amount, note, reference, idempotencyKey }) => {
+  const token = getAuthToken();
+  const response = await axios.post(
+    `${API_BASE_URL}/finance/wallets/${dealerId}/adjustments`,
+    { amount, direction: "Credit", reason: note, reference },
+    { headers: { ...(token ? { token } : {}), "x-idempotency-key": idempotencyKey }, withCredentials: true },
+  );
+  return response.data;
+};
 
 // ─── Finance APIs (Phase 1) ──────────────────────────────────────────────────
 // Backend endpoints: /finance/summary and /dealer/payouts?status=ALL
@@ -830,14 +837,14 @@ export const getAllPayouts = (status = "ALL") =>
 
 // ─── Finance APIs (Phase 2 — Dealer Wallets & Transactions) ─────────────────
 
-export const getDealerWallets = () =>
-  apiRequest("GET", "/finance/wallets", {}, false);
+export const getDealerWallets = (params = {}) =>
+  apiRequest("GET", `/finance/wallets?${new URLSearchParams(params).toString()}`, {}, false);
 
 export const getDealerWalletDetails = (id) =>
   apiRequest("GET", `/finance/wallets/${id}`, {}, false);
 
-export const getFinanceTransactions = () =>
-  apiRequest("GET", "/finance/transactions", {}, false);
+export const getFinanceTransactions = (params = {}) =>
+  apiRequest("GET", `/finance/transactions?${new URLSearchParams(params).toString()}`, {}, false);
 
 export const getFinanceTransactionDetails = (id) =>
   apiRequest("GET", `/finance/transactions/${id}`, {}, false);

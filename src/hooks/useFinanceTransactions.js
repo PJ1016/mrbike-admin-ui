@@ -1,30 +1,32 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchFinanceTransactions } from "../services/financeService";
 
-const useFinanceTransactions = () => {
+const useFinanceTransactions = (params = {}) => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [pagination, setPagination] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const rows = await fetchFinanceTransactions();
-      setTransactions(rows);
+      const result = await fetchFinanceTransactions(params);
+      setTransactions(result.data);
+      setPagination(result.pagination);
     } catch (e) {
       setTransactions([]);
       setError(e?.message || "Failed to fetch transactions");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [JSON.stringify(params)]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  return { transactions, loading, error, refetch: load };
+  return { transactions, pagination, loading, error, refetch: load };
 };
 
 export default useFinanceTransactions;

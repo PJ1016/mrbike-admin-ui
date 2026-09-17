@@ -438,13 +438,15 @@ const WithdrawalManagement = () => {
   };
 
   const handleDeposit = async () => {
-    if (!depositForm.dealerId || !depositForm.amount) return;
+    if (!depositForm.dealerId || !depositForm.amount || !depositForm.note.trim()) return;
     setDepositLoading(true);
     try {
       await adminDepositToDealer({
         dealerId: depositForm.dealerId,
         amount:   Number(depositForm.amount),
         note:     depositForm.note,
+        reference: `ADMIN-DEP-${Date.now()}`,
+        idempotencyKey: `admin-deposit-${depositForm.dealerId}-${Date.now()}`,
       });
       closeDepositModal();
       await loadPayouts();
@@ -842,7 +844,7 @@ const WithdrawalManagement = () => {
                 </button>
                 <button
                   className="btn btn-success btn-sm"
-                  disabled={depositLoading || !depositForm.dealerId || !depositForm.amount}
+                  disabled={depositLoading || !depositForm.dealerId || !depositForm.amount || !depositForm.note.trim()}
                   onClick={handleDeposit}
                 >
                   {depositLoading ? "Processing…" : "Confirm Deposit"}
