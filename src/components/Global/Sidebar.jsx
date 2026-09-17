@@ -93,8 +93,9 @@ export const menuSections = [
       {
         title: "Bike Catalog", icon: <BikeIcon />,
         children: [
-          { title: "Bike Companies", path: "/bikes", activePaths: ["/addBikeCompany"] },
+          { title: "Bike Companies", path: "/bikes" },
           { title: "Compatibility", path: "/bike-compatibility" },
+          { title: "Add Bike Company", path: "/addBikeCompany" },
         ],
       },
     ],
