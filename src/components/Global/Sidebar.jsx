@@ -1,203 +1,179 @@
-import React, { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { getDealersVerify } from "../../api";
 import { logout } from "../../redux/slices/authSlice";
 import { useSupportUnread } from "../../context/SupportUnreadContext";
 import {
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Collapse,
-  Typography,
-  Box,
+  Box, Chip, Collapse, Drawer, List, ListItem, ListItemButton,
+  ListItemIcon, ListItemText, ListSubheader, Typography,
 } from "@mui/material";
 import {
-  Dashboard as DashboardIcon,
-  EventNote as BookingIcon,
-  People as DealerIcon,
-  Build as ServiceIcon,
-  Person as CustomerIcon,
-  Payments as PaymentIcon,
-  Redeem as RewardIcon,
-  Image as BannerIcon,
-  AdminPanelSettings as AdminIcon,
-  ExpandLess,
-  ExpandMore,
-  FiberManualRecord as BulletIcon,
-  SupportAgent as TicketIcon,
-  PowerSettingsNew as LogoutIcon,
-  TwoWheeler as BikeIcon,
-  PlaceOutlined,
-  MapOutlined as ServiceableAreasIcon,
-  BarChart as FinanceDashIcon,
-  AccountBalanceWallet as WalletIcon,
-  Receipt as TransactionIcon,
-  SwapHoriz as WithdrawalIcon,
-  TuneOutlined as PreferencesIcon,
-  CampaignOutlined as CampaignsIcon,
-  LocalOfferOutlined as PromoCodesIcon,
-  CardGiftcardOutlined as RewardsReferralIcon,
-  GavelOutlined as LegalIcon,
+  AccountBalanceWalletOutlined as WalletIcon,
+  AdminPanelSettingsOutlined as AdminIcon,
+  BarChartOutlined as FinanceIcon,
+  BuildOutlined as ServiceIcon,
+  CampaignOutlined as CampaignIcon,
+  CardGiftcardOutlined as RewardsIcon,
+  CategoryOutlined as CategoryIcon,
+  DashboardOutlined as DashboardIcon,
   DashboardCustomizeOutlined as AppContentIcon,
-  InsightsOutlined as HomeInsightsIcon,
+  EventNoteOutlined as BookingIcon,
+  ExpandLess, ExpandMore,
+  FactCheckOutlined as VerificationIcon,
+  GavelOutlined as LegalIcon,
+  ImageOutlined as BannerIcon,
+  InsightsOutlined as InsightsIcon,
+  LocalOfferOutlined as OfferIcon,
+  MapOutlined as ServiceAreaIcon,
+  PaymentsOutlined as PaymentsIcon,
+  PeopleOutline as DealerIcon,
+  PersonOutline as CustomerIcon,
+  PowerSettingsNew as LogoutIcon,
+  ReceiptLongOutlined as TransactionIcon,
   ReviewsOutlined as ReviewsIcon,
+  SellOutlined as PromoCodeIcon,
+  SupportAgentOutlined as SupportIcon,
+  SwapHorizOutlined as WithdrawalIcon,
+  TwoWheelerOutlined as BikeIcon,
+  VerifiedOutlined as DealerServiceIcon,
+  ViewCarouselOutlined as FeaturedIcon,
 } from "@mui/icons-material";
-import { Chip } from "@mui/material";
 
-const DRAWER_WIDTH = 280;
+export const DRAWER_WIDTH = 280;
 
-const menuConfig = [
+// Every destination below is an existing application route. `activePaths`
+// associates detail/edit/legacy URLs with their owning navigation item.
+export const menuSections = [
   {
-    title: "OVERVIEW",
-    type: "header",
-  },
-  {
-    title: "Dashboard",
-    icon: <DashboardIcon />,
-    path: "/",
-  },
-  {
-    title: "Home Insights",
-    icon: <HomeInsightsIcon />,
-    path: "/home-insights",
-  },
-  {
-    title: "DAILY OPERATIONS",
-    type: "header",
-  },
-  {
-    title: "Bookings",
-    icon: <BookingIcon />,
-    path: "/bookings",
-  },
-  {
-    title: "Support",
-    icon: <TicketIcon />,
-    children: [
-      { title: "Customer Tickets", path: "/support/customer" },
-      { title: "Dealer Tickets", path: "/support/dealer" },
+    title: "DASHBOARD",
+    items: [
+      { title: "Dashboard", subtitle: "Overview & activity", icon: <DashboardIcon />, path: "/" },
+      { title: "Home Insights", icon: <InsightsIcon />, path: "/home-insights" },
     ],
   },
   {
-    title: "Dealers",
-    icon: <DealerIcon />,
-    children: [
-      { title: "Verify Dealers", path: "/dealers-verify" },
-      { title: "Dealer List", path: "/dealers" },
-      // { title: "Performance", path: "/dealer-performance" },
+    title: "USERS",
+    items: [
+      { title: "Customers", icon: <CustomerIcon />, path: "/customers", activePaths: ["/view-customer/:id"] },
+      { title: "Ratings & Reviews", icon: <ReviewsIcon />, path: "/reviews" },
+      {
+        title: "Support", icon: <SupportIcon />, badge: "support",
+        children: [
+          { title: "Customer Tickets", path: "/support/customer", activePaths: ["/all-tickets", "/all-tickets/view-ticket/:ticketId"] },
+          { title: "Dealer Tickets", path: "/support/dealer" },
+        ],
+      },
     ],
   },
   {
-    title: "Customers",
-    icon: <CustomerIcon />,
-    path: "/customers",
-  },
-  { title: "Ratings & Reviews", icon: <ReviewsIcon />, path: "/reviews" },
-  {
-    title: "SERVICE SETUP",
-    type: "header",
-  },
-  {
-    title: "Services",
-    icon: <ServiceIcon />,
-    children: [
-      { title: "Service Categories", path: "/service-categories" },
-      { title: "Major Services", path: "/MajorServices" },
-      { title: "Additional Services", path: "/base-additional-services" },
+    title: "DEALERS",
+    items: [
+      { title: "Dealers", icon: <DealerIcon />, path: "/dealers", activePaths: ["/add-dealer", "/add-dealer-ai", "/view-dealer/:id", "/updateDealer/:id"] },
+      {
+        title: "Dealer Verification", icon: <VerificationIcon />, path: "/dealers-verify", badge: "dealer-verification",
+        activePaths: ["/view-verify-dealer/:id", "/edit-verify-dealer/:id", "/update-dealer-verify/:id"],
+      },
+      { title: "Dealer Services", icon: <DealerServiceIcon />, path: "/dealer-services", activePaths: ["/edit-services/:id"] },
+      { title: "Service Areas", icon: <ServiceAreaIcon />, path: "/serviceable-areas" },
     ],
   },
   {
-    title: "Bikes",
-    icon: <BikeIcon />,
-    children: [
-      { title: "Bike Companies", path: "/bikes" },
-      { title: "Bike Compatibility", path: "/bike-compatibility" },
-      { title: "Add Bike Company", path: "/addBikeCompany" },
+    title: "SERVICES",
+    items: [
+      {
+        title: "Major Services", icon: <ServiceIcon />, path: "/MajorServices",
+        activePaths: ["/base-services", "/create-base-service", "/edit-base-service/:id", "/view-service/:id"],
+      },
+      { title: "Categories", icon: <CategoryIcon />, path: "/service-categories" },
+      {
+        title: "Additional Services", icon: <OfferIcon />, path: "/base-additional-services",
+        activePaths: ["/create-base-additional-service", "/edit-base-additional-service/:id", "/create-additional-service", "/additional-services/view/:id", "/additional-services/edit/:id"],
+      },
+      {
+        title: "Bike Catalog", icon: <BikeIcon />,
+        children: [
+          { title: "Bike Companies", path: "/bikes", activePaths: ["/addBikeCompany"] },
+          { title: "Compatibility", path: "/bike-compatibility" },
+        ],
+      },
     ],
   },
   {
-    title: "Serviceable Areas",
-    icon: <ServiceableAreasIcon />,
-    path: "/serviceable-areas",
-  },
-  {
-    title: "Location Categories",
-    icon: <PlaceOutlined />,
-    path: "/location-featured-categories",
+    title: "BOOKINGS",
+    items: [
+      { title: "All Bookings", icon: <BookingIcon />, path: "/bookings", activePaths: ["/booking"] },
+    ],
   },
   {
     title: "FINANCE",
-    type: "header",
-  },
-  {
-    title: "Finance Dashboard",
-    icon: <FinanceDashIcon />,
-    path: "/finance",
-  },
-  {
-    title: "Transactions",
-    icon: <TransactionIcon />,
-    path: "/finance/transactions",
-  },
-  {
-    title: "Dealer Wallets",
-    icon: <WalletIcon />,
-    path: "/finance/dealer-wallets",
-  },
-  {
-    title: "Withdrawal Requests",
-    icon: <WithdrawalIcon />,
-    path: "/finance/withdrawals",
-  },
-  {
-    title: "MARKETING & CONTENT",
-    type: "header",
-  },
-  {
-    title: "Banners",
-    icon: <BannerIcon />,
-    path: "/bannerList",
-  },
-  {
-    title: "Offers",
-    icon: <RewardIcon />,
-    path: "/offers",
-  },
-  {
-    title: "Growth & Content",
-    icon: <PreferencesIcon />,
-    children: [
-      { title: "Campaigns", icon: <CampaignsIcon />, path: "/preferences/campaigns" },
-      { title: "Promo Codes", icon: <PromoCodesIcon />, path: "/preferences/promo-codes" },
-      { title: "Rewards & Referral", icon: <RewardsReferralIcon />, path: "/preferences/rewards-referral" },
-      { title: "App Content", icon: <AppContentIcon />, path: "/preferences/app-content" },
+    items: [
+      { title: "Finance Overview", icon: <FinanceIcon />, path: "/finance" },
+      { title: "Dealer Wallets", icon: <WalletIcon />, path: "/finance/dealer-wallets" },
+      { title: "Transactions", icon: <TransactionIcon />, path: "/finance/transactions" },
+      { title: "Withdrawals", icon: <WithdrawalIcon />, path: "/finance/withdrawals", activePaths: ["/approve"] },
+      { title: "Payments", icon: <PaymentsIcon />, path: "/paymentList" },
     ],
   },
   {
-    title: "SYSTEM",
-    type: "header",
+    title: "MARKETING",
+    items: [
+      { title: "Banners", icon: <BannerIcon />, path: "/bannerList", activePaths: ["/banners"] },
+      { title: "Offers", icon: <OfferIcon />, path: "/offers", activePaths: ["/add-offer"] },
+      {
+        title: "Promotions", icon: <CampaignIcon />,
+        children: [
+          { title: "Campaigns", path: "/preferences/campaigns" },
+          { title: "Promo Codes", icon: <PromoCodeIcon />, path: "/preferences/promo-codes" },
+          { title: "Rewards & Referral", icon: <RewardsIcon />, path: "/preferences/rewards-referral", activePaths: ["/rewards"] },
+        ],
+      },
+      {
+        title: "Featured Categories", icon: <FeaturedIcon />, path: "/location-featured-categories",
+        activePaths: ["/location-featured-categories/add", "/location-featured-categories/edit/:id", "/location-featured-categories/view/:id"],
+      },
+    ],
   },
   {
-    title: "Admin Users",
-    icon: <AdminIcon />,
-    path: "/admins",
-  },
-  {
-    title: "Legal",
-    icon: <LegalIcon />,
-    path: "/preferences/legal",
+    title: "CONTENT & SETTINGS",
+    items: [
+      { title: "App Content", icon: <AppContentIcon />, path: "/preferences/app-content" },
+      { title: "Legal", icon: <LegalIcon />, path: "/preferences/legal" },
+      { title: "Admin Users", icon: <AdminIcon />, path: "/admins", activePaths: ["/addadmin"] },
+    ],
   },
 ];
+
+const normalizePath = (path) => {
+  const cleanPath = (path || "/").split(/[?#]/)[0].replace(/\/+$/, "");
+  return (cleanPath || "/").toLowerCase();
+};
+
+const pathMatches = (pathname, pattern) => {
+  const currentParts = normalizePath(pathname).split("/").filter(Boolean);
+  const patternParts = normalizePath(pattern).split("/").filter(Boolean);
+  return currentParts.length === patternParts.length && patternParts.every(
+    (part, index) => part.startsWith(":") || part === currentParts[index],
+  );
+};
+
+const isItemActive = (item, pathname) =>
+  [item.path, ...(item.activePaths || [])].filter(Boolean).some((path) => pathMatches(pathname, path))
+  || (item.children || []).some((child) => isItemActive(child, pathname));
+
+const activeParentTitles = (pathname) => menuSections.flatMap((section) =>
+  section.items
+    .filter((item) => item.children && isItemActive(item, pathname))
+    .map((item) => item.title),
+);
 
 const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [openMenus, setOpenMenus] = useState({});
+  const [openMenus, setOpenMenus] = useState(() =>
+    Object.fromEntries(activeParentTitles(location.pathname).map((title) => [title, true])),
+  );
   const [pendingVerifyCount, setPendingVerifyCount] = useState(0);
   const { unreadCount: supportUnreadCount } = useSupportUnread();
 
@@ -205,136 +181,98 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
     getDealersVerify()
       .then((res) => {
         if (res.success) {
-          const count = (res.vendors || []).filter(
-            (v) => (v.registrationStatus || "").toLowerCase() === "pending",
-          ).length;
-          setPendingVerifyCount(count);
+          setPendingVerifyCount((res.vendors || []).filter(
+            (vendor) => (vendor.registrationStatus || "").toLowerCase() === "pending",
+          ).length);
         }
       })
       .catch(() => {});
   }, []);
 
-  const handleMenuClick = (title, path, hasChildren) => {
-    if (hasChildren) {
-      setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
-    } else if (path) {
-      navigate(path);
+  useEffect(() => {
+    const activeParents = activeParentTitles(location.pathname);
+    if (activeParents.length) {
+      setOpenMenus((previous) => ({
+        ...previous,
+        ...Object.fromEntries(activeParents.map((title) => [title, true])),
+      }));
+    }
+  }, [location.pathname]);
+
+  const badges = useMemo(() => ({
+    support: supportUnreadCount,
+    "dealer-verification": pendingVerifyCount,
+  }), [pendingVerifyCount, supportUnreadCount]);
+
+  const handleMenuClick = (item) => {
+    if (item.children) {
+      setOpenMenus((previous) => ({ ...previous, [item.title]: !previous[item.title] }));
+    } else if (item.path) {
+      navigate(item.path);
       if (isMobile) handleToggleDrawer();
     }
   };
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate("/login");
-  };
+  const renderBadge = (badgeKey) => badges[badgeKey] ? (
+    <Chip
+      label={badges[badgeKey]}
+      size="small"
+      color="error"
+      sx={{ height: 20, minWidth: 24, fontSize: "0.65rem", fontWeight: 700, "& .MuiChip-label": { px: 0.75 } }}
+    />
+  ) : null;
 
   const renderMenuItem = (item, isChild = false) => {
-    if (item.type === "header") {
-      return (
-        <Typography
-          key={item.title}
-          variant="caption"
-          sx={{
-            px: 3,
-            py: 2,
-            display: "block",
-            fontWeight: 700,
-            color: "text.secondary",
-            letterSpacing: "0.1em",
-            fontSize: "0.7rem",
-          }}
-        >
-          {item.title}
-        </Typography>
-      );
-    }
-
-    const hasChildren = !!item.children;
-    const isOpen = openMenus[item.title];
-    const isActive = location.pathname === item.path || (item.children?.some(child => location.pathname === child.path));
-    const isDisabled = !!item.disabled;
+    const hasChildren = Boolean(item.children?.length);
+    const isOpen = Boolean(openMenus[item.title]);
+    const isActive = isItemActive(item, location.pathname);
+    const collapseId = hasChildren ? `sidebar-${item.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}` : undefined;
 
     return (
       <React.Fragment key={item.title}>
-        <ListItem disablePadding sx={{ px: 1, mb: 0.5 }}>
+        <ListItem disablePadding sx={{ mb: 0.375 }}>
           <ListItemButton
-            onClick={() => !isDisabled && handleMenuClick(item.title, item.path, hasChildren)}
-            active={isActive ? 1 : 0}
+            onClick={() => handleMenuClick(item)}
+            selected={isActive}
+            aria-current={isActive && !hasChildren ? "page" : undefined}
+            aria-expanded={hasChildren ? isOpen : undefined}
+            aria-controls={collapseId}
             sx={{
-              borderRadius: "8px",
-              py: 1,
-              px: 1.5,
-              bgcolor: isActive && !hasChildren ? "primary.light" : "transparent",
-              color: isDisabled ? "#cbd5e1" : isActive && !hasChildren ? "primary.main" : "text.secondary",
-              cursor: isDisabled ? "default" : "pointer",
-              "&:hover": isDisabled ? {} : {
-                bgcolor: isActive && !hasChildren ? "primary.light" : "neutral-100",
-                color: isActive && !hasChildren ? "primary.main" : "neutral-800",
-              },
-              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+              minHeight: isChild ? 38 : item.subtitle ? 52 : 42,
+              borderRadius: 1.5,
+              py: item.subtitle ? 0.75 : 0.625,
+              pl: isChild ? 1.75 : 1.25,
+              pr: 1,
+              color: isActive ? "primary.dark" : "text.secondary",
+              position: "relative",
+              "&.Mui-selected": { bgcolor: hasChildren ? "transparent" : "primary.light", color: "primary.dark" },
+              "&.Mui-selected:hover": { bgcolor: hasChildren ? "grey.100" : "primary.light" },
+              "&:hover": { bgcolor: "grey.100", color: "text.primary" },
+              "&::before": isActive && !hasChildren ? {
+                content: '""', position: "absolute", left: 0, top: 9, bottom: 9,
+                width: 3, borderRadius: "0 4px 4px 0", bgcolor: "primary.main",
+              } : undefined,
             }}
           >
-            <ListItemIcon
-              sx={{
-                minWidth: 32,
-                color: isDisabled ? "#cbd5e1" : isActive ? "primary.main" : "inherit",
-                "& svg": { fontSize: isChild ? 18 : 20 }
-              }}
-            >
-              {isChild ? (item.icon || <BulletIcon sx={{ fontSize: 6 }} />) : item.icon}
+            <ListItemIcon sx={{ minWidth: isChild ? 26 : 34, color: isActive ? "primary.main" : "inherit", "& svg": { fontSize: isChild ? 17 : 20 } }}>
+              {item.icon || <Box sx={{ width: 5, height: 5, borderRadius: "50%", bgcolor: isActive ? "primary.main" : "grey.400" }} />}
             </ListItemIcon>
             <ListItemText
               primary={item.title}
+              secondary={item.subtitle}
               primaryTypographyProps={{
-                fontSize: "0.875rem",
-                fontWeight: isActive ? 600 : 500,
-                color: isDisabled ? "#cbd5e1" : undefined,
+                fontSize: isChild ? "0.8125rem" : "0.875rem",
+                fontWeight: isActive ? 700 : 550,
+                lineHeight: 1.3,
+                whiteSpace: "normal",
+                overflowWrap: "anywhere",
               }}
+              secondaryTypographyProps={{ fontSize: "0.6875rem", color: "text.secondary", lineHeight: 1.25, mt: 0.2 }}
+              sx={{ my: 0 }}
             />
-            {isChild && item.path === "/dealers-verify" && pendingVerifyCount > 0 && (
-              <Chip
-                label={pendingVerifyCount}
-                size="small"
-                color="error"
-                sx={{
-                  height: 18,
-                  fontSize: "0.6rem",
-                  fontWeight: 700,
-                  minWidth: 24,
-                  "& .MuiChip-label": { px: 0.75 },
-                }}
-              />
-            )}
-            {!isChild && item.title === "Support" && supportUnreadCount > 0 && (
-              <Chip
-                label={supportUnreadCount}
-                size="small"
-                color="error"
-                sx={{
-                  height: 18,
-                  fontSize: "0.6rem",
-                  fontWeight: 700,
-                  minWidth: 24,
-                  "& .MuiChip-label": { px: 0.75 },
-                }}
-              />
-            )}
-            {isDisabled && (
-              <Chip
-                label="Soon"
-                size="small"
-                sx={{
-                  height: 18,
-                  fontSize: "0.6rem",
-                  fontWeight: 700,
-                  bgcolor: "#f1f5f9",
-                  color: "#94a3b8",
-                  border: "1px solid #e2e8f0",
-                }}
-              />
-            )}
-            {!isDisabled && hasChildren && (
-              <Box sx={{ display: 'flex', color: 'text.disabled' }}>
+            {renderBadge(item.badge)}
+            {hasChildren && (
+              <Box sx={{ display: "flex", ml: 0.5, color: isActive ? "primary.main" : "grey.500" }}>
                 {isOpen ? <ExpandLess sx={{ fontSize: 18 }} /> : <ExpandMore sx={{ fontSize: 18 }} />}
               </Box>
             )}
@@ -342,8 +280,8 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
         </ListItem>
 
         {hasChildren && (
-          <Collapse in={isOpen} timeout="auto" unmountOnExit>
-            <List component="div" disablePadding sx={{ pl: 2 }}>
+          <Collapse id={collapseId} in={isOpen} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding sx={{ ml: 2.125, pl: 1, borderLeft: "1px solid", borderColor: "grey.200" }}>
               {item.children.map((child) => renderMenuItem(child, true))}
             </List>
           </Collapse>
@@ -353,75 +291,77 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
   };
 
   const drawerContent = (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", bgcolor: "#ffffff" }}>
-      {/* Sidebar Brand/Header */}
-      <Box sx={{ p: 4, pb: 3, display: "flex", alignItems: "center", gap: 2 }}>
-        <Box 
-          sx={{ 
-            width: 40, 
-            height: 40, 
-            bgcolor: "primary.main", 
-            borderRadius: "12px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#fff",
-            fontWeight: "900",
-            fontSize: "1.2rem",
-            boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)"
-          }}
-        >
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", bgcolor: "background.paper" }}>
+      <Box sx={{ minHeight: 72, px: 2.5, py: 1.75, display: "flex", alignItems: "center", gap: 1.5, borderBottom: "1px solid", borderColor: "grey.100" }}>
+        <Box sx={{
+          width: 38, height: 38, flexShrink: 0, bgcolor: "primary.main", borderRadius: 2,
+          display: "grid", placeItems: "center", color: "common.white", fontWeight: 800,
+          fontSize: "0.95rem", boxShadow: "0 4px 12px rgba(37, 99, 235, 0.22)",
+        }}>
           BD
         </Box>
-        <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1, letterSpacing: "-0.02em", color: "neutral.800" }}>
-            BIKE DOCTOR
-          </Typography>
-          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, letterSpacing: "0.05em" }}>
-            ADMIN
-          </Typography>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: "0.9rem", fontWeight: 800, lineHeight: 1.25, color: "text.primary" }}>Bike Doctor</Typography>
+          <Typography sx={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.09em", color: "text.secondary" }}>ADMIN CONSOLE</Typography>
         </Box>
       </Box>
 
-      {/* Menu Items */}
-      <Box sx={{ 
-        flexGrow: 1, 
-        overflowY: "auto", 
-        px: 2, 
-        py: 2,
-        '&::-webkit-scrollbar': { width: '4px' },
-        '&::-webkit-scrollbar-thumb': { bgcolor: 'neutral.200', borderRadius: '10px' }
-      }}>
-        <List sx={{ pt: 0 }}>
-          {menuConfig.map((item) => renderMenuItem(item))}
-        </List>
+      <Box
+        component="nav"
+        aria-label="Admin navigation"
+        sx={{
+          flexGrow: 1, overflowY: "auto", px: 1.5, py: 1,
+          scrollbarWidth: "thin", scrollbarColor: "#cbd5e1 transparent",
+          "&::-webkit-scrollbar": { width: 4 },
+          "&::-webkit-scrollbar-thumb": { bgcolor: "grey.300", borderRadius: 10 },
+        }}
+      >
+        {menuSections.map((section, sectionIndex) => (
+          <List
+            key={section.title}
+            disablePadding
+            aria-labelledby={`sidebar-section-${sectionIndex}`}
+            subheader={
+              <ListSubheader
+                id={`sidebar-section-${sectionIndex}`}
+                component="div"
+                disableSticky
+                sx={{
+                  bgcolor: "transparent", color: "text.secondary", fontSize: "0.625rem",
+                  fontWeight: 800, lineHeight: 1, letterSpacing: "0.11em", px: 1.25,
+                  pt: sectionIndex === 0 ? 1 : 2.25, pb: 0.875,
+                }}
+              >
+                {section.title}
+              </ListSubheader>
+            }
+          >
+            {section.items.map((item) => renderMenuItem(item))}
+          </List>
+        ))}
       </Box>
 
-      {/* Footer / Account */}
-      <Box sx={{ p: 2, mt: "auto", borderTop: "1px solid #f1f5f9" }}>
+      <Box sx={{ p: 1.5, borderTop: "1px solid", borderColor: "grey.100" }}>
         <ListItem disablePadding>
           <ListItemButton
-            onClick={handleLogout}
+            onClick={() => { dispatch(logout()); navigate("/login"); }}
             sx={{
-              borderRadius: "10px",
-              color: "text.secondary",
-              py: 1.5,
-              "&:hover": { 
-                bgcolor: "error.light", 
-                color: "error.main", 
-                "& .MuiListItemIcon-root": { color: "inherit" } 
-              }
+              minHeight: 42, borderRadius: 1.5, color: "text.secondary", px: 1.25,
+              "&:hover": { bgcolor: "rgba(239, 68, 68, 0.08)", color: "error.main", "& .MuiListItemIcon-root": { color: "inherit" } },
             }}
           >
-            <ListItemIcon sx={{ minWidth: 36, color: "inherit" }}>
-              <LogoutIcon sx={{ fontSize: 20 }} />
-            </ListItemIcon>
-            <ListItemText primary="Logout" primaryTypographyProps={{ fontSize: "0.875rem", fontWeight: 600 }} />
+            <ListItemIcon sx={{ minWidth: 34, color: "inherit" }}><LogoutIcon sx={{ fontSize: 20 }} /></ListItemIcon>
+            <ListItemText primary="Log out" primaryTypographyProps={{ fontSize: "0.875rem", fontWeight: 650 }} />
           </ListItemButton>
         </ListItem>
       </Box>
     </Box>
   );
+
+  const paperSx = {
+    boxSizing: "border-box", width: DRAWER_WIDTH, border: "none", borderRight: "1px solid",
+    borderColor: "grey.100", bgcolor: "background.paper",
+  };
 
   return (
     <>
@@ -430,32 +370,14 @@ const Sidebar = ({ mobileOpen, handleToggleDrawer, isMobile }) => {
         open={mobileOpen}
         onClose={handleToggleDrawer}
         ModalProps={{ keepMounted: true }}
-        sx={{
-          display: { xs: "block", lg: "none" },
-          "& .MuiDrawer-paper": { 
-            boxSizing: "border-box", 
-            width: DRAWER_WIDTH, 
-            border: "none",
-            boxShadow: "var(--shadow-lg)"
-          },
-        }}
+        sx={{ display: { xs: "block", lg: "none" }, "& .MuiDrawer-paper": { ...paperSx, boxShadow: "0 20px 40px rgba(15, 23, 42, 0.16)" } }}
       >
         {drawerContent}
       </Drawer>
-
       <Drawer
         variant="permanent"
-        sx={{
-          display: { xs: "none", lg: "block" },
-          "& .MuiDrawer-paper": { 
-            boxSizing: "border-box", 
-            width: DRAWER_WIDTH, 
-            border: "none",
-            borderRight: "1px solid #f1f5f9",
-            bgcolor: "#fff"
-          },
-        }}
         open
+        sx={{ display: { xs: "none", lg: "block" }, "& .MuiDrawer-paper": paperSx }}
       >
         {drawerContent}
       </Drawer>
