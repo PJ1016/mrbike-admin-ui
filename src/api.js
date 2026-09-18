@@ -1378,8 +1378,15 @@ export const deleteServiceCategory = async (id) => {
 // from the list row; POST/PUT cover the full create/edit form.
 
 export const getServiceableAreas = (params = {}) => {
+  const normalizedParams = { ...params };
+  if (normalizedParams.limit !== undefined && normalizedParams.limit !== null) {
+    const requestedLimit = Number(normalizedParams.limit);
+    if (Number.isFinite(requestedLimit)) {
+      normalizedParams.limit = Math.min(100, Math.max(1, Math.trunc(requestedLimit)));
+    }
+  }
   const query = new URLSearchParams(
-    Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== ""),
+    Object.entries(normalizedParams).filter(([, v]) => v !== undefined && v !== null && v !== ""),
   ).toString();
   return apiRequestV1(
     "GET",

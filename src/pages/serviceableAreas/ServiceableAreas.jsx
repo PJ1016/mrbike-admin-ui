@@ -33,6 +33,11 @@ import MyLocationIcon from "@mui/icons-material/MyLocation";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import PageHeader from "../../components/Global/PageHeader";
 import PauseAreaDialog from "../../components/ServiceableAreas/PauseAreaDialog";
+import { getApiErrorMessage } from "../../utils/apiError";
+import {
+  loadGoogleMapsPlaces,
+  selectedPlaceDetails,
+} from "../../utils/googleMaps";
 import {
   getServiceableAreas,
   createServiceableArea,
@@ -40,27 +45,6 @@ import {
   updateServiceableAreaStatus,
   deleteServiceableArea,
 } from "../../api";
-
-// Same raw Google Maps JS API + Places pattern used by
-// LocationFeaturedCategoryForm — no interactive map, just Autocomplete to
-// fill lat/lng plus a static preview box.
-const GOOGLE_MAPS_KEY = "AIzaSyCM15ry8lewwj6YZ-04_m7Z58dsQo_hBBA";
-
-const loadGoogleMapsScript = (onReady) => {
-  if (window.google?.maps?.places) { onReady(); return; }
-  if (document.querySelector("script[data-gmaps]")) {
-    const wait = setInterval(() => {
-      if (window.google?.maps?.places) { clearInterval(wait); onReady(); }
-    }, 100);
-    return;
-  }
-  window.__gmapsCallback = () => { delete window.__gmapsCallback; onReady(); };
-  const script = document.createElement("script");
-  script.setAttribute("data-gmaps", "1");
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&libraries=places&callback=__gmapsCallback`;
-  script.async = true;
-  document.head.appendChild(script);
-};
 
 const MapPreview = ({ label, lat, lng, radiusKm }) => {
   const radiusSize = Math.min(Math.max(Number(radiusKm) * 12, 40), 140);
@@ -239,6 +223,7 @@ const AreaRow = ({ area, onEdit, onDeleteClick, onStatusChange, statusUpdatingId
 const ServiceableAreas = () => {
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [listError, setListError] = useState(null);
 
   const [search, setSearch] = useState("");
   const [statusTab, setStatusTab] = useState("all");
@@ -260,15 +245,23 @@ const ServiceableAreas = () => {
   const [statusUpdatingId, setStatusUpdatingId] = useState(null);
 
   const [googleReady, setGoogleReady] = useState(!!window.google?.maps?.places);
+  const [googleError, setGoogleError] = useState(null);
   const searchInputRef = useRef(null);
 
   const loadAreas = async () => {
     try {
       setLoading(true);
-      const res = await getServiceableAreas({ limit: 200 });
-      if (res?.status) setAreas(res.data || []);
+      setListError(null);
+      // Global request validation and this endpoint both cap pagination at
+      // 100. Sending 200 is rejected before auth/controller/database work.
+      const res = await getServiceableAreas({ limit: 100 });
+      if (!Array.isArray(res?.data)) {
+        throw new Error("The serviceable areas API returned an invalid response.");
+      }
+      setAreas(res.data);
     } catch (error) {
       console.error("Error fetching serviceable areas:", error);
+      setListError(getApiErrorMessage(error, "Could not load serviceable areas."));
     } finally {
       setLoading(false);
     }
@@ -279,28 +272,65 @@ const ServiceableAreas = () => {
   }, []);
 
   useEffect(() => {
-    loadGoogleMapsScript(() => setGoogleReady(true));
+    let active = true;
+    const handleGoogleAuthFailure = () => {
+      if (!active) return;
+      setGoogleReady(false);
+      setGoogleError(
+        "Google Maps rejected the configured key. Check billing, Maps JavaScript API, Places API, and the production referrer allowlist.",
+      );
+    };
+    window.addEventListener("mrbike-google-maps-auth-failure", handleGoogleAuthFailure);
+    loadGoogleMapsPlaces()
+      .then(() => {
+        if (!active) return;
+        setGoogleReady(true);
+        setGoogleError(null);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setGoogleReady(false);
+        setGoogleError(error.message);
+      });
+    return () => {
+      active = false;
+      window.removeEventListener("mrbike-google-maps-auth-failure", handleGoogleAuthFailure);
+    };
   }, []);
 
-  // Attach Places Autocomplete only while the location search box is
-  // actually mounted (dialog open + type === "radius"); re-attaches fresh
-  // each time since the input remounts.
+  // Both area types use Places: city mode lists Indian cities, while radius
+  // mode accepts any geocoded location and persists its selected coordinates.
   useEffect(() => {
-    if (!dialogOpen || form.type !== "radius" || !googleReady || !searchInputRef.current) return;
+    if (!dialogOpen || !googleReady || !searchInputRef.current) return;
     const autocomplete = new window.google.maps.places.Autocomplete(searchInputRef.current, {
-      fields: ["geometry", "name", "formatted_address"],
+      fields: ["geometry", "name", "formatted_address", "address_components"],
+      componentRestrictions: { country: "in" },
+      types: form.type === "city" ? ["(cities)"] : ["geocode"],
     });
     autocomplete.addListener("place_changed", () => {
       const place = autocomplete.getPlace();
-      if (!place?.geometry) return;
-      const name = place.name || searchInputRef.current.value;
-      setLocationQuery(name);
-      setForm((f) => ({
-        ...f,
-        latitude: String(place.geometry.location.lat()),
-        longitude: String(place.geometry.location.lng()),
-      }));
-      setFormErrors((prev) => ({ ...prev, location: null }));
+      const selection = selectedPlaceDetails(place);
+      if (!selection) {
+        setFormErrors((prev) => ({
+          ...prev,
+          [form.type === "city" ? "cityName" : "location"]:
+            "Select a location from the suggestions.",
+        }));
+        return;
+      }
+
+      if (form.type === "city") {
+        setForm((current) => ({ ...current, cityName: selection.cityName }));
+        setFormErrors((prev) => ({ ...prev, cityName: null }));
+      } else {
+        setLocationQuery(selection.label);
+        setForm((current) => ({
+          ...current,
+          latitude: String(selection.latitude),
+          longitude: String(selection.longitude),
+        }));
+        setFormErrors((prev) => ({ ...prev, location: null }));
+      }
     });
     return () => {
       window.google.maps.event.clearInstanceListeners(autocomplete);
@@ -334,9 +364,10 @@ const ServiceableAreas = () => {
   const handleLocationQueryChange = (e) => {
     const val = e.target.value;
     setLocationQuery(val);
-    if (!val.trim()) {
-      setForm((f) => ({ ...f, latitude: "", longitude: "" }));
-    }
+    // Typed text is not a selected place. Clear stale coordinates until the
+    // user chooses a fresh Google suggestion.
+    setForm((f) => ({ ...f, latitude: "", longitude: "" }));
+    setFormErrors((prev) => ({ ...prev, location: null }));
   };
 
   const openCreate = () => {
@@ -560,11 +591,25 @@ const ServiceableAreas = () => {
             </Typography>
           </Box>
 
+          {listError && (
+            <Alert
+              severity="error"
+              sx={{ mb: 2 }}
+              action={
+                <Button color="inherit" size="small" onClick={loadAreas}>
+                  Retry
+                </Button>
+              }
+            >
+              {listError}
+            </Alert>
+          )}
+
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 10 }}>
               <CircularProgress size={40} sx={{ color: "#2563eb" }} />
             </Box>
-          ) : filteredAreas.length === 0 ? (
+          ) : listError ? null : filteredAreas.length === 0 ? (
             <Paper elevation={0} sx={{ py: 10, textAlign: "center", borderRadius: "20px", border: "1px dashed #cbd5e1" }}>
               <Typography sx={{ color: "#64748b", fontWeight: 600 }}>No serviceable areas found</Typography>
               <Typography variant="body2" sx={{ color: "#94a3b8", mt: 1 }}>
@@ -596,6 +641,11 @@ const ServiceableAreas = () => {
             </Alert>
           )}
           <Stack spacing={3} sx={{ mt: 1 }}>
+            {googleError && (
+              <Alert severity="error">
+                {googleError} Production must allow https://admin.mrbikedoctor.cloud/*.
+              </Alert>
+            )}
             <TextField
               label="Area Name"
               value={form.name}
@@ -622,12 +672,17 @@ const ServiceableAreas = () => {
 
             {form.type === "city" && (
               <TextField
+                inputRef={searchInputRef}
                 label="City Name"
                 value={form.cityName}
-                onChange={(e) => setForm((f) => ({ ...f, cityName: e.target.value }))}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, cityName: e.target.value }));
+                  setFormErrors((prev) => ({ ...prev, cityName: null }));
+                }}
                 error={!!formErrors.cityName}
-                helperText={formErrors.cityName}
-                placeholder="e.g. Indore"
+                helperText={formErrors.cityName || (googleReady ? "Search and select an Indian city" : "Google Places is loading")}
+                placeholder="Search city, e.g. Indore"
+                disabled={!googleReady}
                 fullWidth
                 size="small"
               />
