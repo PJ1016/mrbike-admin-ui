@@ -30,7 +30,6 @@ import EditIcon from "@mui/icons-material/Edit";
 import SearchIcon from "@mui/icons-material/Search";
 import LocationCityIcon from "@mui/icons-material/LocationCity";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
-import LocationOnIcon from "@mui/icons-material/LocationOn";
 import PageHeader from "../../components/Global/PageHeader";
 import PauseAreaDialog from "../../components/ServiceableAreas/PauseAreaDialog";
 import { getApiErrorMessage } from "../../utils/apiError";
@@ -46,8 +45,56 @@ import {
   deleteServiceableArea,
 } from "../../api";
 
-const MapPreview = ({ label, lat, lng, radiusKm }) => {
-  const radiusSize = Math.min(Math.max(Number(radiusKm) * 12, 40), 140);
+const MapPreview = ({ label, lat, lng, radiusKm, showRadius }) => {
+  const mapElementRef = useRef(null);
+  const [mapError, setMapError] = useState(null);
+
+  useEffect(() => {
+    if (!mapElementRef.current || !window.google?.maps) return;
+
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+
+    try {
+      const center = { lat: latitude, lng: longitude };
+      const map = new window.google.maps.Map(mapElementRef.current, {
+        center,
+        zoom: showRadius ? 12 : 11,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+      });
+      const marker = new window.google.maps.Marker({
+        map,
+        position: center,
+        title: label,
+      });
+      const radius = Number(radiusKm);
+      const circle = showRadius && Number.isFinite(radius) && radius > 0
+        ? new window.google.maps.Circle({
+            map,
+            center,
+            radius: radius * 1000,
+            fillColor: "#2563eb",
+            fillOpacity: 0.12,
+            strokeColor: "#2563eb",
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+          })
+        : null;
+
+      setMapError(null);
+      return () => {
+        marker.setMap(null);
+        circle?.setMap(null);
+      };
+    } catch (error) {
+      setMapError("Map preview could not be rendered.");
+      return undefined;
+    }
+  }, [label, lat, lng, radiusKm, showRadius]);
+
   return (
     <Box
       sx={{
@@ -59,33 +106,12 @@ const MapPreview = ({ label, lat, lng, radiusKm }) => {
         border: "1px solid #e2e8f0",
       }}
     >
-      <Box
-        sx={{
-          position: "absolute",
-          inset: 0,
-          bgcolor: "#e8f0d8",
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)",
-          backgroundSize: "40px 40px",
-        }}
-      />
-      <Box
-        sx={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: `${radiusSize}px`,
-          height: `${radiusSize}px`,
-          borderRadius: "50%",
-          border: "2px dashed #2563eb",
-          bgcolor: "rgba(37, 99, 235, 0.1)",
-          transition: "all 0.3s ease",
-        }}
-      />
-      <Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -100%)" }}>
-        <LocationOnIcon sx={{ color: "#ef4444", fontSize: 34, filter: "drop-shadow(0 2px 6px rgba(239,68,68,0.4))" }} />
-      </Box>
+      <Box ref={mapElementRef} sx={{ position: "absolute", inset: 0 }} />
+      {mapError && (
+        <Box sx={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", bgcolor: "#f8fafc" }}>
+          <Typography variant="caption" color="error">{mapError}</Typography>
+        </Box>
+      )}
       <Box
         sx={{
           position: "absolute",
@@ -320,7 +346,12 @@ const ServiceableAreas = () => {
       }
 
       if (form.type === "city") {
-        setForm((current) => ({ ...current, cityName: selection.cityName }));
+        setForm((current) => ({
+          ...current,
+          cityName: selection.cityName,
+          latitude: String(selection.latitude),
+          longitude: String(selection.longitude),
+        }));
         setFormErrors((prev) => ({ ...prev, cityName: null }));
       } else {
         setLocationQuery(selection.label);
@@ -498,7 +529,7 @@ const ServiceableAreas = () => {
     loadAreas();
   };
 
-  const hasLocation = form.type === "radius" && !!form.latitude && !!form.longitude;
+  const hasLocation = !!form.latitude && !!form.longitude;
 
   return (
     <Box sx={{ backgroundColor: "#f8fafc", minHeight: "100vh", pb: 8 }}>
@@ -676,7 +707,12 @@ const ServiceableAreas = () => {
                 label="City Name"
                 value={form.cityName}
                 onChange={(e) => {
-                  setForm((f) => ({ ...f, cityName: e.target.value }));
+                  setForm((f) => ({
+                    ...f,
+                    cityName: e.target.value,
+                    latitude: "",
+                    longitude: "",
+                  }));
                   setFormErrors((prev) => ({ ...prev, cityName: null }));
                 }}
                 error={!!formErrors.cityName}
@@ -735,9 +771,19 @@ const ServiceableAreas = () => {
                     lat={form.latitude}
                     lng={form.longitude}
                     radiusKm={form.radiusKm || "1"}
+                    showRadius
                   />
                 )}
               </>
+            )}
+
+            {form.type === "city" && hasLocation && (
+              <MapPreview
+                label={form.cityName || form.name || "Selected city"}
+                lat={form.latitude}
+                lng={form.longitude}
+                showRadius={false}
+              />
             )}
 
             <FormControl fullWidth size="small">
