@@ -64,7 +64,6 @@ import DealerSupport from "./pages/Support/DealerSupport";
 import BaseServiceForm from "./components/Service/BaseServiceForm";
 import BaseAdditionalServices from "./pages/services/BaseAdditionalServices";
 import BaseAdditionalServiceForm from "./components/Additional/BaseAdditionalServiceForm";
-import DealerServices from "./pages/Dealer/DealerServices";
 import ViewUserDetails from "./pages/customer/ViewUserDetails";
 import ViewAdminServiceDetails from "./components/Service/ViewAdminServiceDetails";
 import MajorServices from "./pages/services/MajorServices";
@@ -249,7 +248,6 @@ const AppContent = () => {
             path="/view-service/:id"
             element={<ViewAdminServiceDetails />}
           />
-          <Route path="/dealer-services" element={<DealerServices />} />
           <Route path="/edit-services/:id" element={<EditService />} />
           <Route
             path="/create-additional-service"

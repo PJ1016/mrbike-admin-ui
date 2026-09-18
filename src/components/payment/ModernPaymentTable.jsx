@@ -12,6 +12,13 @@ import {
   AccountBalance,
   QrCode,
 } from "@mui/icons-material";
+import {
+  getPartyEmail,
+  getPartyName,
+  getPartyPhone,
+  getReferenceId,
+  isWalletTopup,
+} from "../../utils/paymentDisplay";
 
 const getStatusColor = (status) => {
   switch (status?.toUpperCase()) {
@@ -62,10 +69,9 @@ const ModernPaymentTable = ({ data = [], onRowClick, loading }) => {
   const columns = [
     {
       field: "booking_id",
-      headerName: "Booking ID",
+      headerName: "Booking / Dealer ID",
       width: 250,
-      valueGetter: (params, row) =>
-        row.booking_id?.bookingId || row.booking_id || "N/A",
+      valueGetter: (_params, row) => getReferenceId(row),
       renderCell: (params) => (
         <Box sx={{ display: "flex", alignItems: "center", height: "100%" }}>
           <Typography
@@ -85,12 +91,9 @@ const ModernPaymentTable = ({ data = [], onRowClick, loading }) => {
     },
     {
       field: "user_name",
-      headerName: "Customer",
+      headerName: "Customer / Dealer",
       width: 280,
-      valueGetter: (params, row) =>
-        row.user_id
-          ? `${row.user_id.first_name || ""} ${row.user_id.last_name || ""}`.trim()
-          : "N/A",
+      valueGetter: (_params, row) => getPartyName(row),
       renderCell: (params) => (
         <Stack
           direction="column"
@@ -106,15 +109,20 @@ const ModernPaymentTable = ({ data = [], onRowClick, loading }) => {
             color="text.secondary"
             sx={{ lineHeight: 1.1 }}
           >
-            {params.api.getRow(params.id).user_id?.email || "No email"}
+            {getPartyEmail(params.api.getRow(params.id))}
           </Typography>
           <Typography
             variant="caption"
             color="primary"
             sx={{ lineHeight: 1.1, fontWeight: 500 }}
           >
-            {params.api.getRow(params.id).user_id?.phone || "No phone"}
+            {getPartyPhone(params.api.getRow(params.id))}
           </Typography>
+          {isWalletTopup(params.api.getRow(params.id)) && (
+            <Typography variant="caption" color="success.main" sx={{ lineHeight: 1.1, fontWeight: 700 }}>
+              Dealer wallet top-up
+            </Typography>
+          )}
         </Stack>
       ),
     },

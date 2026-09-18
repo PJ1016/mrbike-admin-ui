@@ -37,7 +37,6 @@ import {
   SupportAgentOutlined as SupportIcon,
   SwapHorizOutlined as WithdrawalIcon,
   TwoWheelerOutlined as BikeIcon,
-  VerifiedOutlined as DealerServiceIcon,
   ViewCarouselOutlined as FeaturedIcon,
 } from "@mui/icons-material";
 
@@ -75,7 +74,6 @@ export const menuSections = [
         title: "Dealer Verification", icon: <VerificationIcon />, path: "/dealers-verify", badge: "dealer-verification",
         activePaths: ["/view-verify-dealer/:id", "/edit-verify-dealer/:id", "/update-dealer-verify/:id"],
       },
-      { title: "Dealer Services", icon: <DealerServiceIcon />, path: "/dealer-services", activePaths: ["/edit-services/:id"] },
       { title: "Service Areas", icon: <ServiceAreaIcon />, path: "/serviceable-areas" },
     ],
   },

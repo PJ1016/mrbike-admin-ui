@@ -10,7 +10,14 @@ import {
   Paper,
   Grid,
 } from "@mui/material";
-import { Close, ContentCopy, Person, Receipt, Payment as PaymentIcon, Info, CalendarToday, CurrencyRupee } from "@mui/icons-material";
+import { Close, ContentCopy, Person, Receipt, Payment as PaymentIcon, Info } from "@mui/icons-material";
+import {
+  getPartyEmail,
+  getPartyName,
+  getPartyPhone,
+  getReferenceId,
+  isWalletTopup,
+} from "../../utils/paymentDisplay";
 
 const DetailItem = ({ label, value, copyable = false }) => (
   <Box mb={2}>
@@ -32,6 +39,7 @@ const DetailItem = ({ label, value, copyable = false }) => (
 
 const PaymentDetailsDrawer = ({ open, onClose, payment }) => {
   if (!payment) return null;
+  const walletTopup = isWalletTopup(payment);
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose}>
@@ -69,16 +77,19 @@ const PaymentDetailsDrawer = ({ open, onClose, payment }) => {
             </Grid>
           </Paper>
 
-          {/* Customer info */}
+          {/* Customer/dealer info */}
           <Paper sx={{ p: 2, borderRadius: "12px", mb: 3 }}>
             <Stack direction="row" spacing={1} alignItems="center" mb={2}>
               <Person color="primary" fontSize="small" />
-              <Typography variant="subtitle2" fontWeight={700}>Customer Information</Typography>
+              <Typography variant="subtitle2" fontWeight={700}>
+                {walletTopup ? "Dealer Information" : "Customer Information"}
+              </Typography>
             </Stack>
             <Divider sx={{ mb: 2 }} />
-            <DetailItem label="Name" value={`${payment.user_id?.first_name || ""} ${payment.user_id?.last_name || ""}`} />
-            <DetailItem label="Email" value={payment.user_id?.email} copyable />
-            <DetailItem label="Phone" value={payment.user_id?.phone} />
+            <DetailItem label={walletTopup ? "Dealer" : "Name"} value={getPartyName(payment)} />
+            <DetailItem label="Email" value={getPartyEmail(payment)} copyable />
+            <DetailItem label="Phone" value={getPartyPhone(payment)} />
+            {walletTopup && <DetailItem label="Dealer ID" value={getReferenceId(payment)} copyable />}
           </Paper>
 
           {/* Payment Identifiers */}
@@ -91,7 +102,7 @@ const PaymentDetailsDrawer = ({ open, onClose, payment }) => {
             <DetailItem label="Order ID" value={payment.orderId} copyable />
             <DetailItem label="Transaction ID" value={payment.transaction_id} copyable />
             <DetailItem label="Cashfree Order ID" value={payment.cf_order_id} copyable />
-            <DetailItem label="Booking ID" value={payment.booking_id?._id} copyable />
+            {!walletTopup && <DetailItem label="Booking ID" value={getReferenceId(payment)} copyable />}
           </Paper>
 
           {/* Payment Method Details */}
@@ -102,8 +113,14 @@ const PaymentDetailsDrawer = ({ open, onClose, payment }) => {
             </Stack>
             <Divider sx={{ mb: 2 }} />
             <DetailItem label="Method" value={payment.payment_method} />
-            <DetailItem label="Type" value={payment.payment_type} />
+            <DetailItem label="Type" value={payment.payment_type || payment.type} />
             <DetailItem label="Payment By" value={payment.payment_by} />
+            {walletTopup && (
+              <DetailItem
+                label="Wallet Finalization"
+                value={payment.wallet_credit_state || (payment.wallet_credited_at ? "CREDITED" : "PENDING")}
+              />
+            )}
           </Paper>
 
           {/* Timestamps */}
