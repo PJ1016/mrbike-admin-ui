@@ -9,7 +9,7 @@ import AppSettingsPanel from "../../components/Preferences/AppContent/AppSetting
 const TABS = [
   { key: "app-popups", label: "App Popups" },
   { key: "faq", label: "FAQ" },
-  { key: "settings", label: "Support & Links" },
+  { key: "settings", label: "App Settings" },
 ];
 
 // Page shell for the App Content module — three tabs (the merged App Popups

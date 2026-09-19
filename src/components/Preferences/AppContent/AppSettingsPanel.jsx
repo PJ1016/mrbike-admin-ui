@@ -35,6 +35,94 @@ const emptyForm = {
   platformFeeAmount: "",
   platformFeeLabel: "Platform Fee",
   commissionTaxRate: "18",
+  customerAppUpdateEnabled: false,
+  customerAppForceUpdate: false,
+  customerAppLatestVersion: "",
+  customerAppUpdateMessage: "",
+  customerAppPlayStoreUrl: "",
+  customerAppStoreUrl: "",
+  providerAppUpdateEnabled: false,
+  providerAppForceUpdate: false,
+  providerAppLatestVersion: "",
+  providerAppUpdateMessage: "",
+  providerAppPlayStoreUrl: "",
+  providerAppStoreUrl: "",
+};
+
+const AppUpdateCard = ({ title, prefix, form, onChange, onToggle }) => {
+  const enabled = form[`${prefix}UpdateEnabled`];
+  return (
+    <Box sx={{ p: 2.5, border: "1px solid #e2e8f0", borderRadius: "12px", bgcolor: "#f8fafc" }}>
+      <Typography fontWeight={700} sx={{ mb: 1 }}>{title}</Typography>
+      <Grid container spacing={2} alignItems="center">
+        <Grid item xs={12} sm={6}>
+          <FormControlLabel
+            control={<Switch checked={enabled} onChange={onToggle(`${prefix}UpdateEnabled`)} />}
+            label={enabled ? "Update prompt enabled" : "Update prompt disabled"}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={form[`${prefix}ForceUpdate`]}
+                onChange={onToggle(`${prefix}ForceUpdate`)}
+                disabled={!enabled}
+              />
+            }
+            label="Force update (cannot dismiss)"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            required={enabled}
+            label="Latest Version"
+            value={form[`${prefix}LatestVersion`]}
+            onChange={onChange(`${prefix}LatestVersion`)}
+            size="small"
+            placeholder="1.1.0"
+            helperText="Users below this version see Update available"
+            InputLabelProps={{ shrink: true }}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Update Message"
+            value={form[`${prefix}UpdateMessage`]}
+            onChange={onChange(`${prefix}UpdateMessage`)}
+            size="small"
+            placeholder="A new version with improvements is available."
+            helperText="Optional; a default message is used when blank"
+            InputLabelProps={{ shrink: true }}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Play Store URL"
+            value={form[`${prefix}PlayStoreUrl`]}
+            onChange={onChange(`${prefix}PlayStoreUrl`)}
+            type="url"
+            size="small"
+            InputLabelProps={{ shrink: true }}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="App Store URL"
+            value={form[`${prefix}StoreUrl`]}
+            onChange={onChange(`${prefix}StoreUrl`)}
+            type="url"
+            size="small"
+            InputLabelProps={{ shrink: true }}
+          />
+        </Grid>
+      </Grid>
+    </Box>
+  );
 };
 
 // Single settings form (not a table) for customer-support details, the
@@ -86,6 +174,18 @@ const AppSettingsPanel = () => {
           data.commissionTaxRate === undefined || data.commissionTaxRate === null
             ? "18"
             : String(data.commissionTaxRate),
+        customerAppUpdateEnabled: Boolean(data.customerAppUpdateEnabled),
+        customerAppForceUpdate: Boolean(data.customerAppForceUpdate),
+        customerAppLatestVersion: data.customerAppLatestVersion || "",
+        customerAppUpdateMessage: data.customerAppUpdateMessage || "",
+        customerAppPlayStoreUrl: data.customerAppPlayStoreUrl || "",
+        customerAppStoreUrl: data.customerAppStoreUrl || "",
+        providerAppUpdateEnabled: Boolean(data.providerAppUpdateEnabled),
+        providerAppForceUpdate: Boolean(data.providerAppForceUpdate),
+        providerAppLatestVersion: data.providerAppLatestVersion || "",
+        providerAppUpdateMessage: data.providerAppUpdateMessage || "",
+        providerAppPlayStoreUrl: data.providerAppPlayStoreUrl || "",
+        providerAppStoreUrl: data.providerAppStoreUrl || "",
       });
     } catch (e) {
       setLoadError(
@@ -111,6 +211,21 @@ const AppSettingsPanel = () => {
   };
 
   const handleSave = async () => {
+    const versionPattern = /^\d+(?:\.\d+){0,3}$/;
+    for (const [enabled, version, label] of [
+      [form.customerAppUpdateEnabled, form.customerAppLatestVersion, "Customer app"],
+      [form.providerAppUpdateEnabled, form.providerAppLatestVersion, "Provider app"],
+    ]) {
+      if (enabled && !versionPattern.test(version.trim())) {
+        Swal.fire({
+          icon: "error",
+          title: `${label} version required`,
+          text: "Enter a numeric version such as 1.1.0 before enabling updates.",
+        });
+        return;
+      }
+    }
+
     const feeAmount = form.platformFeeAmount === "" ? 0 : Number(form.platformFeeAmount);
     if (!Number.isFinite(feeAmount) || feeAmount < 0) {
       Swal.fire({
@@ -347,6 +462,34 @@ const AppSettingsPanel = () => {
                   </Box>
                 </Grid>
               </Grid>
+            </Box>
+
+            <Divider />
+
+            <Box>
+              <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>
+                Mobile App Updates
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#64748b", mb: 2 }}>
+                Set each app's released version. Older builds show an update modal and an
+                “App Update Available” item in Profile. Turn on force update to prevent dismissal.
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <AppUpdateCard
+                  title="Customer App"
+                  prefix="customerApp"
+                  form={form}
+                  onChange={handleChange}
+                  onToggle={handleToggle}
+                />
+                <AppUpdateCard
+                  title="Provider App"
+                  prefix="providerApp"
+                  form={form}
+                  onChange={handleChange}
+                  onToggle={handleToggle}
+                />
+              </Box>
             </Box>
 
             <Divider />
