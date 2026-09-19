@@ -231,6 +231,10 @@ const ViewUserDetails = () => {
                 <ListItemIcon><EarningsIcon color="primary" /></ListItemIcon>
                 <ListItemText primary="Referral Earnings" secondary={`₹${(user.referralEarnings ?? 0).toLocaleString()}`} />
               </ListItem>
+              <ListItem>
+                <ListItemIcon><EarningsIcon color="primary" /></ListItemIcon>
+                <ListItemText primary="MR Bike Money Balance" secondary={`₹${(user.mrBikeMoneyBalance ?? 0).toLocaleString()}`} />
+              </ListItem>
             </List>
 
             <Divider sx={{ my: 2 }} />

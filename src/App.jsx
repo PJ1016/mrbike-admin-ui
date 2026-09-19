@@ -277,6 +277,7 @@ const AppContent = () => {
           <Route path="/preferences/campaigns" element={<Campaigns />} />
           <Route path="/preferences/promo-codes" element={<PromoCodes />} />
           <Route path="/preferences/rewards-referral" element={<RewardsReferral />} />
+          <Route path="/mr-bike-money" element={<RewardsReferral initialTab={2} />} />
           <Route path="/preferences/legal" element={<Legal />} />
           <Route path="/preferences/app-content" element={<AppContentPage />} />
           {/* Legacy redirect — old /approve now lives at /finance/withdrawals */}

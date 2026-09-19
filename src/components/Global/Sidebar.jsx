@@ -108,6 +108,7 @@ export const menuSections = [
   {
     title: "FINANCE",
     items: [
+      { title: "MR Bike Money", icon: <RewardsIcon />, path: "/mr-bike-money" },
       { title: "Finance Overview", icon: <FinanceIcon />, path: "/finance" },
       { title: "Dealer Wallets", icon: <WalletIcon />, path: "/finance/dealer-wallets", activePaths: ["/finance/dealer-wallets/:walletId"] },
       { title: "Deposits", icon: <DepositIcon />, path: "/finance/deposits" },

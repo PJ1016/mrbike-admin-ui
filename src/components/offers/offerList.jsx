@@ -174,6 +174,9 @@ const OfferTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, da
     <div className="row">
       <div className="col-sm-12">
         <div className="card-table card p-2">
+          <div className="card-header bg-white">
+            <h5 className="mb-0">{text} List</h5>
+          </div>
           <div className="card-body">
             <div className="mb-3">
               <input
@@ -190,8 +193,24 @@ const OfferTable = ({ triggerDownloadExcel, triggerDownloadPDF, tableHeaders, da
 
             <div className="table-responsive">
               <table ref={tableRef} id="example" className="table table-striped">
-                <thead className="thead-light" style={{ backgroundColor: "#2e83ff" }}>
-                  <tr>{tableHeaders.map((header, index) => (<th key={index}>{header}</th>))}</tr>
+                <thead>
+                  <tr>
+                    {tableHeaders.map((header, index) => (
+                      <th
+                        key={index}
+                        scope="col"
+                        style={{
+                          backgroundColor: "#eff6ff",
+                          color: "#1e3a5f",
+                          fontWeight: 700,
+                          whiteSpace: "nowrap",
+                          borderBottom: "1px solid #bfdbfe",
+                        }}
+                      >
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
                 </thead>
                 <tbody>
                   {loading ? (

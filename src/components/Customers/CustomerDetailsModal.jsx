@@ -571,6 +571,11 @@ const CustomerDetailsModal = ({ open, customer, onClose }) => {
                     label="Referral Earnings"
                     value={`₹${(activeCustomer?.referralEarnings ?? 0).toLocaleString()}`}
                   />
+                  <InfoRow
+                    icon={<EarningsIcon sx={{ fontSize: 14, color: "text.secondary" }} />}
+                    label="MR Bike Money Balance"
+                    value={`₹${(activeCustomer?.mrBikeMoneyBalance ?? 0).toLocaleString()}`}
+                  />
                 </Box>
 
                 <Divider />

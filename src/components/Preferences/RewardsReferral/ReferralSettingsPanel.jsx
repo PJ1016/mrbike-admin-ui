@@ -28,12 +28,13 @@ const emptyForm = {
   newUserRewardAmount: "",
   minimumBookingAmount: "",
   firstBookingOnly: false,
+  rewardOnReferralSignup: true,
 };
 
 // Phase 1 settings form (not a table) for the referral module's global
 // toggles and amounts. Loaded via getReferralSettings() and saved as one
-// blob via updateReferralSettings(). Referral codes, rewards, transactions,
-// wallet and notifications are handled in later phases.
+// blob via updateReferralSettings(). Credited rewards now feed the spendable
+// MR Bike Money balance configured in the service-limits tab.
 const ReferralSettingsPanel = () => {
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(true);
@@ -57,6 +58,7 @@ const ReferralSettingsPanel = () => {
         newUserRewardAmount: data.newUserRewardAmount ?? "",
         minimumBookingAmount: data.minimumBookingAmount ?? "",
         firstBookingOnly: !!data.firstBookingOnly,
+        rewardOnReferralSignup: data.rewardOnReferralSignup !== false,
       });
     } catch (e) {
       setLoadError(e?.response?.data?.message || "Could not load existing referral settings.");
@@ -148,6 +150,17 @@ const ReferralSettingsPanel = () => {
                       <Box>
                         <Typography variant="body2" fontWeight={600}>Allow Referral Code During Registration</Typography>
                         <Typography variant="caption" color="text.secondary">Lets new users enter a referral code while signing up.</Typography>
+                      </Box>
+                    }
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControlLabel
+                    control={<Switch checked={form.rewardOnReferralSignup} onChange={handleToggle("rewardOnReferralSignup")} color="success" />}
+                    label={
+                      <Box>
+                        <Typography variant="body2" fontWeight={600}>Credit Reward on Signup</Typography>
+                        <Typography variant="caption" color="text.secondary">Adds MR Bike Money as soon as a valid referral code is accepted.</Typography>
                       </Box>
                     }
                   />
