@@ -79,6 +79,8 @@ import PromoCodes from "./pages/preferences/PromoCodes";
 import RewardsReferral from "./pages/preferences/RewardsReferral";
 import Legal from "./pages/preferences/Legal";
 import AppContentPage from "./pages/preferences/AppContent";
+import MobileAppUpdates from "./pages/preferences/MobileAppUpdates";
+import PlatformCharges from "./pages/preferences/PlatformCharges";
 import Reviews from "./pages/reviews/Reviews";
 const theme = createTheme({
   palette: {
@@ -280,6 +282,14 @@ const AppContent = () => {
           <Route path="/mr-bike-money" element={<RewardsReferral initialTab={2} />} />
           <Route path="/preferences/legal" element={<Legal />} />
           <Route path="/preferences/app-content" element={<AppContentPage />} />
+          <Route
+            path="/preferences/platform-charges"
+            element={<PlatformCharges />}
+          />
+          <Route
+            path="/preferences/mobile-app-updates"
+            element={<MobileAppUpdates />}
+          />
           {/* Legacy redirect — old /approve now lives at /finance/withdrawals */}
           <Route path="/approve" element={<Navigate to="/finance/withdrawals" replace />} />
           {/* Finance Phase 1 */}

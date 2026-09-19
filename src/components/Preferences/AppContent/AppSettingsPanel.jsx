@@ -7,11 +7,8 @@ import {
   CardContent,
   CircularProgress,
   Divider,
-  FormControlLabel,
   Grid,
-  InputAdornment,
   Snackbar,
-  Switch,
   TextField,
   Typography,
 } from "@mui/material";
@@ -31,111 +28,17 @@ const emptyForm = {
   websiteUrl: "",
   playStoreUrl: "",
   appStoreUrl: "",
-  platformFeeEnabled: false,
-  platformFeeAmount: "",
-  platformFeeLabel: "Platform Fee",
-  commissionTaxRate: "18",
-  customerAppUpdateEnabled: false,
-  customerAppForceUpdate: false,
-  customerAppLatestVersion: "",
-  customerAppUpdateMessage: "",
-  customerAppPlayStoreUrl: "",
-  customerAppStoreUrl: "",
-  providerAppUpdateEnabled: false,
-  providerAppForceUpdate: false,
-  providerAppLatestVersion: "",
-  providerAppUpdateMessage: "",
-  providerAppPlayStoreUrl: "",
-  providerAppStoreUrl: "",
-};
-
-const AppUpdateCard = ({ title, prefix, form, onChange, onToggle }) => {
-  const enabled = form[`${prefix}UpdateEnabled`];
-  return (
-    <Box sx={{ p: 2.5, border: "1px solid #e2e8f0", borderRadius: "12px", bgcolor: "#f8fafc" }}>
-      <Typography fontWeight={700} sx={{ mb: 1 }}>{title}</Typography>
-      <Grid container spacing={2} alignItems="center">
-        <Grid item xs={12} sm={6}>
-          <FormControlLabel
-            control={<Switch checked={enabled} onChange={onToggle(`${prefix}UpdateEnabled`)} />}
-            label={enabled ? "Update prompt enabled" : "Update prompt disabled"}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={form[`${prefix}ForceUpdate`]}
-                onChange={onToggle(`${prefix}ForceUpdate`)}
-                disabled={!enabled}
-              />
-            }
-            label="Force update (cannot dismiss)"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            required={enabled}
-            label="Latest Version"
-            value={form[`${prefix}LatestVersion`]}
-            onChange={onChange(`${prefix}LatestVersion`)}
-            size="small"
-            placeholder="1.1.0"
-            helperText="Users below this version see Update available"
-            InputLabelProps={{ shrink: true }}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Update Message"
-            value={form[`${prefix}UpdateMessage`]}
-            onChange={onChange(`${prefix}UpdateMessage`)}
-            size="small"
-            placeholder="A new version with improvements is available."
-            helperText="Optional; a default message is used when blank"
-            InputLabelProps={{ shrink: true }}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Play Store URL"
-            value={form[`${prefix}PlayStoreUrl`]}
-            onChange={onChange(`${prefix}PlayStoreUrl`)}
-            type="url"
-            size="small"
-            InputLabelProps={{ shrink: true }}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="App Store URL"
-            value={form[`${prefix}StoreUrl`]}
-            onChange={onChange(`${prefix}StoreUrl`)}
-            type="url"
-            size="small"
-            InputLabelProps={{ shrink: true }}
-          />
-        </Grid>
-      </Grid>
-    </Box>
-  );
 };
 
 // Single settings form (not a table) for customer-support details, the
-// platform/convenience fee, and the social/store links shown inside the
-// customer app. Loaded via getAppSettings() and saved as one blob via
+// social/store links shown inside the customer app. Loaded via
+// getAppSettings() and saved as one blob via
 // updateAppSettings(). A load failure does not block the form — it just
 // starts from empty defaults so the admin can fill it in and save for the
 // first time.
 //
-// Two fields here reach further than the customer app's Help screen:
 // `supportPhone` is the number printed on every invoice in place of the
-// dealer's, and the platform-fee fields are read by the backend's pricing
-// engine when a booking is created.
+// dealer's number.
 const AppSettingsPanel = () => {
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(true);
@@ -162,30 +65,6 @@ const AppSettingsPanel = () => {
         websiteUrl: data.websiteUrl || "",
         playStoreUrl: data.playStoreUrl || "",
         appStoreUrl: data.appStoreUrl || "",
-        platformFeeEnabled: Boolean(data.platformFeeEnabled),
-        // Kept as a string so the field can be cleared while typing; it is
-        // converted back to a number in handleSave().
-        platformFeeAmount:
-          data.platformFeeAmount === undefined || data.platformFeeAmount === null
-            ? ""
-            : String(data.platformFeeAmount),
-        platformFeeLabel: data.platformFeeLabel || "Platform Fee",
-        commissionTaxRate:
-          data.commissionTaxRate === undefined || data.commissionTaxRate === null
-            ? "18"
-            : String(data.commissionTaxRate),
-        customerAppUpdateEnabled: Boolean(data.customerAppUpdateEnabled),
-        customerAppForceUpdate: Boolean(data.customerAppForceUpdate),
-        customerAppLatestVersion: data.customerAppLatestVersion || "",
-        customerAppUpdateMessage: data.customerAppUpdateMessage || "",
-        customerAppPlayStoreUrl: data.customerAppPlayStoreUrl || "",
-        customerAppStoreUrl: data.customerAppStoreUrl || "",
-        providerAppUpdateEnabled: Boolean(data.providerAppUpdateEnabled),
-        providerAppForceUpdate: Boolean(data.providerAppForceUpdate),
-        providerAppLatestVersion: data.providerAppLatestVersion || "",
-        providerAppUpdateMessage: data.providerAppUpdateMessage || "",
-        providerAppPlayStoreUrl: data.providerAppPlayStoreUrl || "",
-        providerAppStoreUrl: data.providerAppStoreUrl || "",
       });
     } catch (e) {
       setLoadError(
@@ -206,63 +85,10 @@ const AppSettingsPanel = () => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
-  const handleToggle = (field) => (e) => {
-    setForm((prev) => ({ ...prev, [field]: e.target.checked }));
-  };
-
   const handleSave = async () => {
-    const versionPattern = /^\d+(?:\.\d+){0,3}$/;
-    for (const [enabled, version, label] of [
-      [form.customerAppUpdateEnabled, form.customerAppLatestVersion, "Customer app"],
-      [form.providerAppUpdateEnabled, form.providerAppLatestVersion, "Provider app"],
-    ]) {
-      if (enabled && !versionPattern.test(version.trim())) {
-        Swal.fire({
-          icon: "error",
-          title: `${label} version required`,
-          text: "Enter a numeric version such as 1.1.0 before enabling updates.",
-        });
-        return;
-      }
-    }
-
-    const feeAmount = form.platformFeeAmount === "" ? 0 : Number(form.platformFeeAmount);
-    if (!Number.isFinite(feeAmount) || feeAmount < 0) {
-      Swal.fire({
-        icon: "error",
-        title: "Invalid platform fee",
-        text: "Platform fee must be a non-negative amount.",
-      });
-      return;
-    }
-    if (form.platformFeeEnabled && feeAmount <= 0) {
-      Swal.fire({
-        icon: "error",
-        title: "Platform fee is empty",
-        text: "Enter an amount greater than ₹0, or switch the platform fee off.",
-      });
-      return;
-    }
-
-    const commissionTax = form.commissionTaxRate === "" ? 0 : Number(form.commissionTaxRate);
-    if (!Number.isFinite(commissionTax) || commissionTax < 0 || commissionTax > 100) {
-      Swal.fire({
-        icon: "error",
-        title: "Invalid GST rate",
-        text: "GST on commission must be a percentage between 0 and 100.",
-      });
-      return;
-    }
-
     setSaving(true);
     try {
-      // Both go to the backend as numbers, never as the raw strings the text
-      // fields hold while the admin is typing.
-      await updateAppSettings({
-        ...form,
-        platformFeeAmount: feeAmount,
-        commissionTaxRate: commissionTax,
-      });
+      await updateAppSettings(form);
       setSnackbar({ open: true, message: "Settings saved successfully" });
     } catch (e) {
       Swal.fire({ icon: "error", title: "Save failed", text: e?.response?.data?.message || "Something went wrong. Backend endpoint may not be connected yet." });
@@ -341,155 +167,6 @@ const AppSettingsPanel = () => {
                   />
                 </Grid>
               </Grid>
-            </Box>
-
-            <Divider />
-
-            {/* Platform / convenience fee — MR Bike's own flat charge on top of
-                the garage's amount. Shown as its own line in the customer app's
-                payment breakdown and on the invoice; it never enters the
-                dealer's commission or payout. Changing it only affects NEW
-                bookings — every existing booking keeps the fee it was created
-                with (see services/pricingEngine.js on the backend). */}
-            <Box>
-              <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>
-                Platform / Convenience Fee
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#64748b", mb: 2 }}>
-                A flat fee added to every new booking, shown to the customer as its own line after
-                taxes. Dealer earnings and commission are not affected. Existing bookings keep the
-                fee they were created with.
-              </Typography>
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={form.platformFeeEnabled}
-                        onChange={handleToggle("platformFeeEnabled")}
-                      />
-                    }
-                    label={
-                      <Typography sx={{ fontWeight: 600 }}>
-                        {form.platformFeeEnabled ? "Fee is charged on new bookings" : "Fee is off"}
-                      </Typography>
-                    }
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Fee Amount"
-                    value={form.platformFeeAmount}
-                    onChange={handleChange("platformFeeAmount")}
-                    type="number"
-                    size="small"
-                    placeholder="20"
-                    disabled={!form.platformFeeEnabled}
-                    inputProps={{ min: 0, step: 1 }}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">₹</InputAdornment>,
-                    }}
-                    InputLabelProps={{ shrink: true }}
-                    helperText="Flat amount per booking"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Label Shown to Customer"
-                    value={form.platformFeeLabel}
-                    onChange={handleChange("platformFeeLabel")}
-                    size="small"
-                    placeholder="Platform Fee"
-                    disabled={!form.platformFeeEnabled}
-                    InputLabelProps={{ shrink: true }}
-                    helperText="e.g. Platform Fee, Convenience Fee"
-                  />
-                </Grid>
-              </Grid>
-            </Box>
-
-            <Divider />
-
-            {/* GST on MR Bike's commission. Charged BY the platform TO the
-                dealer — it comes out of the dealer's payout and never touches
-                what the customer pays. Entirely separate from the dealer's own
-                tax %, which is the customer's tax on the garage's service. */}
-            <Box>
-              <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>
-                GST on Commission
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#64748b", mb: 2 }}>
-                Tax charged on the commission MR Bike earns from a garage. It is recovered from the
-                dealer along with the commission and does not change what the customer pays.
-                Existing bookings keep the rate they were created with.
-              </Typography>
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="GST Rate on Commission"
-                    value={form.commissionTaxRate}
-                    onChange={handleChange("commissionTaxRate")}
-                    type="number"
-                    size="small"
-                    placeholder="18"
-                    inputProps={{ min: 0, max: 100, step: 0.01 }}
-                    InputProps={{
-                      endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                    }}
-                    InputLabelProps={{ shrink: true }}
-                    helperText="Set 0 to charge no GST on commission"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: "10px",
-                      bgcolor: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      fontSize: "0.8rem",
-                      color: "#475569",
-                    }}
-                  >
-                    <strong>Example:</strong> on a ₹1,000 booking with 10% commission, MR Bike earns
-                    ₹100. At {form.commissionTaxRate || 0}% GST that is ₹
-                    {((100 * (Number(form.commissionTaxRate) || 0)) / 100).toFixed(2)} tax, so ₹
-                    {(100 + (100 * (Number(form.commissionTaxRate) || 0)) / 100).toFixed(2)} is
-                    deducted from the dealer's wallet.
-                  </Box>
-                </Grid>
-              </Grid>
-            </Box>
-
-            <Divider />
-
-            <Box>
-              <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>
-                Mobile App Updates
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#64748b", mb: 2 }}>
-                Set each app's released version. Older builds show an update modal and an
-                “App Update Available” item in Profile. Turn on force update to prevent dismissal.
-              </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <AppUpdateCard
-                  title="Customer App"
-                  prefix="customerApp"
-                  form={form}
-                  onChange={handleChange}
-                  onToggle={handleToggle}
-                />
-                <AppUpdateCard
-                  title="Provider App"
-                  prefix="providerApp"
-                  form={form}
-                  onChange={handleChange}
-                  onToggle={handleToggle}
-                />
-              </Box>
             </Box>
 
             <Divider />

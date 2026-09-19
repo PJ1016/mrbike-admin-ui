@@ -24,8 +24,8 @@ const TABS = [
 // PrefHeader intentionally has no onAdd: "Add" is
 // contextual per-tab, so each tab's own manager component renders its own
 // PrefHeader with a tab-specific Add button instead.
-const AppContent = () => {
-  const [activeTab, setActiveTab] = useState(0);
+const AppContent = ({ initialTab = 0 }) => {
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: "#f8fafc", minHeight: "100vh" }}>

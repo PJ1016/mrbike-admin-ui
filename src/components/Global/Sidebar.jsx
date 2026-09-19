@@ -26,6 +26,7 @@ import {
   InsightsOutlined as InsightsIcon,
   LocalOfferOutlined as OfferIcon,
   MapOutlined as ServiceAreaIcon,
+  MonetizationOnOutlined as PlatformChargesIcon,
   PaymentsOutlined as PaymentsIcon,
   PeopleOutline as DealerIcon,
   PersonOutline as CustomerIcon,
@@ -36,6 +37,7 @@ import {
   SellOutlined as PromoCodeIcon,
   SupportAgentOutlined as SupportIcon,
   SwapHorizOutlined as WithdrawalIcon,
+  SystemUpdateAltOutlined as MobileAppUpdatesIcon,
   TwoWheelerOutlined as BikeIcon,
   ViewCarouselOutlined as FeaturedIcon,
 } from "@mui/icons-material";
@@ -140,6 +142,8 @@ export const menuSections = [
     title: "CONTENT & SETTINGS",
     items: [
       { title: "App Content", icon: <AppContentIcon />, path: "/preferences/app-content" },
+      { title: "Platform Charges", icon: <PlatformChargesIcon />, path: "/preferences/platform-charges" },
+      { title: "Mobile App Updates", icon: <MobileAppUpdatesIcon />, path: "/preferences/mobile-app-updates" },
       { title: "Legal", icon: <LegalIcon />, path: "/preferences/legal" },
       { title: "Admin Users", icon: <AdminIcon />, path: "/admins", activePaths: ["/addadmin"] },
     ],
